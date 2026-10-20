@@ -1,0 +1,24 @@
+# Decisions
+
+Short ADR-style log. Newest at the bottom. Keep CLAUDE.md in sync when a decision changes.
+
+## ADR-001: Toolchain (accepted, 2026-10-20)
+JDK 25 (Temurin LTS), Scala 3.9 LTS, sbt 1.13, Python 3.13. Latest stable lines, not the newest releases: Scala Next (3.10) and sbt 2.x are skipped because they trade stability for features we do not need this week.
+
+## ADR-002: Effect stack is cats-effect + fs2 + http4s + circe (accepted, 2026-10-20)
+The core is a replay and streaming engine, so fs2 `Stream` is the natural model for the generator, the feed emulator (jitter, out-of-order delivery and dropouts via `metered`, `evalMap` and `delayBy`) and the roughly 10 s viewer-delayed fan-out (`Topic`, `broadcastThrough`), with backpressure included. http4s has first-class server-sent events, and circe's explicit codecs suit golden-file testing. Pure core with effects at the edges maps onto `IO`. ZIO would also work; we pick cats-effect and fs2 for streaming ergonomics, the SSE and HTTP stack, and munit-cats-effect. Never mix the two stacks. No Akka.
+
+Versions: cats-effect 3.7.1, fs2 3.14.0, http4s 0.23.38 (the 1.0 line is still milestone-only), circe 0.14.17.
+
+## ADR-003: Scala models are hand-written, pinned by golden tests (accepted, 2026-10-20)
+No codegen on the Scala side. The canonical event schema selects the `details` shape, the allowed `outcome` values and the required fields with `if/then/else` keyed on `type`; no maintained Scala 3 generator expresses that, so output would be hand-edited anyway. Hand-written sealed ADTs also give exhaustive matching in detectors.
+
+Sync mechanism, with `/schema` as the source of truth:
+1. Every example is validated against the schemas on the JVM (`SchemaConformanceSuite`, the twin of `schema/validate_examples.py`), including known-bad variants.
+2. Golden round trip: decode, re-encode, compare (`EnvelopeGoldenSuite`; extended to all models in step 2).
+3. From step 3, everything the generator emits is validated against the schema in tests.
+
+Python keeps datamodel-code-generator for its models. Test-only dependency: `com.networknt:json-schema-validator` 3.0.8 (draft 2020-12, format assertions switched on). In the spike only the envelope shell is typed; payloads stay raw JSON until step 2.
+
+## ADR-004: Server-sent events as the stream transport (accepted, 2026-10-20)
+`GET /events/stream` emits `text/event-stream`; `id` is the envelope `seq` (supports resume), `event` is the payload type, `data` is the envelope JSON. Chosen over WebSockets because the viewer only receives, browsers reconnect with `Last-Event-ID` for free, and it works through standard HTTP infrastructure. Spike status: serves the first `event` envelope of the examples file on `localhost`.

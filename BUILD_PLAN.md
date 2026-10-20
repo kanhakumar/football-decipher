@@ -16,11 +16,11 @@ Rough effort: about 50 hours in total. Steps 0-6 need no Azure.
 - Oct 27: buffer and submit early
 If behind: skip step 9 first, then voice and the third language, then extra personas. Never skip steps 3 to 8, 11 or 12.
 
-## Step 0: Repo bootstrap (build, 30 min)
+## Step 0: Repo bootstrap (build, 30 min) [x] DONE
 Prompt: "Read CLAUDE.md. Set up the repo: git init, folders /schema /core /agents /viewer /infra /eval /docs, unzip the contract pack into place, add .gitignore, a README stub, an sbt skeleton in /core (Scala 3, scalafmt, ScalaCheck) and a Python project in /agents (ruff, pytest). Add a Python script in /schema that validates examples against the schemas. Do not add Azure code yet."
 Done when: `sbt test` runs (even with no tests), `pytest` runs, and the schema script passes on the examples.
 
-## Step 1: Local tech spike (plan, 1 to 2 hours)
+## Step 1: Local tech spike (plan, 1 to 2 hours) [x] DONE (Azure part deferred to step 13)
 Prompt: "Plan and implement a minimal Scala spike in /core: pick ONE effect stack (ZIO or cats-effect with fs2) and justify it in one paragraph. Decide how Scala models stay in sync with the JSON Schema (codegen or hand-written plus golden tests). Stream one example event over a local HTTP SSE endpoint. Record decisions in docs/decisions.md and update CLAUDE.md conventions."
 Done when: one decision per question is recorded and the SSE endpoint streams the example. If tooling fights you for over 2 hours, stop and ask me about switching the core to Python.
 Azure part of the spike (Event Hubs and Cosmos from Scala) happens later, in step 13, once your account is ready.

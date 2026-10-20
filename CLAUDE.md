@@ -50,7 +50,8 @@ Core is a modular monolith (adapter, engine, detectors, API) with clean module b
 - Generate Pydantic models with datamodel-code-generator. Scala: generate case classes or hand-write them, but pin them with golden-file tests. Decide in the spike.
 
 ## Conventions
-- Scala 3.9 LTS with sbt 1.x on JDK 25, scalafmt, ScalaCheck. Pick ONE effect stack in the spike (ZIO, or cats-effect with fs2) and never mix. No Akka (Pekko if needed). Pure core, effects at the edges.
+- Scala 3.9 LTS with sbt 1.x on JDK 25, scalafmt, munit + ScalaCheck. Effect stack (ADR-002): cats-effect + fs2 + http4s (Ember) + circe. Never mix in ZIO. No Akka (Pekko if needed). Pure core, effects at the edges.
+- Scala models are hand-written (ADR-003), pinned by golden round-trip tests and JVM schema validation against /schema. Python models are generated with datamodel-code-generator.
 - Python 3.11 or newer, Pydantic v2, ruff, pytest.
 - Determinism: every random draw comes from the seeded RNG. The same seed must produce byte-identical NDJSON.
 - Small modules, short functions, comments only where intent is not obvious.
@@ -80,7 +81,7 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 - Python env: `agents/.venv` (Python 3.13 from python.org; the system default is still 3.6). Setup: `cd agents && "%LOCALAPPDATA%/Programs/Python/Python313/python.exe" -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]" -r ../schema/requirements.txt`
 - Schema check: `agents/.venv/Scripts/python schema/validate_examples.py`
 - Generate a match: TODO
-- Run core service: TODO
+- Run core service: `cd core && sbt run` (SSE on http://127.0.0.1:8080, override with `SMI_PORT`; try `curl -N http://127.0.0.1:8080/events/stream`)
 - Run agent service: TODO
 - Toolchain: JDK 25 (Temurin, installed with machine-wide JAVA_HOME; open a new terminal after install), Scala 3.9.0 LTS, sbt 1.13.0
 - Run tests: `cd core && sbt test`; `cd agents && .venv/Scripts/python -m pytest`
@@ -88,6 +89,7 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 - Deploy: TODO
 
 ## Status
+- [x] Local Scala spike: effect stack, model sync, SSE endpoint (docs/decisions.md ADR-002 to 004)
 - [ ] Spikes: Scala to Event Hubs and Cosmos, Foundry model call, Agent Framework plus MCP hello workflow, hosted-agent deploy (2 h limit each)
 - [ ] Phase 1: generator, raw feed, adapter
 - [ ] Phase 2: engine and moment detectors

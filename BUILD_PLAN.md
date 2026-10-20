@@ -45,7 +45,7 @@ Done when: the report shows every metric in range.
 Prompt: "Add a provider-style raw feed emitter: our own type and qualifier ID registry in config, 0 to 100 coordinates, minute and second time, 0 or 1 outcomes, last_modified. Build the adapter that converts raw to canonical (rescale, ID mapping, update and delete). Build the feed emulator: replay at 1x to 20x, jitter, occasional out-of-order delivery, a few corrections and a short dropout. Tests: round trip, delete, out-of-order, missing qualifier, boundary coordinates."
 Done when: raw to canonical to raw matches, and the emulator produces a messy but recoverable stream.
 
-## Step 7: Stats engine (plan, 4 hours)
+## Step 7: Stats engine (plan, 4 hours) [x] DONE
 Prompt: "Plan then build the stats engine: match state, enriched fields (xG from distance and angle, pass difficulty, progressive, zones), per-minute player and team aggregates, and a metric registry where each metric declares what data it requires and a fallback. Handle updates and deletes by recomputing affected state. Outputs carry a basis tag."
 Done when: tests confirm known sequences give known stats, and a correction updates the aggregates.
 

@@ -49,7 +49,7 @@ Done when: raw to canonical to raw matches, and the emulator produces a messy bu
 Prompt: "Plan then build the stats engine: match state, enriched fields (xG from distance and angle, pass difficulty, progressive, zones), per-minute player and team aggregates, and a metric registry where each metric declares what data it requires and a fallback. Handle updates and deletes by recomputing affected state. Outputs carry a basis tag."
 Done when: tests confirm known sequences give known stats, and a correction updates the aggregates.
 
-## Step 8: Moment detectors and insights (plan, 4 hours)
+## Step 8: Moment detectors and insights (plan, 4 hours) [x] DONE
 Prompt: "Plan then build detectors for goal, red card, key chance, momentum swing, pressure shift, control vs chaos, rhythm change and milestones. Each emits an Insight with facts, evidence event IDs, a why_it_matters code with params, importance and basis, validated against insight.schema.json. Test against the scripted storylines: the high-press spell, counter goal and red card must each be detected."
 Done when: the scripted match yields a sensible ranked list of insights and each insight's numbers can be re-derived from its evidence events.
 
@@ -69,7 +69,7 @@ Done when: the offline tests pass, then one real insight produces verified lines
 ## Step 12: Viewer and overlays (build, 6 hours)
 Prompt: "Build the viewer: a single web page styled like a broadcast screen with a pitch or video placeholder, overlays scheduled by video_ts_ms (lower thirds, cards, momentum bar, player tag), a settings panel for persona, language, favourite club, favourite player and metric focus, a player-focus panel, a latency readout and a retract path for corrections. Use fictional branding only. Check it at desktop and phone width."
 Done when: a full replay shows overlays on time, and switching persona or language changes the same moment.
-Before starting: pick the demo seed. Story beats are soft, so not every seed lands both (seed 42 misses the 34' counter goal). Scan seeds with `sbt "generate --seed N"` and choose one whose summary shows the away counter goal near 34', the home red card near 78' and a sensible scoreline; record it in CLAUDE.md.
+Demo seed: 154 (chosen in step 8, recorded in CLAUDE.md): away counter goal 33', home red card 76', home press spell detected, ten-man home equaliser 81', final 2-2.
 
 ## Step 13: Azure deploy and hardening (plan, 6 hours)
 Prompt: "Create Bicep and azd for Event Hubs, Cosmos DB (serverless), Container Apps (generator job, core, agents), Static Web Apps, Key Vault, Application Insights and managed identity, plus GitHub Actions. Move the stream to Event Hubs and persistence to Cosmos. Add OpenTelemetry tracing to Foundry. Add an eval gate: replay a recorded match, run the number-match check and Foundry evaluations, and fail the build on regression. Do not create resources until I approve the plan."

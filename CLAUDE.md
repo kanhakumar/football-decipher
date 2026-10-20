@@ -85,6 +85,8 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 - Calibrate: `cd core && sbt calibrate` (200 seeds; `--report ../docs/calibration.md` rewrites the report; exits non-zero if a baseline metric is out of range)
 - Raw feed and emulator: `cd core && sbt "rawfeed --seed 42"` (writes the messy raw feed to out/raw-42.ndjson and checks the adapter recovers the match; `--feed-seed N` for another mess, `--live --speed 1-20` to replay through the adapter in real time)
 - Match stats: `cd core && sbt "stats --seed 42"` (team totals from the stats engine with basis tags)
+- Insights: `cd core && sbt "insights --seed 154 [--top 15]"` (ranked moments from the detectors)
+- Demo match: seed 154 with the default scenario (away counter goal 33', home red card 76', home high press 55-70, ten-man equaliser 81', 2-2). Use it for the viewer, video and evals.
 - Run core service: `cd core && sbt run` (SSE on http://127.0.0.1:8080, override with `SMI_PORT`; try `curl -N http://127.0.0.1:8080/events/stream`)
 - Run agent service: TODO
 - Toolchain: JDK 25 (Temurin, installed with machine-wide JAVA_HOME; open a new terminal after install), Scala 3.9.0 LTS, sbt 1.13.0

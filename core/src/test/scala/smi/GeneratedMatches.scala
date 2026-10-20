@@ -22,3 +22,13 @@ object GeneratedMatches:
   lazy val noBeats: Vector[Match] =
     val control = Scenario.default.copy(name = "no-beats", beats = None)
     Seeds.map(generate(_, control))
+
+/** Insight runs over the shared generated matches, built once per test run. */
+object InsightRuns:
+  import smi.insight.{MomentState, Moments}
+
+  lazy val default: Vector[(GeneratedMatches.Match, MomentState)] =
+    GeneratedMatches.default.map(m => m -> Moments.run(m.envelopes))
+
+  lazy val noBeats: Vector[(GeneratedMatches.Match, MomentState)] =
+    GeneratedMatches.noBeats.map(m => m -> Moments.run(m.envelopes))

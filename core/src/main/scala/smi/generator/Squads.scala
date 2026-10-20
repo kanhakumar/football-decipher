@@ -6,6 +6,7 @@ import smi.model.*
 final case class Squad(lineup: Lineup):
   def teamId: TeamId = lineup.teamId
   def starters: Vector[Player] = lineup.starters.toVector
+  def bench: Vector[Player] = lineup.bench.toVector
 
 object Squads:
   /** 4-3-3 slot anchors in team-relative metres (attacking toward x = 105, right side at low y). */
@@ -25,6 +26,9 @@ object Squads:
   val Slots = Vector("GK", "RB", "RCB", "LCB", "LB", "DM", "RCM", "LCM", "RW", "ST", "LW")
   val StrikerIndex = 9
 
+  /** Slot groups used to match substitutes: 1-4 defence, 5-7 midfield, 8-10 attack. */
+  def group(slot: Int): Int = if slot <= 4 then 0 else if slot <= 7 then 1 else 2
+
   private val positions = Vector(
     Position.GK,
     Position.RB,
@@ -39,12 +43,25 @@ object Squads:
     Position.LW
   )
 
+  /** Bench shape: a keeper, two defenders, two midfielders, two forwards. */
+  private val benchPositions =
+    Vector(
+      Position.GK,
+      Position.CB,
+      Position.RB,
+      Position.CM,
+      Position.CAM,
+      Position.ST,
+      Position.LW
+    )
+
   private def squad(
       team: String,
       name: String,
       short: String,
       colors: List[String],
-      players: Vector[(Int, String)]
+      players: Vector[(Int, String)],
+      reserves: Vector[(Int, String)]
   ): Squad =
     val starters = players.zipWithIndex.map { case ((shirt, playerName), i) =>
       Player(
@@ -55,6 +72,9 @@ object Squads:
         Some(Slots(i))
       )
     }
+    val bench = reserves.zip(benchPositions).map { case ((shirt, playerName), position) =>
+      Player(PlayerId.unsafe(f"P_${team}_$shirt%02d"), playerName, shirt, position)
+    }
     Squad(
       Lineup(
         TeamId.unsafe(s"T_$team"),
@@ -63,7 +83,7 @@ object Squads:
         Some(colors.map(HexColor.unsafe)),
         Formation.unsafe("4-3-3"),
         starters.toList,
-        Nil
+        bench.toList
       )
     )
 
@@ -84,6 +104,15 @@ object Squads:
       7 -> "Marcus Rivera",
       9 -> "Kofi Mensah",
       11 -> "Jonas Weber"
+    ),
+    Vector(
+      13 -> "Viktor Hale",
+      15 -> "Omar Sato",
+      16 -> "Felix Arndt",
+      14 -> "Ruben Castell",
+      18 -> "Danilo Ferraz",
+      19 -> "Kwame Adjei",
+      17 -> "Leon Hartwig"
     )
   )
 
@@ -104,5 +133,14 @@ object Squads:
       7 -> "Ade Okonjo",
       9 -> "Liam Carver",
       11 -> "Bastian Kroll"
+    ),
+    Vector(
+      12 -> "Erik Solberg",
+      15 -> "Marco Venn",
+      22 -> "Aiden Pryce",
+      14 -> "Sami Haddad",
+      16 -> "Joao Teles",
+      19 -> "Isak Moreno",
+      20 -> "Tariq Bello"
     )
   )

@@ -81,7 +81,7 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 ## Commands (fill in as they are established)
 - Python env: `agents/.venv` (Python 3.13 from python.org; the system default is still 3.6). Setup: `cd agents && "%LOCALAPPDATA%/Programs/Python/Python313/python.exe" -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]" -r ../schema/requirements.txt`
 - Schema check: `agents/.venv/Scripts/python schema/validate_examples.py`
-- Generate a match: `cd core && sbt "generate --seed 42"` (writes out/match-42.ndjson at the repo root and prints a summary; `--out <path>` to override)
+- Generate a match: `cd core && sbt "generate --seed 42"` (writes out/match-42.ndjson at the repo root and prints a summary; `--out <path>` to override, `--scenario <yaml>` for another match script; default script is core/src/main/resources/scenarios/default.yaml)
 - Run core service: `cd core && sbt run` (SSE on http://127.0.0.1:8080, override with `SMI_PORT`; try `curl -N http://127.0.0.1:8080/events/stream`)
 - Run agent service: TODO
 - Toolchain: JDK 25 (Temurin, installed with machine-wide JAVA_HOME; open a new terminal after install), Scala 3.9.0 LTS, sbt 1.13.0

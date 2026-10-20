@@ -35,3 +35,12 @@ Step 2 outcome: all payloads are typed (`smi.model`). Decoders enforce the schem
 - Fixed default kickoff time, so output never depends on the current date. `video_ts_ms` = wall time since kickoff + 10 s pre-roll.
 - v0 has no per-player attributes; when step 4 adds them they go in a generator-only file the pipeline never reads.
 
+## ADR-007: Scenario control with styles, phases and soft beats (accepted, 2026-10-20)
+A scenario YAML (default: `core/src/main/resources/scenarios/default.yaml`, override with `generate --scenario <file>`) scripts a match without scripting events. Generator-only: the pipeline never reads it.
+- Team styles: `press`, `directness`, `tempo`, `aggression` (roughly 0..1).
+- Phases override one team's knobs between two display minutes (default: home high press 55-70).
+- Beats (`counter_goal`, `red_card`) are soft. Around the target minute the relevant odds are multiplied by a boost that ramps up over the 5 minutes before, holds for 4 minutes after and fades by +6; once the beat happens it closes. A counter-goal boost applies only while the possession still qualifies as a counter (ball won in own half by tackle or interception, at most 15 s and 5 passes), so every boosted goal is a genuine counter. Nothing is forced: the control scenario without beats produces neither story at that rate.
+- Minutes are display minutes (34 = first half at 34:00, 78 = second half at 33:00).
+- Measured on 50 seeds: counter goal within 5 minutes of target in 48/50, red card in 49/50, home pressures per away pass 1.44x higher during the press phase. Without beats: 0/50 and 2/50.
+- Dependency: `io.circe::circe-yaml-v12` 1.15.0, decoded into strict case classes with the shared codec setup.
+

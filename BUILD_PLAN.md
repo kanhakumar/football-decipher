@@ -33,7 +33,7 @@ Done when: round-trip tests pass for all examples.
 Prompt: "Build a seeded match generator in /core: two fictional teams with 11 players each, a 12 x 8 pitch grid, a possession loop emitting only passes and shots with realistic distributions, team-relative coordinates, clocks and video_ts_ms, written as NDJSON envelopes. All randomness comes from one seeded RNG. Add a test that the same seed gives byte-identical output and that every line validates against the schema."
 Done when: `generate --seed 42` produces a plausible 90-minute file and tests pass.
 
-## Step 4: Generator v1 and scenario control (plan, 4 hours)
+## Step 4: Generator v1 and scenario control (plan, 4 hours) [x] DONE
 Prompt: "Extend the generator with possession changes, tackles, interceptions, pressure events, fouls and cards, set pieces, substitutions, and period start and end. Add a scenario YAML with team styles, tactical phases (for example a high-press spell from 55 to 70 minutes) and soft story beats (a counter-attack goal around minute 34, a red card around 78). Beats nudge probabilities so the story happens naturally. Add invariant tests: monotonic seq and clocks, spatial continuity, score equals goal events, 11 per side minus red cards."
 Done when: invariants pass on 50 seeds and the scripted beats appear within a few minutes of target.
 

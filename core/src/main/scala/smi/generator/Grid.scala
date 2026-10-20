@@ -49,6 +49,7 @@ object Grid:
   /** Final third starts at column 8; the penalty area is roughly columns 10-11, lanes 0-1. */
   def inFinalThird(p: Pt): Boolean = cell(p).col >= 8
   def inBox(p: Pt): Boolean = p.x >= 88.5 && p.y >= 13.85 && p.y <= 54.15
+  def inOwnBox(p: Pt): Boolean = p.x <= 16.5 && p.y >= 13.85 && p.y <= 54.15
 
   def clamp(v: Double, lo: Double, hi: Double): Double = math.max(lo, math.min(hi, v))
   def round1(v: Double): Double = StrictMath.round(v * 10) / 10.0

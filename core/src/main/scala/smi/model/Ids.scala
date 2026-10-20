@@ -1,7 +1,8 @@
 package smi.model
 
 import io.circe.{Codec, Decoder, Encoder}
-import java.time.{Instant, OffsetDateTime}
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.time.format.DateTimeFormatter
 import scala.util.Try
 
 /** A string that must satisfy a check; the check runs on decode and in `from`. */
@@ -65,5 +66,9 @@ object Timestamp
       s => Try(OffsetDateTime.parse(s)).isSuccess,
       "RFC 3339 date-time"
     ):
-  def of(i: Instant): Timestamp = i.toString
+  private val millisUtc =
+    DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC)
+
+  /** Always millisecond precision in UTC, so generated output has one fixed format. */
+  def of(i: Instant): Timestamp = millisUtc.format(i)
   extension (t: Timestamp) def toInstant: Instant = OffsetDateTime.parse(t).toInstant

@@ -29,7 +29,7 @@ Azure part of the spike (Event Hubs and Cosmos from Scala) happens later, in ste
 Prompt: "Implement the canonical envelope, event, lineup, match_meta and tracking_frame types in Scala, plus Insight and Overlay. Add JSON codecs. Add golden tests that read every file in /schema/examples, decode, re-encode and compare, and that reject the negative cases we validated in Python."
 Done when: round-trip tests pass for all examples.
 
-## Step 3: Generator v0 (build, 2 hours)
+## Step 3: Generator v0 (build, 2 hours) [x] DONE
 Prompt: "Build a seeded match generator in /core: two fictional teams with 11 players each, a 12 x 8 pitch grid, a possession loop emitting only passes and shots with realistic distributions, team-relative coordinates, clocks and video_ts_ms, written as NDJSON envelopes. All randomness comes from one seeded RNG. Add a test that the same seed gives byte-identical output and that every line validates against the schema."
 Done when: `generate --seed 42` produces a plausible 90-minute file and tests pass.
 

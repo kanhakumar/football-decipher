@@ -40,7 +40,7 @@ Hybrid. Scala for the deterministic core, Python for agents.
 Core is a modular monolith (adapter, engine, detectors, API) with clean module boundaries. The MCP server stays a thin Python layer over the Scala API.
 
 ## Contracts (the files in /schema)
-- canonical.schema.json: feed envelope (match_meta, lineup, event, tracking_frame, delete). Pitch 105 x 68 m, team-relative coordinates (each team attacks toward x = 105). Time fields: period, period_clock_s, match_clock_s, wallclock_utc, video_ts_ms.
+- canonical.schema.json: feed envelope (match_meta, lineup, event, tracking_frame, delete). Pitch 105 x 68 m, team-relative coordinates (each team attacks toward x = 105). Time fields: period, period_clock_s, match_clock_s (total elapsed playing time, monotonic; ADR-005), wallclock_utc, video_ts_ms.
 - insight.schema.json: facts, evidence_event_ids, why_it_matters {code, params}, importance, basis, capability_level. No prose.
 - overlay.schema.json: timed graphic. op show or retract.
 - Layers: raw events, then enriched (xG, pass difficulty, progressive), then insights. Never put derived metrics in the raw layer.
@@ -81,7 +81,7 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 ## Commands (fill in as they are established)
 - Python env: `agents/.venv` (Python 3.13 from python.org; the system default is still 3.6). Setup: `cd agents && "%LOCALAPPDATA%/Programs/Python/Python313/python.exe" -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]" -r ../schema/requirements.txt`
 - Schema check: `agents/.venv/Scripts/python schema/validate_examples.py`
-- Generate a match: TODO
+- Generate a match: `cd core && sbt "generate --seed 42"` (writes out/match-42.ndjson at the repo root and prints a summary; `--out <path>` to override)
 - Run core service: `cd core && sbt run` (SSE on http://127.0.0.1:8080, override with `SMI_PORT`; try `curl -N http://127.0.0.1:8080/events/stream`)
 - Run agent service: TODO
 - Toolchain: JDK 25 (Temurin, installed with machine-wide JAVA_HOME; open a new terminal after install), Scala 3.9.0 LTS, sbt 1.13.0

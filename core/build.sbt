@@ -12,6 +12,9 @@ lazy val root = (project in file("."))
     name := "smi-core",
     scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked", "-Wunused:all"),
     Compile / run / fork := true,
+    Compile / run / mainClass := Some("smi.Main"),
+    // Scala 3 lazy vals still use sun.misc.Unsafe; JDK 25 warns on every forked run.
+    Compile / run / javaOptions += "--sun-misc-unsafe-memory-access=allow",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
       "co.fs2" %% "fs2-core" % fs2Version,
@@ -28,3 +31,5 @@ lazy val root = (project in file("."))
       "com.networknt" % "json-schema-validator" % "3.0.8" % Test
     )
   )
+
+addCommandAlias("generate", "runMain smi.generator.Generate")

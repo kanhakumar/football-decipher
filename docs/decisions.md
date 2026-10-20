@@ -24,3 +24,14 @@ Step 2 outcome: all payloads are typed (`smi.model`). Decoders enforce the schem
 
 ## ADR-004: Server-sent events as the stream transport (accepted, 2026-10-20)
 `GET /events/stream` emits `text/event-stream`; `id` is the envelope `seq` (supports resume), `event` is the payload type, `data` is the envelope JSON. Chosen over WebSockets because the viewer only receives, browsers reconnect with `Last-Event-ID` for free, and it works through standard HTTP infrastructure. Spike status: serves the first `event` envelope of the examples file on `localhost`.
+
+## ADR-005: `match_clock_s` is total elapsed playing time (accepted, 2026-10-20)
+`match_clock_s` = playing time of all earlier periods (including their stoppage time) + `period_clock_s`. It is monotonic across halves, as the invariants require. The broadcast-style display ("45+2'", second half restarting at 45:00) is derived from `period` and `period_clock_s` at render time, never stored.
+
+## ADR-006: Generator v0 design (accepted, 2026-10-20)
+- One SplitMix64 RNG per match, seeded from the CLI, is the only randomness. All maths goes through `StrictMath` so the same seed is byte-identical on any JVM or CPU. Output values are rounded (coordinates 0.1 m, clocks 0.1 s) before they are written or reused.
+- Pure from the outside: `MatchGenerator.generate(config)` returns the envelopes; mutable state lives inside one private simulation instance.
+- A possession loop: the ball carrier shoots (chance by 12 x 8 grid cell) or passes to a teammate chosen by distance and forwardness from a 4-3-3 shape that shifts with the ball. Pass risk depends on length and destination zone. Failures become interceptions, loose balls, throw-ins or offside free kicks; shots end in goals, saves (keeper or corner), blocks or goal kicks.
+- Fixed default kickoff time, so output never depends on the current date. `video_ts_ms` = wall time since kickoff + 10 s pre-roll.
+- v0 has no per-player attributes; when step 4 adds them they go in a generator-only file the pipeline never reads.
+

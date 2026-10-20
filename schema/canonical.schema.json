@@ -1,0 +1,367 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schema/canonical.schema.json",
+  "title": "Canonical match feed envelope v1.0",
+  "description": "Every message on the feed (synthetic, replay or provider adapter) is one envelope. Coordinates are team-relative: each team attacks toward x = 105. Pitch is 105 x 68 m.",
+  "type": "object",
+  "required": ["schema_version", "seq", "match_id", "source", "op", "emitted_at", "payload_type", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "seq": { "type": "integer", "minimum": 0, "description": "Monotonic per match. Used for ordering, gap detection and resume." },
+    "match_id": { "$ref": "#/$defs/match_id" },
+    "source": { "enum": ["synthetic", "replay", "provider_adapter"] },
+    "op": { "enum": ["create", "update", "delete"] },
+    "emitted_at": { "type": "string", "format": "date-time" },
+    "payload_type": { "enum": ["match_meta", "lineup", "event", "tracking_frame"] },
+    "payload": { "type": "object" }
+  },
+  "if": { "properties": { "op": { "const": "delete" } }, "required": ["op"] },
+  "then": { "properties": { "payload": { "$ref": "#/$defs/delete_ref" } } },
+  "else": {
+    "allOf": [
+      { "if": { "properties": { "payload_type": { "const": "match_meta" } }, "required": ["payload_type"] }, "then": { "properties": { "payload": { "$ref": "#/$defs/match_meta" } } } },
+      { "if": { "properties": { "payload_type": { "const": "lineup" } }, "required": ["payload_type"] }, "then": { "properties": { "payload": { "$ref": "#/$defs/lineup" } } } },
+      { "if": { "properties": { "payload_type": { "const": "event" } }, "required": ["payload_type"] }, "then": { "properties": { "payload": { "$ref": "#/$defs/event" } } } },
+      { "if": { "properties": { "payload_type": { "const": "tracking_frame" } }, "required": ["payload_type"] }, "then": { "properties": { "payload": { "$ref": "#/$defs/tracking_frame" } } } }
+    ]
+  },
+  "$defs": {
+    "match_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
+    "team_id": { "type": "string", "pattern": "^T_[A-Z0-9_]{1,16}$" },
+    "player_id": { "type": "string", "pattern": "^P_[A-Z0-9_]{1,24}$" },
+    "event_id": { "type": "string", "pattern": "^E_[0-9]{1,9}$" },
+    "pitch_x": { "type": "number", "minimum": 0, "maximum": 105 },
+    "pitch_y": { "type": "number", "minimum": 0, "maximum": 68 },
+    "tracking_x": { "type": "number", "minimum": -5, "maximum": 110 },
+    "tracking_y": { "type": "number", "minimum": -5, "maximum": 73 },
+    "period": { "type": "integer", "minimum": 1, "maximum": 5, "description": "1,2 normal time; 3,4 extra time; 5 penalties." },
+    "clock_s": { "type": "number", "minimum": 0 },
+    "body_part": { "enum": ["right_foot", "left_foot", "head", "other"] },
+
+    "delete_ref": {
+      "type": "object",
+      "required": ["event_id"],
+      "additionalProperties": false,
+      "properties": { "event_id": { "$ref": "#/$defs/event_id" }, "reason": { "type": "string" } }
+    },
+
+    "source_ids": {
+      "type": "object",
+      "description": "Path back to the original record. Lets an adapter round-trip and lets us audit.",
+      "additionalProperties": false,
+      "properties": { "provider": { "type": "string" }, "event_id": { "type": "string" }, "player_id": { "type": "string" }, "team_id": { "type": "string" } }
+    },
+
+    "provenance": {
+      "type": "object",
+      "description": "Per-field origin. A provider-supplied metric is used as is and labelled; otherwise the engine computes it.",
+      "additionalProperties": { "enum": ["computed", "provider", "tracking_derived", "event_estimate"] }
+    },
+
+    "event": {
+      "type": "object",
+      "required": ["event_id", "type", "period", "period_clock_s", "match_clock_s", "wallclock_utc", "video_ts_ms", "team_id"],
+      "additionalProperties": false,
+      "properties": {
+        "event_id": { "$ref": "#/$defs/event_id" },
+        "type": { "enum": ["pass", "shot", "carry", "dribble", "tackle", "interception", "clearance", "block", "pressure", "ball_receipt", "possession_change", "foul", "set_piece", "goalkeeper_action", "offside", "substitution", "period_start", "period_end", "var_review"] },
+        "period": { "$ref": "#/$defs/period" },
+        "period_clock_s": { "$ref": "#/$defs/clock_s" },
+        "match_clock_s": { "$ref": "#/$defs/clock_s" },
+        "wallclock_utc": { "type": "string", "format": "date-time" },
+        "video_ts_ms": { "type": "integer", "minimum": 0, "description": "Offset in the broadcast feed. Overlays are scheduled against this." },
+        "team_id": { "$ref": "#/$defs/team_id" },
+        "player_id": { "$ref": "#/$defs/player_id" },
+        "x": { "$ref": "#/$defs/pitch_x" },
+        "y": { "$ref": "#/$defs/pitch_y" },
+        "possession_id": { "type": "string", "pattern": "^POS_[0-9]{1,6}$" },
+        "sequence_index": { "type": "integer", "minimum": 0 },
+        "under_pressure": { "type": "boolean" },
+        "outcome": { "enum": ["complete", "incomplete", "out", "offside", "intercepted", "goal", "saved", "blocked", "off_target", "post", "won", "lost"] },
+        "related_event_ids": { "type": "array", "items": { "$ref": "#/$defs/event_id" } },
+        "details": { "type": "object" },
+        "source_ids": { "$ref": "#/$defs/source_ids" },
+        "provenance": { "$ref": "#/$defs/provenance" },
+        "extras": { "type": "object", "description": "Provider-specific leftovers. Never read by the pipeline." }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "pass" } }, "required": ["type"] },
+          "then": { "required": ["player_id", "x", "y", "outcome", "details"], "properties": { "outcome": { "enum": ["complete", "incomplete", "out", "offside", "intercepted"] }, "details": { "$ref": "#/$defs/pass_details" } } } },
+        { "if": { "properties": { "type": { "const": "shot" } }, "required": ["type"] },
+          "then": { "required": ["player_id", "x", "y", "outcome", "details"], "properties": { "outcome": { "enum": ["goal", "saved", "blocked", "off_target", "post"] }, "details": { "$ref": "#/$defs/shot_details" } } } },
+        { "if": { "properties": { "type": { "const": "carry" } }, "required": ["type"] },
+          "then": { "required": ["player_id", "x", "y", "details"], "properties": { "details": { "$ref": "#/$defs/carry_details" } } } },
+        { "if": { "properties": { "type": { "enum": ["dribble", "tackle"] } }, "required": ["type"] },
+          "then": { "required": ["player_id", "x", "y", "outcome"], "properties": { "outcome": { "enum": ["won", "lost"] }, "details": { "$ref": "#/$defs/target_details" } } } },
+        { "if": { "properties": { "type": { "enum": ["interception", "clearance", "block", "ball_receipt", "offside"] } }, "required": ["type"] },
+          "then": { "required": ["player_id", "x", "y"], "properties": { "details": { "$ref": "#/$defs/generic_details" } } } },
+        { "if": { "properties": { "type": { "const": "pressure" } }, "required": ["type"] },
+          "then": { "required": ["player_id", "details"], "properties": { "details": { "$ref": "#/$defs/pressure_details" } } } },
+        { "if": { "properties": { "type": { "const": "possession_change" } }, "required": ["type"] },
+          "then": { "required": ["details"], "properties": { "details": { "$ref": "#/$defs/possession_change_details" } } } },
+        { "if": { "properties": { "type": { "const": "foul" } }, "required": ["type"] },
+          "then": { "required": ["player_id", "details"], "properties": { "details": { "$ref": "#/$defs/foul_details" } } } },
+        { "if": { "properties": { "type": { "const": "set_piece" } }, "required": ["type"] },
+          "then": { "required": ["details"], "properties": { "details": { "$ref": "#/$defs/set_piece_details" } } } },
+        { "if": { "properties": { "type": { "const": "goalkeeper_action" } }, "required": ["type"] },
+          "then": { "required": ["player_id", "details"], "properties": { "details": { "$ref": "#/$defs/gk_details" } } } },
+        { "if": { "properties": { "type": { "const": "substitution" } }, "required": ["type"] },
+          "then": { "required": ["details"], "properties": { "details": { "$ref": "#/$defs/substitution_details" } } } },
+        { "if": { "properties": { "type": { "const": "var_review" } }, "required": ["type"] },
+          "then": { "required": ["details"], "properties": { "details": { "$ref": "#/$defs/var_details" } } } }
+      ]
+    },
+
+    "pass_details": {
+      "type": "object",
+      "required": ["end_x", "end_y", "length_m"],
+      "additionalProperties": false,
+      "properties": {
+        "end_x": { "$ref": "#/$defs/pitch_x" },
+        "end_y": { "$ref": "#/$defs/pitch_y" },
+        "length_m": { "type": "number", "minimum": 0 },
+        "angle_rad": { "type": "number", "minimum": -3.1416, "maximum": 3.1416 },
+        "height": { "enum": ["ground", "low", "high"] },
+        "body_part": { "$ref": "#/$defs/body_part" },
+        "recipient_id": { "$ref": "#/$defs/player_id" },
+        "pass_type": { "enum": ["open_play", "corner", "free_kick", "throw_in", "goal_kick", "kick_off"] },
+        "is_through_ball": { "type": "boolean" },
+        "is_cross": { "type": "boolean" },
+        "is_switch": { "type": "boolean" },
+        "duration_s": { "type": "number", "minimum": 0 }
+      }
+    },
+
+    "shot_details": {
+      "type": "object",
+      "required": ["situation"],
+      "additionalProperties": false,
+      "properties": {
+        "body_part": { "$ref": "#/$defs/body_part" },
+        "situation": { "enum": ["open_play", "set_piece", "penalty", "counter", "free_kick"] },
+        "shot_speed_kmh": { "type": "number", "minimum": 0, "maximum": 200 },
+        "goal_y": { "type": "number", "minimum": 0, "maximum": 7.32, "description": "Across the goal mouth, metres." },
+        "goal_z": { "type": "number", "minimum": 0, "maximum": 2.44, "description": "Height in the goal frame, metres." },
+        "assist_event_id": { "$ref": "#/$defs/event_id" },
+        "is_first_time": { "type": "boolean" },
+        "freeze_frame": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["player_id", "team_id", "x", "y"],
+            "additionalProperties": false,
+            "properties": { "player_id": { "$ref": "#/$defs/player_id" }, "team_id": { "$ref": "#/$defs/team_id" }, "x": { "$ref": "#/$defs/tracking_x" }, "y": { "$ref": "#/$defs/tracking_y" } }
+          }
+        }
+      }
+    },
+
+    "carry_details": {
+      "type": "object",
+      "required": ["end_x", "end_y", "distance_m", "duration_s"],
+      "additionalProperties": false,
+      "properties": {
+        "end_x": { "$ref": "#/$defs/pitch_x" },
+        "end_y": { "$ref": "#/$defs/pitch_y" },
+        "distance_m": { "type": "number", "minimum": 0 },
+        "duration_s": { "type": "number", "exclusiveMinimum": 0 },
+        "top_speed_kmh": { "type": "number", "minimum": 0, "maximum": 45 }
+      }
+    },
+
+    "target_details": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "target_player_id": { "$ref": "#/$defs/player_id" } }
+    },
+
+    "generic_details": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "body_part": { "$ref": "#/$defs/body_part" }, "from_event_id": { "$ref": "#/$defs/event_id" } }
+    },
+
+    "pressure_details": {
+      "type": "object",
+      "required": ["pressed_player_id"],
+      "additionalProperties": false,
+      "properties": {
+        "pressed_player_id": { "$ref": "#/$defs/player_id" },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "is_counterpress": { "type": "boolean" }
+      }
+    },
+
+    "possession_change_details": {
+      "type": "object",
+      "required": ["from_team", "to_team", "cause"],
+      "additionalProperties": false,
+      "properties": {
+        "from_team": { "$ref": "#/$defs/team_id" },
+        "to_team": { "$ref": "#/$defs/team_id" },
+        "cause": { "enum": ["tackle", "interception", "out_of_play", "foul", "shot", "goal", "clearance", "other"] }
+      }
+    },
+
+    "foul_details": {
+      "type": "object",
+      "required": ["fouled_player_id", "card"],
+      "additionalProperties": false,
+      "properties": {
+        "fouled_player_id": { "$ref": "#/$defs/player_id" },
+        "card": { "enum": ["none", "yellow", "red"] },
+        "is_penalty": { "type": "boolean" }
+      }
+    },
+
+    "set_piece_details": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": { "kind": { "enum": ["corner", "free_kick", "throw_in", "goal_kick", "penalty", "kick_off"] } }
+    },
+
+    "gk_details": {
+      "type": "object",
+      "required": ["action"],
+      "additionalProperties": false,
+      "properties": { "action": { "enum": ["save", "claim", "punch", "sweep", "distribution"] } }
+    },
+
+    "substitution_details": {
+      "type": "object",
+      "required": ["player_off_id", "player_on_id"],
+      "additionalProperties": false,
+      "properties": { "player_off_id": { "$ref": "#/$defs/player_id" }, "player_on_id": { "$ref": "#/$defs/player_id" } }
+    },
+
+    "var_details": {
+      "type": "object",
+      "required": ["decision"],
+      "additionalProperties": false,
+      "properties": {
+        "decision": { "enum": ["goal_confirmed", "goal_disallowed", "penalty_awarded", "red_card_upgrade", "no_change"] },
+        "reviewed_event_id": { "$ref": "#/$defs/event_id" }
+      }
+    },
+
+    "match_meta": {
+      "type": "object",
+      "required": ["match_id", "competition", "season", "kickoff_utc", "status", "home_team_id", "away_team_id", "pitch", "score", "data_origin"],
+      "additionalProperties": false,
+      "properties": {
+        "match_id": { "$ref": "#/$defs/match_id" },
+        "competition": { "type": "string" },
+        "season": { "type": "string" },
+        "kickoff_utc": { "type": "string", "format": "date-time" },
+        "status": { "enum": ["scheduled", "live", "half_time", "full_time", "abandoned"] },
+        "home_team_id": { "$ref": "#/$defs/team_id" },
+        "away_team_id": { "$ref": "#/$defs/team_id" },
+        "attacking_direction": {
+          "type": "object",
+          "description": "Real pitch direction per period, per team. Events are still stored team-relative.",
+          "patternProperties": { "^[1-5]$": { "type": "object", "additionalProperties": { "enum": ["left_to_right", "right_to_left"] } } },
+          "additionalProperties": false
+        },
+        "pitch": {
+          "type": "object",
+          "required": ["length_m", "width_m"],
+          "additionalProperties": false,
+          "properties": { "length_m": { "type": "number", "minimum": 90, "maximum": 120 }, "width_m": { "type": "number", "minimum": 45, "maximum": 90 } }
+        },
+        "score": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "seed": { "type": "integer" },
+        "data_origin": { "enum": ["synthetic", "licensed_provider"], "description": "The hackathon requires synthetic." }
+      }
+    },
+
+    "player": {
+      "type": "object",
+      "description": "No generator attributes here. Those live in a generator-only file the pipeline never reads.",
+      "required": ["player_id", "name", "shirt", "position"],
+      "additionalProperties": false,
+      "properties": {
+        "player_id": { "$ref": "#/$defs/player_id" },
+        "name": { "type": "string", "minLength": 1 },
+        "shirt": { "type": "integer", "minimum": 1, "maximum": 99 },
+        "position": { "enum": ["GK", "RB", "CB", "LB", "RWB", "LWB", "CDM", "CM", "CAM", "RM", "LM", "RW", "LW", "ST", "CF"] },
+        "slot": { "type": "string" }
+      }
+    },
+
+    "lineup": {
+      "type": "object",
+      "required": ["team_id", "name", "short", "formation", "starters", "bench"],
+      "additionalProperties": false,
+      "properties": {
+        "team_id": { "$ref": "#/$defs/team_id" },
+        "name": { "type": "string" },
+        "short": { "type": "string", "minLength": 2, "maxLength": 4 },
+        "colors": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" } },
+        "formation": { "type": "string", "pattern": "^[0-9](-[0-9]){2,4}$" },
+        "starters": { "type": "array", "minItems": 11, "maxItems": 11, "items": { "$ref": "#/$defs/player" } },
+        "bench": { "type": "array", "maxItems": 15, "items": { "$ref": "#/$defs/player" } }
+      }
+    },
+
+    "tracking_frame": {
+      "type": "object",
+      "required": ["frame", "period", "period_clock_s", "wallclock_utc", "video_ts_ms", "hz", "ball", "players"],
+      "additionalProperties": false,
+      "properties": {
+        "frame": { "type": "integer", "minimum": 0 },
+        "period": { "$ref": "#/$defs/period" },
+        "period_clock_s": { "$ref": "#/$defs/clock_s" },
+        "wallclock_utc": { "type": "string", "format": "date-time" },
+        "video_ts_ms": { "type": "integer", "minimum": 0 },
+        "hz": { "type": "number", "exclusiveMinimum": 0, "maximum": 50 },
+        "ball": {
+          "type": "object",
+          "required": ["x", "y"],
+          "additionalProperties": false,
+          "properties": {
+            "x": { "$ref": "#/$defs/tracking_x" },
+            "y": { "$ref": "#/$defs/tracking_y" },
+            "z": { "type": "number", "minimum": 0, "maximum": 30 },
+            "speed_ms": { "type": "number", "minimum": 0, "maximum": 60 },
+            "state": { "enum": ["in_play", "dead"] }
+          }
+        },
+        "players": {
+          "type": "array",
+          "maxItems": 22,
+          "items": {
+            "type": "object",
+            "required": ["player_id", "team_id", "x", "y"],
+            "additionalProperties": false,
+            "properties": {
+              "player_id": { "$ref": "#/$defs/player_id" },
+              "team_id": { "$ref": "#/$defs/team_id" },
+              "x": { "$ref": "#/$defs/tracking_x" },
+              "y": { "$ref": "#/$defs/tracking_y" },
+              "speed_ms": { "type": "number", "minimum": 0, "maximum": 13 },
+              "role": { "enum": ["player", "goalkeeper"] }
+            }
+          }
+        },
+        "officials": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": ["id", "role", "x", "y"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^(REF|AR|FO|VAR)_[0-9]{2}$" },
+              "role": { "enum": ["referee", "assistant_referee", "fourth_official"] },
+              "x": { "$ref": "#/$defs/tracking_x" },
+              "y": { "$ref": "#/$defs/tracking_y" },
+              "speed_ms": { "type": "number", "minimum": 0, "maximum": 10 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

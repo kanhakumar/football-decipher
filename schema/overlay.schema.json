@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schema/overlay.schema.json",
+  "title": "Overlay v1.0",
+  "description": "Timed, machine-readable graphic for a synchronised overlay on the match feed. All times are video_ts_ms (milliseconds on the viewer feed clock). op=retract removes an earlier overlay, used when a correction invalidates it.",
+  "type": "object",
+  "required": ["overlay_id", "match_id", "op"],
+  "additionalProperties": false,
+  "properties": {
+    "overlay_id": { "type": "string", "pattern": "^O_[0-9]{1,8}$" },
+    "match_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
+    "insight_id": { "type": "string", "pattern": "^I_[0-9]{1,6}$" },
+    "op": { "enum": ["show", "retract"] },
+    "type": { "enum": ["player_tag", "speed_callout", "stat_card", "momentum_bar", "insight_card", "milestone_badge", "scoreline_update", "recap_card"] },
+    "t_start_ms": { "type": "integer", "minimum": 0 },
+    "duration_ms": { "type": "integer", "minimum": 1000, "maximum": 30000 },
+    "style": { "enum": ["lower_third", "corner_card", "full_width_banner", "pitch_overlay"] },
+    "lang": { "enum": ["en", "hi", "es"] },
+    "persona": { "enum": ["analyst", "casual", "club_fan", "player_focus", "metric_focus"] },
+    "focus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "team_id": { "type": "string", "pattern": "^T_[A-Z0-9_]{1,16}$" },
+        "player_id": { "type": "string", "pattern": "^P_[A-Z0-9_]{1,24}$" },
+        "metric": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" }
+      }
+    },
+    "content": {
+      "type": "object",
+      "required": ["headline"],
+      "additionalProperties": false,
+      "properties": {
+        "headline": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "body": { "type": "string", "maxLength": 400 },
+        "metrics": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "required": ["label", "value"],
+            "additionalProperties": false,
+            "properties": { "label": { "type": "string" }, "value": { "type": ["number", "string"] }, "unit": { "type": "string" } }
+          }
+        },
+        "player_id": { "type": "string", "pattern": "^P_[A-Z0-9_]{1,24}$" },
+        "team_id": { "type": "string", "pattern": "^T_[A-Z0-9_]{1,16}$" }
+      }
+    },
+    "evidence_event_ids": { "type": "array", "items": { "type": "string", "pattern": "^E_[0-9]{1,9}$" } },
+    "basis": { "enum": ["event_data", "tracking", "event_estimate"] },
+    "importance": { "type": "number", "minimum": 0, "maximum": 1 },
+    "verified": { "type": "boolean", "description": "True only if the Verifier passed every number and claim." },
+    "template_fallback": { "type": "boolean", "description": "True if a template line replaced model output after failures." },
+    "generated_at": { "type": "string", "format": "date-time" }
+  },
+  "if": { "properties": { "op": { "const": "show" } }, "required": ["op"] },
+  "then": { "required": ["type", "t_start_ms", "duration_ms", "style", "lang", "persona", "content", "importance", "verified", "template_fallback"] }
+}

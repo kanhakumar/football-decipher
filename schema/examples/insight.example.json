@@ -1,0 +1,18 @@
+{
+  "insight_id": "I_0042",
+  "match_id": "SYN-2026-0001",
+  "kind": "pressure_shift",
+  "period": 2,
+  "t_match_s": 3310,
+  "video_ts_ms": 3320000,
+  "teams": ["T_HOM"],
+  "players": ["P_HOM_08"],
+  "facts": { "ppda_before": 12.4, "ppda_after": 6.1, "turnovers_won_final_third": 5, "window_minutes": 6 },
+  "evidence_event_ids": ["E_001210", "E_001214", "E_001219"],
+  "why_it_matters": { "code": "pressing_raises_chance_quality", "params": { "shots_in_window": 3, "xg_in_window": 0.71 } },
+  "importance": 0.81,
+  "basis": "event_data",
+  "capability_level": 0,
+  "created_at": "2026-10-18T15:56:00.000Z",
+  "status": "active"
+}

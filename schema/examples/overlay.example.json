@@ -1,0 +1,28 @@
+{
+  "overlay_id": "O_00000231",
+  "match_id": "SYN-2026-0001",
+  "insight_id": "I_0042",
+  "op": "show",
+  "type": "insight_card",
+  "t_start_ms": 3330000,
+  "duration_ms": 8000,
+  "style": "lower_third",
+  "lang": "en",
+  "persona": "casual",
+  "focus": { "team_id": "T_HOM" },
+  "content": {
+    "headline": "Northgate are suddenly pressing high",
+    "body": "They have won the ball back 5 times near the goal in 6 minutes, and it has produced 3 shots.",
+    "metrics": [
+      { "label": "Turnovers won high", "value": 5 },
+      { "label": "Shots in 6 min", "value": 3 }
+    ],
+    "team_id": "T_HOM"
+  },
+  "evidence_event_ids": ["E_001210", "E_001214", "E_001219"],
+  "basis": "event_data",
+  "importance": 0.81,
+  "verified": true,
+  "template_fallback": false,
+  "generated_at": "2026-10-18T15:56:04.000Z"
+}

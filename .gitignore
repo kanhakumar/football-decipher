@@ -1,0 +1,42 @@
+# Scala / sbt
+target/
+.bsp/
+.bloop/
+.metals/
+metals.sbt
+project/project/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Editors and OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Secrets and local config (use managed identity and Key Vault)
+.env
+.env.*
+*.pem
+*.pfx
+local.settings.json
+.azure/
+
+# Generated match output (large NDJSON); keep curated recordings under eval/recorded/
+out/
+*.ndjson
+!schema/examples/*.ndjson
+!eval/recorded/*.ndjson
+
+# Local reference material, never committed (hard rule: synthetic data only)
+docs/*.json

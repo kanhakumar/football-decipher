@@ -37,7 +37,7 @@ Done when: `generate --seed 42` produces a plausible 90-minute file and tests pa
 Prompt: "Extend the generator with possession changes, tackles, interceptions, pressure events, fouls and cards, set pieces, substitutions, and period start and end. Add a scenario YAML with team styles, tactical phases (for example a high-press spell from 55 to 70 minutes) and soft story beats (a counter-attack goal around minute 34, a red card around 78). Beats nudge probabilities so the story happens naturally. Add invariant tests: monotonic seq and clocks, spatial continuity, score equals goal events, 11 per side minus red cards."
 Done when: invariants pass on 50 seeds and the scripted beats appear within a few minutes of target.
 
-## Step 5: Calibration (build, 3 hours)
+## Step 5: Calibration (build, 3 hours) [x] DONE
 Prompt: "Write a calibration script that generates 50 seeds and prints averages for goals, shots, shots on target, passes per team, pass completion, possession split, fouls and events per match. Compare against the targets in CLAUDE.md and tune parameters until all are inside range. Save a short calibration report in /docs."
 Done when: the report shows every metric in range.
 

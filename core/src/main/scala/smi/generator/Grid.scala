@@ -36,10 +36,10 @@ object Grid:
 
   /** Chance the ball carrier shoots instead of passing, by column from goal and lane. */
   private val shotTable: Map[Int, Vector[Double]] = Map(
-    11 -> Vector(0.28, 0.16, 0.03),
-    10 -> Vector(0.16, 0.09, 0.015),
-    9 -> Vector(0.06, 0.025, 0.0),
-    8 -> Vector(0.015, 0.0, 0.0)
+    11 -> Vector(0.42, 0.24, 0.045),
+    10 -> Vector(0.24, 0.13, 0.022),
+    9 -> Vector(0.095, 0.04, 0.0),
+    8 -> Vector(0.022, 0.0, 0.0)
   )
 
   def shotChance(p: Pt): Double =

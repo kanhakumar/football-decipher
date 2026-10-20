@@ -17,7 +17,10 @@ private[generator] trait Actions:
     val style = if ball.x < 52.5 then k.press else 0.45 + 0.5 * (k.press - 0.45)
     // A counter-goal beat for the defenders makes them win the ball in their own half.
     val win = if ball.x > 52.5 then boost(BeatKind.CounterGoal, d) else 1.0
-    if !rng.chance(math.min(0.9, zone * (0.3 + 1.6 * style) * win)) then true
+    // A red-card beat makes the defenders hunt the ball: more pressure and more challenges.
+    val redBoost = boost(BeatKind.RedCard, d)
+    val hunt = StrictMath.sqrt(redBoost)
+    if !rng.chance(math.min(0.9, zone * (0.3 + 1.6 * style) * win * hunt)) then true
     else
       val spot = ball.mirror.clamped.rounded
       val presser = nearest(d, spot)
@@ -37,12 +40,14 @@ private[generator] trait Actions:
       )
       underPressure = true
       advance(0.3)
-      if !rng.chance(math.min(0.9, 0.28 * (0.6 + k.press) * win)) then true
+      if !rng.chance(math.min(0.9, 0.28 * (0.6 + k.press) * win * hunt)) then true
       else
-        val redBoost = boost(BeatKind.RedCard, d)
         // Defenders rarely risk a foul in their own box (that would be a penalty).
-        val careful = if Grid.inBox(ball) then 0.12 else 1.0
-        val foulChance = 0.22 * (0.5 + k.aggression) * (1 + 0.5 * (redBoost - 1)) * careful
+        val inBox = if Grid.inBox(ball) then 0.12 else 1.0
+        // A booked defender eases off, unless a red-card beat is pushing his team.
+        val booked = if teams(d).isBooked(teams(d).player(presser).playerId) then 0.35 else 1.0
+        val careful = inBox * (if redBoost > 1 then 1.0 else booked)
+        val foulChance = 0.35 * (0.5 + k.aggression) * (1 + 0.5 * (redBoost - 1)) * careful
         if rng.chance(math.min(0.9, foulChance)) then
           foul(d, presser)
           false
@@ -153,7 +158,7 @@ private[generator] trait Actions:
       passesInPossession += 1
       // On a boosted counter the receiver plays it on quickly.
       val urgency = if counterBoost > 1 then StrictMath.sqrt(counterBoost) else 1.0
-      advance(rng.between(0.6, 3.2) / (knobs(team).tempo * urgency))
+      advance(rng.between(0.8, 3.6) / (knobs(team).tempo * urgency))
     else afterFailedPass(outcome, from, target, receiver)
 
   private def chooseReceiver(from: Pt): Int =
@@ -209,8 +214,8 @@ private[generator] trait Actions:
       case ShotSituation.Penalty  => 0.76
       case ShotSituation.FreeKick => 0.07
       case _ =>
-        val base = (0.6 * StrictMath.exp(-distance / 7.5) + 0.03) * (if header then 0.6 else 1.0)
-        val counter = if counterBoost > 1 then 1 + (counterBoost - 1) * 0.8 else 1.0
+        val base = (0.46 * StrictMath.exp(-distance / 7) + 0.02) * (if header then 0.6 else 1.0)
+        val counter = if counterBoost > 1 then 1 + (counterBoost - 1) * 2.2 else 1.0
         math.min(0.9, base * counter)
     val outcome =
       if rng.chance(goalChance) then Outcome.Goal
@@ -219,9 +224,9 @@ private[generator] trait Actions:
       else
         rng.weighted(
           Seq(
-            Outcome.Saved -> 0.32,
+            Outcome.Saved -> 0.30,
             Outcome.Blocked -> 0.28,
-            Outcome.OffTarget -> 0.36,
+            Outcome.OffTarget -> 0.38,
             Outcome.Post -> 0.04
           )
         )

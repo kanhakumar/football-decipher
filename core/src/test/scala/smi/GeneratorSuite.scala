@@ -73,21 +73,3 @@ class GeneratorSuite extends FunSuite:
     )
     assertEquals(expected -- seen, Set.empty[EventType])
   }
-
-  test("loose plausibility over 20 seeds (exact targets are calibrated in step 5)") {
-    val ms = GeneratedMatches.default.take(20).map(_.summary)
-    def avg(f: MatchSummary => Double) = ms.map(f).sum / ms.size
-    val (events, goals, shots, completion) =
-      (avg(_.events), avg(_.totalGoals), avg(_.totalShots), avg(_.passCompletion))
-    val (fouls, yellows, reds) = (avg(_.fouls), avg(_.yellowCards), avg(_.redCards.size))
-    println(
-      f"avg events $events%.0f goals $goals%.2f shots $shots%.1f completion ${completion * 100}%.1f%% fouls $fouls%.1f yellow $yellows%.1f red $reds%.2f"
-    )
-    val bySituation =
-      ms.flatMap(_.goals.flatMap(_.situation)).groupMapReduce(ShotSituation.wire)(_ => 1)(_ + _)
-    println(s"goals by situation over ${ms.size} matches: $bySituation")
-    assert(events >= 1500 && events <= 2500, s"events $events")
-    assert(goals >= 1.5 && goals <= 4.0, s"goals $goals")
-    assert(shots >= 12 && shots <= 35, s"shots $shots")
-    assert(completion >= 0.75 && completion <= 0.90, s"completion $completion")
-  }

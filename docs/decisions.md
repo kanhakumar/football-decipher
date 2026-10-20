@@ -41,6 +41,15 @@ A scenario YAML (default: `core/src/main/resources/scenarios/default.yaml`, over
 - Phases override one team's knobs between two display minutes (default: home high press 55-70).
 - Beats (`counter_goal`, `red_card`) are soft. Around the target minute the relevant odds are multiplied by a boost that ramps up over the 5 minutes before, holds for 4 minutes after and fades by +6; once the beat happens it closes. A counter-goal boost applies only while the possession still qualifies as a counter (ball won in own half by tackle or interception, at most 15 s and 5 passes), so every boosted goal is a genuine counter. Nothing is forced: the control scenario without beats produces neither story at that rate.
 - Minutes are display minutes (34 = first half at 34:00, 78 = second half at 33:00).
-- Measured on 50 seeds: counter goal within 5 minutes of target in 48/50, red card in 49/50, home pressures per away pass 1.44x higher during the press phase. Without beats: 0/50 and 2/50.
+- A red-card beat also makes the team hunt the ball (more pressure and challenges), since a red needs fouls and fouls need defending.
+- Measured on seeds 1-50 after calibration (step 5): counter goal within 5 minutes of target in 47/50, red card in 50/50, home pressures per away pass 1.52x higher during the press phase. Without beats: 0/50 and 2/50. Beats are soft, so any single seed may miss one (seed 42 has no counter goal); pick the demo seed by checking its summary.
 - Dependency: `io.circe::circe-yaml-v12` 1.15.0, decoded into strict case classes with the shared codec setup.
+
+## ADR-008: Calibration gates the unscripted baseline over 200 seeds (accepted, 2026-10-20)
+- `sbt calibrate` measures seeds 1-200 and writes `docs/calibration.md` with `--report`. `CalibrationSuite` runs the same gate in `sbt test`.
+- The gate is the **baseline**: the default scenario's styles and phase with its beats removed. The full story scenario is reported next to it. Its scripted counter goal and red card add about one goal and one red card per match by design; the test checks the story stays in range on every other metric and adds 0.5 to 1.5 goals.
+- 200 seeds, not 50: goals per match vary by about 1.6, so a 50-seed average moves by about 0.2, almost half the 2.5-3.0 band. 200 seeds halve that.
+- Target bands: CLAUDE.md for goals, shots, completion, events and possession (35-65% in every match, plus a 45-55% average). Plausibility bands chosen for this project, not taken from any data source: shots on target 7-10, passes per team 350-550, fouls 18-26.
+- Possession is measured as the share of passes. Shots on target are goals plus saves.
+- Main tuning changes: higher shot rates per grid cell, lower finishing (`0.46 e^(-d/7) + 0.02`), slower ball holding, more fouls, defenders on a yellow foul less, home slightly more direct (0.45).
 

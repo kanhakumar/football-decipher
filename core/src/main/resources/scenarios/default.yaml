@@ -5,12 +5,12 @@ name: default
 # Style knobs, roughly 0..1. press: pressure and challenge rate. directness: forward and long
 # passing. tempo: speed of play (multiplier). aggression: foul and card rate.
 teams:
-  home: { press: 0.45, directness: 0.35, tempo: 1.0, aggression: 0.5 }
+  home: { press: 0.45, directness: 0.45, tempo: 1.0, aggression: 0.5 }
   away: { press: 0.40, directness: 0.60, tempo: 1.0, aggression: 0.55 }
 
 # Tactical phases override one team's knobs between two minutes.
 phases:
-  - { team: home, from_minute: 55, to_minute: 70, press: 0.85 }
+  - { team: home, from_minute: 55, to_minute: 70, press: 0.95 }
 
 # Soft story beats: probabilities are nudged around the minute; nothing is forced.
 beats:

@@ -30,6 +30,8 @@ final class TeamState(val squad: Squad):
   def subsLeft: Int = MaxSubs - subsUsed
 
   /** Records a yellow and returns the player's yellow count. */
+  def isBooked(id: PlayerId): Boolean = yellows.contains(id)
+
   def addYellow(id: PlayerId): Int =
     val n = yellows.getOrElse(id, 0) + 1
     yellows(id) = n

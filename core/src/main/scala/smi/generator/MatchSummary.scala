@@ -13,6 +13,7 @@ final case class MatchSummary(
     passes: Map[TeamId, Int],
     completedPasses: Map[TeamId, Int],
     shots: Map[TeamId, Int],
+    shotsOnTarget: Int,
     goals: Vector[KeyMoment],
     redCards: Vector[KeyMoment],
     yellowCards: Int,
@@ -70,6 +71,11 @@ object MatchSummary:
       passes = count(isPass),
       completedPasses = count(e => isPass(e) && e.outcome.contains(Outcome.Complete)),
       shots = count(_.`type` == EventType.Shot),
+      // On target: scored or saved (the woodwork counts as off target).
+      shotsOnTarget = evs.count(e =>
+        e.`type` == EventType.Shot && (e.outcome.contains(Outcome.Goal) || e.outcome
+          .contains(Outcome.Saved))
+      ),
       goals = evs.collect {
         case e if e.outcome.contains(Outcome.Goal) =>
           KeyMoment(e.teamId, minuteOf(e), e.details.collect { case s: ShotDetails => s.situation })

@@ -60,7 +60,7 @@ Core is a modular monolith (adapter, engine, detectors, API) with clean module b
 - Schema validity on every emitted message.
 - Known-bad cases live in schema/negatives.json. Add new ones there; the Python script and the Scala golden tests both apply them.
 - Invariants: monotonic seq and clocks, spatial continuity within a possession, score equals goal events, 11 players per side minus red cards.
-- Calibration over 50 or more seeds: about 2.5-3 goals, 20-28 shots, 78-90% pass completion, 1,500-2,500 events per match, possession in a 35-65% range.
+- Calibration over 50 or more seeds (we use 200, ADR-008): about 2.5-3 goals, 20-28 shots, 78-90% pass completion, 1,500-2,500 events per match, possession in a 35-65% range. Project plausibility bands: 7-10 shots on target, 350-550 passes per team, 18-26 fouls. The gate is the baseline (scenario without beats); see docs/calibration.md.
 - Adapter round trip and edge cases (delete, out-of-order, missing qualifier, boundary coordinates).
 - Verifier tests: reject a wrong number, reject an unsupported claim, accept a correct line.
 - Eval gate in CI: replay a recorded match, run the number-match check and Foundry evaluations, fail the build on regression.
@@ -82,6 +82,7 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 - Python env: `agents/.venv` (Python 3.13 from python.org; the system default is still 3.6). Setup: `cd agents && "%LOCALAPPDATA%/Programs/Python/Python313/python.exe" -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]" -r ../schema/requirements.txt`
 - Schema check: `agents/.venv/Scripts/python schema/validate_examples.py`
 - Generate a match: `cd core && sbt "generate --seed 42"` (writes out/match-42.ndjson at the repo root and prints a summary; `--out <path>` to override, `--scenario <yaml>` for another match script; default script is core/src/main/resources/scenarios/default.yaml)
+- Calibrate: `cd core && sbt calibrate` (200 seeds; `--report ../docs/calibration.md` rewrites the report; exits non-zero if a baseline metric is out of range)
 - Run core service: `cd core && sbt run` (SSE on http://127.0.0.1:8080, override with `SMI_PORT`; try `curl -N http://127.0.0.1:8080/events/stream`)
 - Run agent service: TODO
 - Toolchain: JDK 25 (Temurin, installed with machine-wide JAVA_HOME; open a new terminal after install), Scala 3.9.0 LTS, sbt 1.13.0

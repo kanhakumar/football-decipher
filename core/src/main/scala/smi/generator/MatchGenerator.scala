@@ -101,7 +101,7 @@ private[generator] final class Simulation(val cfg: GeneratorConfig)
 
   private def strength(kind: BeatKind): Double = kind match
     case BeatKind.CounterGoal => 16.0
-    case BeatKind.RedCard     => 14.0
+    case BeatKind.RedCard     => 12.0
 
   /** Multiplier (>= 1) from any open beat of this kind for team `t` near the current minute. */
   def boost(kind: BeatKind, t: Int): Double =

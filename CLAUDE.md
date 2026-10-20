@@ -58,6 +58,7 @@ Core is a modular monolith (adapter, engine, detectors, API) with clean module b
 
 ## Testing and validation
 - Schema validity on every emitted message.
+- Known-bad cases live in schema/negatives.json. Add new ones there; the Python script and the Scala golden tests both apply them.
 - Invariants: monotonic seq and clocks, spatial continuity within a possession, score equals goal events, 11 players per side minus red cards.
 - Calibration over 50 or more seeds: about 2.5-3 goals, 20-28 shots, 78-90% pass completion, 1,500-2,500 events per match, possession in a 35-65% range.
 - Adapter round trip and edge cases (delete, out-of-order, missing qualifier, boundary coordinates).

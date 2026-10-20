@@ -25,7 +25,7 @@ Prompt: "Plan and implement a minimal Scala spike in /core: pick ONE effect stac
 Done when: one decision per question is recorded and the SSE endpoint streams the example. If tooling fights you for over 2 hours, stop and ask me about switching the core to Python.
 Azure part of the spike (Event Hubs and Cosmos from Scala) happens later, in step 13, once your account is ready.
 
-## Step 2: Core models and golden tests (build, 1.5 hours)
+## Step 2: Core models and golden tests (build, 1.5 hours) [x] DONE
 Prompt: "Implement the canonical envelope, event, lineup, match_meta and tracking_frame types in Scala, plus Insight and Overlay. Add JSON codecs. Add golden tests that read every file in /schema/examples, decode, re-encode and compare, and that reject the negative cases we validated in Python."
 Done when: round-trip tests pass for all examples.
 

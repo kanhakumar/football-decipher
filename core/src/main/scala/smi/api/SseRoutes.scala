@@ -6,13 +6,13 @@ import io.circe.syntax.*
 import org.http4s.HttpRoutes
 import org.http4s.ServerSentEvent
 import org.http4s.dsl.io.*
-import smi.model.Envelope
+import smi.model.{Envelope, Op, PayloadType}
 
 object SseRoutes:
   def toSse(e: Envelope): ServerSentEvent =
     ServerSentEvent(
       data = Some(e.asJson.noSpaces),
-      eventType = Some(e.payloadType),
+      eventType = Some(PayloadType.wire(e.payloadType)),
       id = Some(ServerSentEvent.EventId(e.seq.toString))
     )
 
@@ -21,5 +21,10 @@ object SseRoutes:
     HttpRoutes.of[IO] {
       case GET -> Root / "health" => Ok("ok")
       case GET -> Root / "events" / "stream" =>
-        Ok(feed.filter(_.payloadType == "event").take(1).map(toSse))
+        Ok(
+          feed
+            .filter(e => e.op == Op.Create && e.payloadType == PayloadType.Event)
+            .take(1)
+            .map(toSse)
+        )
     }

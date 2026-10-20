@@ -18,7 +18,9 @@ Sync mechanism, with `/schema` as the source of truth:
 2. Golden round trip: decode, re-encode, compare (`EnvelopeGoldenSuite`; extended to all models in step 2).
 3. From step 3, everything the generator emits is validated against the schema in tests.
 
-Python keeps datamodel-code-generator for its models. Test-only dependency: `com.networknt:json-schema-validator` 3.0.8 (draft 2020-12, format assertions switched on). In the spike only the envelope shell is typed; payloads stay raw JSON until step 2.
+Python keeps datamodel-code-generator for its models. Test-only dependency: `com.networknt:json-schema-validator` 3.0.8 (draft 2020-12, format assertions switched on).
+
+Step 2 outcome: all payloads are typed (`smi.model`). Decoders enforce the schema, not just the shape: unknown fields are rejected, IDs and timestamps are refined opaque types, ranges and per-type rules (required fields, allowed outcomes, the `details` shape chosen by event `type`) are checked, and absent optionals are omitted on encode. Timestamps keep their original string so re-encoding is byte-identical. Known-bad variants live in one data file, `schema/negatives.json`, which both `validate_examples.py` and the Scala golden tests apply, so the schema and the decoders must reject the same cases.
 
 ## ADR-004: Server-sent events as the stream transport (accepted, 2026-10-20)
 `GET /events/stream` emits `text/event-stream`; `id` is the envelope `seq` (supports resume), `event` is the payload type, `data` is the envelope JSON. Chosen over WebSockets because the viewer only receives, browsers reconnect with `Last-Event-ID` for free, and it works through standard HTTP infrastructure. Spike status: serves the first `event` envelope of the examples file on `localhost`.

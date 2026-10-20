@@ -1,7 +1,8 @@
 """Validate the contract examples against the JSON Schemas.
 
 Checks every schema is a valid draft 2020-12 schema, every example validates,
-and a set of known-bad mutations of the examples is rejected.
+and every known-bad variant in negatives.json is rejected. The Scala golden
+tests read the same negatives.json, so both sides reject the same cases.
 
 Usage: python schema/validate_examples.py
 Exit code 0 when everything passes, 1 otherwise.
@@ -12,7 +13,6 @@ from __future__ import annotations
 import copy
 import json
 import sys
-from collections.abc import Callable
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -20,8 +20,13 @@ from jsonschema import Draft202012Validator, FormatChecker
 SCHEMA_DIR = Path(__file__).resolve().parent
 EXAMPLES_DIR = SCHEMA_DIR / "examples"
 
+SCHEMA_FOR_FILE = {
+    "examples.ndjson": "canonical.schema.json",
+    "insight.example.json": "insight.schema.json",
+    "overlay.example.json": "overlay.schema.json",
+}
+
 Doc = dict
-Mutation = tuple[str, Callable[[Doc], None]]
 
 
 def load_validator(name: str) -> Draft202012Validator:
@@ -37,61 +42,40 @@ def errors_of(validator: Draft202012Validator, doc: Doc) -> list[str]:
     ]
 
 
-def first_line_of_type(lines: list[Doc], payload_type: str, op: str = "create") -> Doc:
-    return next(d for d in lines if d["payload_type"] == payload_type and d["op"] == op)
+def load_examples() -> dict[str, list[Doc]]:
+    """Every example file as a list of documents (one per NDJSON line)."""
+    docs: dict[str, list[Doc]] = {}
+    for name in SCHEMA_FOR_FILE:
+        text = (EXAMPLES_DIR / name).read_text(encoding="utf-8")
+        if name.endswith(".ndjson"):
+            docs[name] = [
+                json.loads(line) for line in text.splitlines() if line.strip()
+            ]
+        else:
+            docs[name] = [json.loads(text)]
+    return docs
 
 
-def set_key(path: list, value) -> Callable[[Doc], None]:
-    def apply(doc: Doc) -> None:
-        target = doc
-        for key in path[:-1]:
-            target = target[key]
-        target[path[-1]] = value
-
-    return apply
-
-
-def drop_key(path: list) -> Callable[[Doc], None]:
-    def apply(doc: Doc) -> None:
-        target = doc
-        for key in path[:-1]:
-            target = target[key]
-        del target[path[-1]]
-
-    return apply
+def base_doc(case: dict, examples: dict[str, list[Doc]]) -> Doc:
+    wanted = case.get("match", {})
+    return next(
+        d
+        for d in examples[case["file"]]
+        if all(d.get(k) == v for k, v in wanted.items())
+    )
 
 
-ENVELOPE_NEGATIVES: list[tuple[str, Mutation]] = [
-    ("event", ("wrong schema_version", set_key(["schema_version"], "2.0"))),
-    ("event", ("negative seq", set_key(["seq"], -1))),
-    ("event", ("unknown source", set_key(["source"], "vendor"))),
-    ("event", ("missing payload", drop_key(["payload"]))),
-    ("event", ("extra envelope field", set_key(["extra"], 1))),
-    ("event", ("bad emitted_at", set_key(["emitted_at"], "yesterday"))),
-    ("event", ("bad event_id", set_key(["payload", "event_id"], "417"))),
-    ("event", ("x beyond pitch", set_key(["payload", "x"], 105.5))),
-    ("event", ("y below pitch", set_key(["payload", "y"], -0.1))),
-    ("event", ("unknown event type", set_key(["payload", "type"], "teleport"))),
-    ("lineup", ("bad team_id", set_key(["payload", "team_id"], "home"))),
-]
-
-INSIGHT_NEGATIVES: list[Mutation] = [
-    ("bad insight_id", set_key(["insight_id"], "insight-42")),
-    ("unknown kind", set_key(["kind"], "vibes")),
-    ("importance above 1", set_key(["importance"], 1.5)),
-    ("empty facts", set_key(["facts"], {})),
-    ("no evidence", set_key(["evidence_event_ids"], [])),
-    ("duplicate evidence", set_key(["evidence_event_ids"], ["E_1", "E_1"])),
-    ("prose field", set_key(["text"], "A great moment.")),
-    ("capability level 3", set_key(["capability_level"], 3)),
-]
-
-OVERLAY_NEGATIVES: list[Mutation] = [
-    ("unknown op", set_key(["op"], "hide")),
-    ("missing t_start_ms", drop_key(["t_start_ms"])),
-    ("negative duration", set_key(["duration_ms"], -1)),
-    ("bad basis", set_key(["basis"], "guess")),
-]
+def apply_case(case: dict, doc: Doc) -> Doc:
+    doc = copy.deepcopy(doc)
+    *parents, last = case["path"]
+    target = doc
+    for key in parents:
+        target = target[key]
+    if case["action"] == "set":
+        target[last] = case["value"]
+    else:
+        del target[last]
+    return doc
 
 
 class Report:
@@ -99,63 +83,41 @@ class Report:
         self.failures = 0
         self.checks = 0
 
-    def expect_valid(self, label: str, validator: Draft202012Validator, doc: Doc) -> None:
+    def check(self, ok: bool, message: str, details: list[str] | None = None) -> None:
         self.checks += 1
-        errs = errors_of(validator, doc)
-        if errs:
+        if not ok:
             self.failures += 1
-            print(f"FAIL  {label} should be valid:")
-            for err in errs:
-                print(f"        {err}")
-
-    def expect_invalid(self, label: str, validator: Draft202012Validator, doc: Doc) -> None:
-        self.checks += 1
-        if not errors_of(validator, doc):
-            self.failures += 1
-            print(f"FAIL  {label} should be rejected but validated")
-
-
-def run_negatives(report: Report, prefix: str, validator, base: Doc, mutations) -> None:
-    for name, mutate in mutations:
-        doc = copy.deepcopy(base)
-        try:
-            mutate(doc)
-        except (KeyError, TypeError) as exc:
-            report.checks += 1
-            report.failures += 1
-            print(f"FAIL  {prefix} negative '{name}' could not be applied: {exc!r}")
-            continue
-        report.expect_invalid(f"{prefix} negative '{name}'", validator, doc)
+            print(f"FAIL  {message}")
+            for line in details or []:
+                print(f"        {line}")
 
 
 def main() -> int:
-    canonical = load_validator("canonical.schema.json")
-    insight = load_validator("insight.schema.json")
-    overlay = load_validator("overlay.schema.json")
+    validators = {f: load_validator(s) for f, s in SCHEMA_FOR_FILE.items()}
+    examples = load_examples()
     report = Report()
 
-    ndjson_path = EXAMPLES_DIR / "examples.ndjson"
-    lines = []
-    for n, raw in enumerate(ndjson_path.read_text(encoding="utf-8").splitlines(), start=1):
-        if not raw.strip():
+    for name, docs in examples.items():
+        for n, doc in enumerate(docs, start=1):
+            errs = errors_of(validators[name], doc)
+            report.check(not errs, f"{name}:{n} should be valid", errs)
+
+    cases = json.loads((SCHEMA_DIR / "negatives.json").read_text(encoding="utf-8"))[
+        "cases"
+    ]
+    for case in cases:
+        label = f"negative '{case['name']}' ({case['file']})"
+        try:
+            doc = apply_case(case, base_doc(case, examples))
+        except (KeyError, IndexError, StopIteration) as exc:
+            report.check(False, f"{label} could not be applied: {exc!r}")
             continue
-        doc = json.loads(raw)
-        lines.append(doc)
-        report.expect_valid(f"{ndjson_path.name}:{n} ({doc.get('payload_type')})", canonical, doc)
+        report.check(
+            bool(errors_of(validators[case["file"]], doc)),
+            f"{label} should be rejected",
+        )
 
-    insight_doc = json.loads((EXAMPLES_DIR / "insight.example.json").read_text(encoding="utf-8"))
-    overlay_doc = json.loads((EXAMPLES_DIR / "overlay.example.json").read_text(encoding="utf-8"))
-    report.expect_valid("insight.example.json", insight, insight_doc)
-    report.expect_valid("overlay.example.json", overlay, overlay_doc)
-
-    for payload_type, (name, mutate) in ENVELOPE_NEGATIVES:
-        base = first_line_of_type(lines, payload_type)
-        run_negatives(report, f"envelope/{payload_type}", canonical, base, [(name, mutate)])
-    run_negatives(report, "insight", insight, insight_doc, INSIGHT_NEGATIVES)
-    run_negatives(report, "overlay", overlay, overlay_doc, OVERLAY_NEGATIVES)
-
-    passed = report.checks - report.failures
-    print(f"{passed}/{report.checks} checks passed")
+    print(f"{report.checks - report.failures}/{report.checks} checks passed")
     return 1 if report.failures else 0
 
 

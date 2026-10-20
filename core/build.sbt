@@ -35,3 +35,4 @@ lazy val root = (project in file("."))
 
 addCommandAlias("generate", "runMain smi.generator.Generate")
 addCommandAlias("calibrate", "runMain smi.generator.Calibrate")
+addCommandAlias("rawfeed", "runMain smi.raw.RawFeed")

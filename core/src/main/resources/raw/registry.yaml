@@ -1,0 +1,89 @@
+# Registry for "synthfeed", the project's own provider-style raw feed (ADR-009).
+# All IDs here are our own sequential numbering. They are not taken from any vendor.
+#
+# Raw conventions: coordinates 0..100 on both axes (team-relative, attacking toward x = 100),
+# time as period + minute + second (the second half starts at minute 45), outcome 0 or 1,
+# extra detail as numbered qualifiers with string values.
+
+provider: synthfeed
+data_origin: synthetic
+# Broadcast pre-roll added to (timestamp - kickoff) to get video_ts_ms.
+video_offset_ms: 10000
+
+# Provider team IDs and the canonical team each maps to.
+teams:
+  101: T_HOM
+  102: T_AWY
+
+match_status:
+  0: scheduled
+  1: live
+  2: half_time
+  3: full_time
+  4: abandoned
+
+event_types:
+  1: pass
+  2: shot
+  3: carry
+  4: dribble
+  5: tackle
+  6: interception
+  7: clearance
+  8: block
+  9: pressure
+  10: ball_receipt
+  11: possession_change
+  12: foul
+  13: set_piece
+  14: goalkeeper_action
+  15: offside
+  16: substitution
+  17: period_start
+  18: period_end
+  19: var_review
+
+# Qualifier kinds: x / y (0..100 scale), number, int, string, flag ("1" or "0"),
+# player / team / event (provider IDs), events (comma-separated provider event IDs).
+qualifiers:
+  1: { name: end_x, kind: x }
+  2: { name: end_y, kind: y }
+  3: { name: length_m, kind: number }
+  4: { name: angle_rad, kind: number }
+  5: { name: height, kind: string }
+  6: { name: body_part, kind: string }
+  7: { name: recipient_id, kind: player }
+  8: { name: pass_type, kind: string }
+  9: { name: is_through_ball, kind: flag }
+  10: { name: is_cross, kind: flag }
+  11: { name: is_switch, kind: flag }
+  12: { name: duration_s, kind: number }
+  20: { name: result, kind: string }
+  21: { name: situation, kind: string }
+  22: { name: shot_speed_kmh, kind: number }
+  23: { name: goal_y, kind: number }
+  24: { name: goal_z, kind: number }
+  25: { name: assist_event_id, kind: event }
+  26: { name: is_first_time, kind: flag }
+  27: { name: distance_m, kind: number }
+  28: { name: top_speed_kmh, kind: number }
+  30: { name: target_player_id, kind: player }
+  31: { name: from_event_id, kind: event }
+  32: { name: pressed_player_id, kind: player }
+  33: { name: is_counterpress, kind: flag }
+  34: { name: from_team, kind: team }
+  35: { name: to_team, kind: team }
+  36: { name: cause, kind: string }
+  37: { name: fouled_player_id, kind: player }
+  38: { name: card, kind: string }
+  39: { name: is_penalty, kind: flag }
+  40: { name: kind, kind: string }
+  41: { name: action, kind: string }
+  42: { name: player_off_id, kind: player }
+  43: { name: player_on_id, kind: player }
+  44: { name: decision, kind: string }
+  45: { name: reviewed_event_id, kind: event }
+  50: { name: possession_id, kind: string }
+  51: { name: sequence_index, kind: int }
+  52: { name: under_pressure, kind: flag }
+  53: { name: related_event_ids, kind: events }

@@ -83,6 +83,7 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 - Schema check: `agents/.venv/Scripts/python schema/validate_examples.py`
 - Generate a match: `cd core && sbt "generate --seed 42"` (writes out/match-42.ndjson at the repo root and prints a summary; `--out <path>` to override, `--scenario <yaml>` for another match script; default script is core/src/main/resources/scenarios/default.yaml)
 - Calibrate: `cd core && sbt calibrate` (200 seeds; `--report ../docs/calibration.md` rewrites the report; exits non-zero if a baseline metric is out of range)
+- Raw feed and emulator: `cd core && sbt "rawfeed --seed 42"` (writes the messy raw feed to out/raw-42.ndjson and checks the adapter recovers the match; `--feed-seed N` for another mess, `--live --speed 1-20` to replay through the adapter in real time)
 - Run core service: `cd core && sbt run` (SSE on http://127.0.0.1:8080, override with `SMI_PORT`; try `curl -N http://127.0.0.1:8080/events/stream`)
 - Run agent service: TODO
 - Toolchain: JDK 25 (Temurin, installed with machine-wide JAVA_HOME; open a new terminal after install), Scala 3.9.0 LTS, sbt 1.13.0

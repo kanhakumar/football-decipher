@@ -53,3 +53,13 @@ A scenario YAML (default: `core/src/main/resources/scenarios/default.yaml`, over
 - Possession is measured as the share of passes. Shots on target are goals plus saves.
 - Main tuning changes: higher shot rates per grid cell, lower finishing (`0.46 e^(-d/7) + 0.02`), slower ball holding, more fouls, defenders on a yellow foul less, home slightly more direct (0.45).
 
+## ADR-009: Provider-style raw feed, adapter and feed emulator (accepted, 2026-10-20)
+The pipeline must show a path to real provider data without using any. "synthfeed" is our own provider-style format; nothing in it comes from vendor documentation or ID tables.
+- Format (`smi.raw`, registry in `core/src/main/resources/raw/registry.yaml`): messages of kind `match`, `lineup` or `event` with action `upsert` or `delete` and a `last_modified` time. Events carry numeric type IDs, provider team and player IDs, period + minute + second (the second half starts at minute 45), a wall-clock `timestamp`, 0..100 coordinates (team-relative), an outcome bit and numbered qualifiers with string values. All IDs are our own sequential numbering.
+- Precision: raw coordinates have 2 decimals and the adapter keeps 4 decimals in metres, so raw -> canonical -> raw is exact. Canonical -> raw -> canonical moves coordinates by at most about 5 mm and drops tenths of a second (the raw clock is whole seconds). `video_ts_ms` comes from `timestamp - kickoff + video_offset_ms` and is exact.
+- IDs: canonical IDs are derived (`E_<raw id>`, team from the registry, `P_<team suffix>_<shirt>` from the lineup), and every canonical event carries `source_ids` back to the raw record.
+- Outcomes: the bit says complete, goal or won; a `result` qualifier carries anything the bit cannot (for example `intercepted` or `saved`).
+- Adapter (`Adapter`, immutable state): match and lineup messages publish at once; event upserts wait in a reorder buffer (10 s of event time) and publish in time order; an upsert for a published event is an `update`, a delete is a `delete`. Repairs and rejections are reported as issues, never silent: a missing `result` qualifier gets the type's default outcome, coordinates up to 1 unit outside 0..100 are clamped, anything unknown or missing a required field is rejected.
+- Emulator (`FeedEmulator`, seeded): latency and jitter, about 2% of events delayed by 2-7 s (inside the reorder window, so recoverable), 3 corrections a minute or more later, 2 phantom events that are later deleted, and one 20-40 s dropout released as a burst. `FeedEmulator.stream` replays a schedule at 1x to 20x.
+- Recovery check: the adapter's final state from the messy deliveries equals its state from the clean feed with corrections applied (`FeedEmulator.truth`).
+

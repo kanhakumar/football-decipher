@@ -41,7 +41,7 @@ Done when: invariants pass on 50 seeds and the scripted beats appear within a fe
 Prompt: "Write a calibration script that generates 50 seeds and prints averages for goals, shots, shots on target, passes per team, pass completion, possession split, fouls and events per match. Compare against the targets in CLAUDE.md and tune parameters until all are inside range. Save a short calibration report in /docs."
 Done when: the report shows every metric in range.
 
-## Step 6: Raw feed, adapter and feed emulator (build, 3 hours)
+## Step 6: Raw feed, adapter and feed emulator (build, 3 hours) [x] DONE
 Prompt: "Add a provider-style raw feed emitter: our own type and qualifier ID registry in config, 0 to 100 coordinates, minute and second time, 0 or 1 outcomes, last_modified. Build the adapter that converts raw to canonical (rescale, ID mapping, update and delete). Build the feed emulator: replay at 1x to 20x, jitter, occasional out-of-order delivery, a few corrections and a short dropout. Tests: round trip, delete, out-of-order, missing qualifier, boundary coordinates."
 Done when: raw to canonical to raw matches, and the emulator produces a messy but recoverable stream.
 
@@ -69,6 +69,7 @@ Done when: the offline tests pass, then one real insight produces verified lines
 ## Step 12: Viewer and overlays (build, 6 hours)
 Prompt: "Build the viewer: a single web page styled like a broadcast screen with a pitch or video placeholder, overlays scheduled by video_ts_ms (lower thirds, cards, momentum bar, player tag), a settings panel for persona, language, favourite club, favourite player and metric focus, a player-focus panel, a latency readout and a retract path for corrections. Use fictional branding only. Check it at desktop and phone width."
 Done when: a full replay shows overlays on time, and switching persona or language changes the same moment.
+Before starting: pick the demo seed. Story beats are soft, so not every seed lands both (seed 42 misses the 34' counter goal). Scan seeds with `sbt "generate --seed N"` and choose one whose summary shows the away counter goal near 34', the home red card near 78' and a sensible scoreline; record it in CLAUDE.md.
 
 ## Step 13: Azure deploy and hardening (plan, 6 hours)
 Prompt: "Create Bicep and azd for Event Hubs, Cosmos DB (serverless), Container Apps (generator job, core, agents), Static Web Apps, Key Vault, Application Insights and managed identity, plus GitHub Actions. Move the stream to Event Hubs and persistence to Cosmos. Add OpenTelemetry tracing to Foundry. Add an eval gate: replay a recorded match, run the number-match check and Foundry evaluations, and fail the build on regression. Do not create resources until I approve the plan."

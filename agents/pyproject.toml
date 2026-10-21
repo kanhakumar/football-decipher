@@ -9,6 +9,9 @@ dependencies = [
     "httpx==0.28.1",
     "pydantic>=2.13,<3",
     "pyyaml>=6,<7",
+    # Both come with the MCP SDK; listed because the agent service uses them directly.
+    "starlette>=0.27",
+    "uvicorn>=0.30",
 ]
 
 [project.optional-dependencies]

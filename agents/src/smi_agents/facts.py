@@ -19,6 +19,10 @@ class ToolError(Exception):
     """A tool call failed (the core refused it or could not be reached)."""
 
 
+class StaleRequest(ToolError):
+    """The caller asked about a match the core is no longer playing."""
+
+
 class Tools(Protocol):
     async def call(self, name: str, args: dict[str, Any]) -> dict[str, Any]: ...
 

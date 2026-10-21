@@ -235,7 +235,8 @@ def _texts(line: Line) -> list[str]:
 def _allowed_number(value: float, decimals: int, percent: bool, facts: Iterable[float]) -> bool:
     tolerance = 0.5 * 10**-decimals + 1e-9
     for v in facts:
-        candidates = [v * 100, v] if percent else [v, v * 100] if 0 < v < 1 else [v]
+        # A fraction may be shown as a percentage; a value already in percent may not be scaled.
+        candidates = [v, v * 100] if 0 < v <= 1 else [v]
         if any(abs(value - c) <= tolerance for c in candidates):
             return True
     return False

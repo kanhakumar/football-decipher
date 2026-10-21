@@ -1,0 +1,9 @@
+{
+  "name": "smi-viewer",
+  "private": true,
+  "type": "module",
+  "description": "Broadcast-style viewer for the Synthetic Match Intelligence Engine (no dependencies)",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}

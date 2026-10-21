@@ -66,7 +66,7 @@ Prompt: "In /agents, build a thin MCP server that wraps the core API tools. Then
 Then (once Azure is ready): swap the stub for the Foundry model deployment, using managed identity.
 Done when: the offline tests pass, then one real insight produces verified lines in three languages.
 
-## Step 12: Viewer and overlays (build, 6 hours)
+## Step 12: Viewer and overlays (build, 6 hours) [x] DONE
 Prompt: "Build the viewer: a single web page styled like a broadcast screen with a pitch or video placeholder, overlays scheduled by video_ts_ms (lower thirds, cards, momentum bar, player tag), a settings panel for persona, language, favourite club, favourite player and metric focus, a player-focus panel, a latency readout and a retract path for corrections. Use fictional branding only. Check it at desktop and phone width."
 Done when: a full replay shows overlays on time, and switching persona or language changes the same moment.
 Demo seed: 154 (chosen in step 8, recorded in CLAUDE.md): away counter goal 33', home red card 76', home press spell detected, ten-man home equaliser 81', final 2-2.

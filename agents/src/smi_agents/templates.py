@@ -76,7 +76,9 @@ def _metric(sheet: FactSheet, name: str, lang: Lang) -> LineMetric | None:
         return None
     value = sheet.numbers[name]
     unit = next((m.unit for m in sheet.metrics if f"spell_{m.name}" == name), None)
-    if "share" in name or unit == "share":
+    if unit == "%":  # the core already reports it in percent
+        return LineMetric(label=label, value=round(value, 1), unit="%")
+    if "share" in name and 0 <= value <= 1:  # a fraction from the insight's facts
         return LineMetric(label=label, value=round(value * 100, 1), unit="%")
     if name.endswith("xg") or "rate" in name:
         return LineMetric(label=label, value=round(value, 2))

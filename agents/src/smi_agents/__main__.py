@@ -2,9 +2,11 @@
 
   python -m smi_agents narrate --insight I_0001 [--persona casual] [--langs en,hi,es]
   python -m smi_agents follow [--min-importance 0.6] [--persona casual] [--lang en] [--publish]
+  python -m smi_agents serve [--port 8090]
 
-Both reach the core only through the MCP server (started over stdio, or --mcp-url for a running
-one); `follow` also reads the insight stream and posts overlays to the core API.
+All reach the core only through the MCP server (started over stdio, or --mcp-url for a running
+one); `follow` also reads the insight stream and posts overlays to the core API, and `serve`
+answers viewers' narration requests over HTTP.
 """
 
 import argparse
@@ -24,7 +26,7 @@ from smi_agents.facts import McpTools, ToolError
 from smi_agents.follow import follow, insight_stream
 from smi_agents.model import Model, StubModel
 from smi_agents.types import LANGS, NarrationRequest
-from smi_agents.workflow import Narration, Narrator
+from smi_agents.workflow import Narration, Narrator, warm_up
 
 log = logging.getLogger("smi_agents")
 
@@ -99,6 +101,23 @@ async def follow_cmd(args: argparse.Namespace) -> None:
         log.info("match over: %d overlays", count)
 
 
+async def serve_cmd(args: argparse.Namespace) -> None:
+    import uvicorn
+
+    from smi_agents.service import create_app
+
+    async with mcp_client(args.core, args.mcp_url) as client:
+        tools = McpTools(client)
+        await warm_up(tools)
+        app = create_app(Narrator(tools, model_for(args.model)))
+        config = uvicorn.Config(app, host="127.0.0.1", port=args.port, log_level="warning")
+        log.info("agent service on http://127.0.0.1:%d (core %s)", args.port, args.core)
+        await uvicorn.Server(config).serve()
+
+
+COMMANDS = {"narrate": narrate_cmd, "follow": follow_cmd, "serve": serve_cmd}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m smi_agents", description=__doc__.splitlines()[0]
@@ -122,13 +141,18 @@ def main() -> None:
     f.add_argument("--lang", default="en")
     f.add_argument("--publish", action="store_true", help="post overlays to the core")
 
+    s = sub.add_parser("serve", help="HTTP narration API for the viewer")
+    s.add_argument("--port", type=int, default=int(os.environ.get("SMI_AGENTS_PORT", "8090")))
+
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     for noisy in ("httpx", "agent_framework"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
     logging.getLogger("mcp").setLevel(logging.ERROR)  # tool failures are reported below
     try:
-        anyio.run(narrate_cmd if args.command == "narrate" else follow_cmd, args)
+        anyio.run(COMMANDS[args.command], args)
+    except* KeyboardInterrupt:  # Ctrl+C is how `serve` and `follow` are stopped
+        log.info("stopped")
     except* (ToolError, httpx.ConnectError) as group:
         for e in _leaves(group):
             print(f"error: {e}", file=sys.stderr)

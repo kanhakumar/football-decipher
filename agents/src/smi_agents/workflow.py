@@ -10,6 +10,7 @@ Gather calls MCP tools only (rule 4). Explain, Narrate and Localize call the mod
 Template are code (D7). A model reply that is not valid JSON counts as a rejection.
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -20,7 +21,7 @@ from agent_framework import Executor, Workflow, WorkflowBuilder, WorkflowContext
 from pydantic import ValidationError
 
 from smi_agents import templates
-from smi_agents.facts import Tools, gather
+from smi_agents.facts import StaleRequest, Tools, gather
 from smi_agents.model import Model, Task, system_prompt
 from smi_agents.types import FactSheet, Lang, Line, NarrationRequest, Verdict
 from smi_agents.verifier import verify
@@ -116,7 +117,11 @@ class Gather(Executor):
 
     @handler
     async def run(self, req: NarrationRequest, ctx: WorkflowContext[Job]) -> None:
-        await ctx.send_message(Job(req, await gather(self.tools, req.insight_id)))
+        sheet = await gather(self.tools, req.insight_id)
+        if req.match_id and sheet.insight.match_id != req.match_id:
+            found = sheet.insight.match_id
+            raise StaleRequest(f"{req.insight_id} is from {found}, not {req.match_id}")
+        await ctx.send_message(Job(req, sheet))
 
 
 class Explain(Executor):
@@ -284,6 +289,22 @@ def build(tools: Tools, model: Model) -> Workflow:
     )
 
 
+class _WarmUp(Executor):
+    @handler
+    async def run(self, n: int, ctx: WorkflowContext[Never, int]) -> None:
+        await ctx.yield_output(n)
+
+
+async def warm_up(tools: Tools | None = None) -> None:
+    """Pays the framework's first-run cost (and the first tool call) before a viewer is waiting."""
+    await WorkflowBuilder(start_executor=_WarmUp(id="warm_up")).build().run(0)
+    if tools is not None:
+        try:
+            await tools.call("match_state", {})
+        except Exception:  # the core may not be up yet; narration reports that when it matters
+            pass
+
+
 class Narrator:
     """Runs the workflow per request and caches by (insight, persona, language, focus) (D3)."""
 
@@ -291,13 +312,16 @@ class Narrator:
         self.tools = tools
         self.model = model
         self.cache: dict[tuple, Narration] = {}
+        self.locks: dict[tuple, asyncio.Lock] = {}
 
     async def narrate(self, req: NarrationRequest) -> Narration:
         key = tuple(req.model_dump().values())
-        if key not in self.cache:
-            result = await build(self.tools, self.model).run(req)
-            outputs = result.get_outputs()
-            if not outputs:
-                raise RuntimeError(f"narration of {req.insight_id} produced no output")
-            self.cache[key] = outputs[-1]
+        # Concurrent requests for the same line (several viewers) share one workflow run.
+        async with self.locks.setdefault(key, asyncio.Lock()):
+            if key not in self.cache:
+                result = await build(self.tools, self.model).run(req)
+                outputs = result.get_outputs()
+                if not outputs:
+                    raise RuntimeError(f"narration of {req.insight_id} produced no output")
+                self.cache[key] = outputs[-1]
         return self.cache[key]

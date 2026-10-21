@@ -71,6 +71,9 @@ class NarrationRequest(BaseModel):
     favourite_team: str | None = None
     favourite_player: str | None = None
     metric_focus: str | None = None
+    match_id: str | None = Field(
+        default=None, description="The match the caller is watching; a different one is refused"
+    )
 
 
 class Verdict(BaseModel):

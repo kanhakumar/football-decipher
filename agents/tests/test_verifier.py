@@ -75,6 +75,11 @@ async def test_rounding_and_percentages(sheets):
     assert reasons(Line(headline="Pressing at 0.6 per pass"), press) == []  # 0.556 rounds to 0.6
     assert reasons(Line(headline="Pressing at 0.7 per pass"), press) == ["unsupported_number:0.7"]
     assert reasons(Line(headline="Pressing on 61% of passes"), press) == ["unsupported_number:61"]
+    # spell possession is already a percentage (49.5): it may not be scaled again
+    possession = press.numbers["spell_possession_share"]
+    assert possession > 1
+    assert reasons(Line(headline=f"{possession:.1f}% possession"), press) == []
+    assert reasons(Line(headline=f"{possession * 100:.0f}% possession"), press) != []
 
 
 async def test_hindi_and_spanish(sheets):

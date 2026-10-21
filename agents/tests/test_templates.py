@@ -55,3 +55,9 @@ async def test_metric_cards_follow_the_persona(sheets):
     assert cards[0].label == "PPDA" and len(cards) == 3
     analyst = templates.metrics(press, NarrationRequest(insight_id="I_1", persona="analyst"), "es")
     assert len(analyst) == 4 and analyst[0].label == "Presión antes"
+    possession = NarrationRequest(
+        insight_id="I_1", persona="metric_focus", metric_focus="possession_share"
+    )
+    card = templates.metrics(press, possession, "en")[0]
+    assert (card.label, card.unit) == ("Possession", "%")
+    assert card.value == round(press.numbers["spell_possession_share"], 1)

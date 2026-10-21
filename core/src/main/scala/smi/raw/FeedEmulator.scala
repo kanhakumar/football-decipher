@@ -4,7 +4,7 @@ import cats.effect.IO
 import fs2.Stream
 import java.time.Instant
 import scala.concurrent.duration.*
-import smi.generator.Rng
+import smi.Rng
 import smi.model.Timestamp
 
 final case class EmulatorConfig(

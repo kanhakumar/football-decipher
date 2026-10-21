@@ -3,6 +3,7 @@ package smi.generator
 import io.circe.syntax.*
 import java.time.Instant
 import scala.collection.mutable
+import smi.Rng
 import smi.model.*
 
 final case class GeneratorConfig(

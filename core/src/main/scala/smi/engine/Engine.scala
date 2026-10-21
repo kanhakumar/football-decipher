@@ -58,8 +58,11 @@ final case class EngineState(
     lineups: Map[TeamId, Lineup] = Map.empty,
     events: Map[EventId, Enriched] = Map.empty,
     buckets: Map[BucketKey, Map[(String, Holder), Double]] = Map.empty,
-    /** Capability level of the data seen so far. Stays 0 until tracking metrics exist (step 9). */
-    capability: Int = 0
+    /** Capability level of the data seen so far: 1 once tracking frames arrive. */
+    capability: Int = 0,
+    workload: Workload = Workload(),
+    /** Wall-clock time of the latest event, to tell when tracking has gone stale. */
+    lastEventMs: Long = Long.MinValue
 ):
   /** Events in match order. */
   lazy val ordered: Vector[Enriched] =
@@ -90,11 +93,16 @@ object Engine:
   def replay(envelopes: Iterable[Envelope]): EngineState = envelopes.foldLeft(empty)(apply)
 
   def apply(s: EngineState, env: Envelope): EngineState = env.payload match
-    case Payload.Meta(m)                   => s.copy(meta = Some(m))
-    case Payload.Team(l)                   => s.copy(lineups = s.lineups.updated(l.teamId, l))
-    case Payload.Ev(e)                     => upsert(s, e)
-    case Payload.Delete(d)                 => remove(s, d.eventId)
-    case Payload.Frame(_) | Payload.Raw(_) => s
+    case Payload.Meta(m) => s.copy(meta = Some(m))
+    case Payload.Team(l) => s.copy(lineups = s.lineups.updated(l.teamId, l))
+    case Payload.Ev(e) =>
+      upsert(s, e).copy(lastEventMs =
+        math.max(s.lastEventMs, e.wallclockUtc.toInstant.toEpochMilli)
+      )
+    case Payload.Delete(d) => remove(s, d.eventId)
+    case Payload.Frame(f) =>
+      s.copy(capability = math.max(s.capability, 1), workload = s.workload.add(f))
+    case Payload.Raw(_) => s
 
   // ---- updates: subtract the old version's contributions, add the new one's ----
 
@@ -192,7 +200,41 @@ object Engine:
       case Calc.Ratio(num, den, scale) =>
         val d = sum(s, den.metric, resolve(s, den, holder), w)
         Option.when(d != 0)(scale * sum(s, num.metric, resolve(s, num, holder), w) / d)
-      case Calc.Tracking => None
+      case Calc.TrackSum(key) => Some(trackSum(s, key, holder, w))
+      case Calc.TrackMax =>
+        s.workload.maxes.iterator
+          .filter((k, _) => w.contains(k))
+          .flatMap((_, b) => b.get(holder))
+          .maxOption
+      case Calc.Fatigue => fatigue(s, holder, w)
+
+  private def trackSum(s: EngineState, key: String, holder: Holder, w: Window): Double =
+    s.workload.sums.iterator
+      .filter((k, _) => w.contains(k))
+      .map((_, b) => b.getOrElse((key, holder), 0.0))
+      .sum
+
+  /** Minutes in play in a window: minutes with any events or frames. */
+  private def minutesInPlay(s: EngineState, w: Window): Int =
+    (s.buckets.keySet ++ s.workload.frames.keySet).count(w.contains)
+
+  /** Share of expected tracking frames that arrived in the window (0 without tracking). */
+  def coverage(s: EngineState, w: Window): Double =
+    val expected = minutesInPlay(s, w) * 60 * s.workload.hz
+    if expected <= 0 then 0
+    else s.workload.frames.iterator.filter((k, _) => w.contains(k)).map(_._2).sum / expected
+
+  /** Distance per minute played in the window over the holder's first minutes on the pitch, in %.
+    */
+  private def fatigue(s: EngineState, holder: Holder, w: Window): Option[Double] =
+    val played = s.workload.sums.toVector
+      .flatMap((k, b) => b.get(("distance_covered", holder)).map(k -> _))
+      .sortBy((k, _) => (k.period, k.minute))
+    val baseline = played.take(Workload.BaselineMinutes).map(_._2)
+    val window = played.filter((k, _) => w.contains(k)).map(_._2)
+    Option.when(baseline.size >= Workload.BaselineMinutes && window.nonEmpty && baseline.sum > 0)(
+      100 * (window.sum / window.size) / (baseline.sum / baseline.size)
+    )
 
   /** A metric for a team or player over a window, with its basis. Falls back when the data a metric
     * requires is missing, and says so (`basis = event_estimate`, `via`).
@@ -201,7 +243,8 @@ object Engine:
     val m = Metrics(id)
     if m.teamOnly && holder.isInstanceOf[Holder.Player] then
       throw IllegalArgumentException(s"$id is a team metric")
-    if s.capability >= m.requires && m.calc != Calc.Tracking then
+    val covered = !Calc.isTracking(m.calc) || coverage(s, w) >= Workload.MinCoverage
+    if s.capability >= m.requires && covered then
       MetricValue(id, raw(s, m, holder, w), m.unit, m.basis, m.requires)
     else
       m.fallback.map(Metrics(_)) match
@@ -258,5 +301,6 @@ object Engine:
           den.metric,
           resolve(s, den, holder)
         )).distinct
-      case Calc.Tracking => m.fallback.fold(Vector.empty)(f => matching(f, Seq(holder)))
+      case Calc.TrackSum(_) | Calc.TrackMax | Calc.Fatigue =>
+        m.fallback.fold(Vector.empty)(f => matching(f, Seq(holder)))
     s.ordered.map(_.event.eventId).filter(events.map(_.event.eventId).toSet)

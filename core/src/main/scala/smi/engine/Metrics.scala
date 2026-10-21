@@ -20,8 +20,18 @@ object Calc:
   /** Computed at query time from window sums; undefined when the denominator is zero. */
   final case class Ratio(num: Ref, den: Ref, scale: Double = 1.0) extends Calc
 
-  /** Needs tracking data the engine does not have yet; always answered by the fallback. */
-  case object Tracking extends Calc
+  /** Sum of a workload value from tracking frames (distance, sprints). */
+  final case class TrackSum(key: String) extends Calc
+
+  /** Highest workload value in the window (top speed). */
+  case object TrackMax extends Calc
+
+  /** Distance per minute in the window as a percentage of the holder's own first minutes. */
+  case object Fatigue extends Calc
+
+  def isTracking(c: Calc): Boolean = c match
+    case TrackSum(_) | TrackMax | Fatigue => true
+    case _                                => false
 
 /** A metric declares what data it requires (capability level), its fallback when that data is
   * missing, and the basis of its output (CLAUDE.md, ADR-010).
@@ -120,22 +130,19 @@ object Metrics:
       Ratio(Ref("passes_own_60", Of.Opponent), Ref("defensive_actions_high")),
       teamOnly = true
     ),
+    // Tracking metrics (capability 1). Without enough frames they fall back or report not available.
     MetricDef(
       "distance_covered",
       "m",
-      Tracking,
-      requires = 1,
-      fallback = Some("involvements"),
-      basis = Basis.Tracking
+      TrackSum("distance_covered"),
+      1,
+      Some("involvements"),
+      Basis.Tracking
     ),
-    MetricDef(
-      "sprints",
-      "sprints",
-      Tracking,
-      requires = 1,
-      fallback = Some("involvements"),
-      basis = Basis.Tracking
-    )
+    MetricDef("sprints", "sprints", TrackSum("sprints"), 1, Some("involvements"), Basis.Tracking),
+    MetricDef("high_speed_distance", "m", TrackSum("high_speed_distance"), 1, None, Basis.Tracking),
+    MetricDef("top_speed", "m/s", TrackMax, 1, None, Basis.Tracking),
+    MetricDef("fatigue_index", "%", Fatigue, 1, None, Basis.Tracking)
   )
 
   val byId: Map[String, MetricDef] = all.map(m => m.id -> m).toMap

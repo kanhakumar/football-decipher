@@ -5,6 +5,7 @@ import munit.FunSuite
 import scala.jdk.CollectionConverters.*
 import smi.engine.*
 import smi.generator.{Calibration, GeneratorConfig, MatchGenerator, Scenario}
+import smi.model.Basis
 import smi.raw.{Adapter, RawEmitter}
 
 /** The engine on whole matches: it agrees with independent counts, and through the raw feed. */
@@ -75,7 +76,7 @@ class EngineMatchSuite extends FunSuite:
         assert(Metrics.byId.contains(f) && Metrics(f).requires < m.requires, s"${m.id} fallback $f")
       )
       if m.requires > 0 then
-        assert(m.fallback.isDefined, s"${m.id} needs tracking and must have a fallback")
+        assert(Calc.isTracking(m.calc) && m.basis == Basis.Tracking, s"${m.id} needs tracking")
       m.calc match
         case Calc.Ratio(num, den, _) =>
           assert(
@@ -88,11 +89,15 @@ class EngineMatchSuite extends FunSuite:
     }
   }
 
-  test("the engine never reads generator code") {
-    val dir = Paths.get("src/main/scala/smi/engine")
-    val sources = Files.list(dir).iterator.asScala.toVector
+  test("the engine and detectors never read generator or tracking-synth code") {
+    val dirs = Vector("engine", "insight").map(d => Paths.get(s"src/main/scala/smi/$d"))
+    val sources = dirs.flatMap(d => Files.list(d).iterator.asScala.toVector)
     assert(sources.nonEmpty)
-    sources.foreach(p =>
-      assert(!Files.readString(p).contains("smi.generator"), s"$p imports the generator")
-    )
+    sources.foreach { p =>
+      val text = Files.readString(p)
+      assert(
+        !text.contains("smi.generator") && !text.contains("smi.tracking"),
+        s"$p reads data-source code"
+      )
+    }
   }

@@ -1,4 +1,4 @@
-package smi.generator
+package smi
 
 /** SplitMix64. The only source of randomness in the generator: one instance per match, seeded from
   * the CLI. Math goes through StrictMath so output is identical on every JVM and CPU.

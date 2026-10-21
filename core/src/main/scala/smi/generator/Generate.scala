@@ -3,10 +3,18 @@ package smi.generator
 import cats.effect.{ExitCode, IO, IOApp}
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.{Files, Path, Paths}
+import smi.tracking.{SynthConfig, TrackingSynth}
 
-/** CLI: `sbt "generate --seed 42 [--out path] [--scenario yaml]"`. Writes NDJSON and a summary. */
+/** CLI: `sbt "generate --seed 42 [--out path] [--scenario yaml] [--tracking]"`. Writes NDJSON and a
+  * summary. `--tracking` adds 5 Hz tracking frames (about 60 MB per match).
+  */
 object Generate extends IOApp:
-  private final case class Args(seed: Long, out: Option[Path], scenario: Option[Path])
+  private final case class Args(
+      seed: Long,
+      out: Option[Path],
+      scenario: Option[Path],
+      tracking: Boolean = false
+  )
 
   private def parse(args: List[String], acc: Args): Either[String, Args] = args match
     case Nil => Right(acc)
@@ -14,9 +22,11 @@ object Generate extends IOApp:
       v.toLongOption.toRight(s"bad seed '$v'").flatMap(s => parse(rest, acc.copy(seed = s)))
     case "--out" :: v :: rest      => parse(rest, acc.copy(out = Some(Paths.get(v))))
     case "--scenario" :: v :: rest => parse(rest, acc.copy(scenario = Some(Paths.get(v))))
+    case "--tracking" :: rest      => parse(rest, acc.copy(tracking = true))
     case other :: _                => Left(s"unknown argument '$other'")
 
-  private val usage = "usage: generate --seed <long> [--out <path>] [--scenario <yaml>]"
+  private val usage =
+    "usage: generate --seed <long> [--out <path>] [--scenario <yaml>] [--tracking]"
 
   def run(args: List[String]): IO[ExitCode] =
     parse(args, Args(42, None, None)) match
@@ -29,7 +39,9 @@ object Generate extends IOApp:
   private def write(a: Args, scenario: Scenario): IO[ExitCode] =
     // sbt runs forked from /core, so the default lands in the repo-root out/ folder.
     val path = a.out.getOrElse(Paths.get("..", "out", s"match-${a.seed}.ndjson"))
-    val envelopes = MatchGenerator.generate(GeneratorConfig(a.seed, scenario))
+    val events = MatchGenerator.generate(GeneratorConfig(a.seed, scenario))
+    val envelopes =
+      if a.tracking then TrackingSynth.addFrames(events, SynthConfig(a.seed)) else events
     val summary = MatchSummary.of(envelopes)
     for
       _ <- IO.blocking {

@@ -53,7 +53,7 @@ Done when: tests confirm known sequences give known stats, and a correction upda
 Prompt: "Plan then build detectors for goal, red card, key chance, momentum swing, pressure shift, control vs chaos, rhythm change and milestones. Each emits an Insight with facts, evidence event IDs, a why_it_matters code with params, importance and basis, validated against insight.schema.json. Test against the scripted storylines: the high-press spell, counter goal and red card must each be detected."
 Done when: the scripted match yields a sensible ranked list of insights and each insight's numbers can be re-derived from its evidence events.
 
-## Step 9: Level 1 tracking and workload (plan, 3 hours, optional)
+## Step 9: Level 1 tracking and workload (plan, 3 hours, optional) [x] DONE
 Prompt: "Add a formation-anchored tracking synthesizer at 5 Hz: players move toward slots that shift with ball position and line height, with speed and acceleration limits and fatigue decline; the ball follows events; referees follow simple rules. Derive distance, top speed, sprint counts and a fatigue indicator per player per minute. Add a position provider interface that returns data or 'not available' so metrics degrade."
 Done when: workload numbers are plausible and consistent with events.
 

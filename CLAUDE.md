@@ -81,10 +81,11 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 ## Commands (fill in as they are established)
 - Python env: `agents/.venv` (Python 3.13 from python.org; the system default is still 3.6). Setup: `cd agents && "%LOCALAPPDATA%/Programs/Python/Python313/python.exe" -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]" -r ../schema/requirements.txt`
 - Schema check: `agents/.venv/Scripts/python schema/validate_examples.py`
-- Generate a match: `cd core && sbt "generate --seed 42"` (writes out/match-42.ndjson at the repo root and prints a summary; `--out <path>` to override, `--scenario <yaml>` for another match script; default script is core/src/main/resources/scenarios/default.yaml)
+- Generate a match: `cd core && sbt "generate --seed 42"` (writes out/match-42.ndjson at the repo root and prints a summary; `--out <path>` to override, `--scenario <yaml>` for another match script; default script is core/src/main/resources/scenarios/default.yaml; `--tracking` adds 5 Hz tracking frames, about 75 MB)
 - Calibrate: `cd core && sbt calibrate` (200 seeds; `--report ../docs/calibration.md` rewrites the report; exits non-zero if a baseline metric is out of range)
 - Raw feed and emulator: `cd core && sbt "rawfeed --seed 42"` (writes the messy raw feed to out/raw-42.ndjson and checks the adapter recovers the match; `--feed-seed N` for another mess, `--live --speed 1-20` to replay through the adapter in real time)
 - Match stats: `cd core && sbt "stats --seed 42"` (team totals from the stats engine with basis tags)
+- Workload: `cd core && sbt "workload --seed 154"` (per-player distance, top speed, sprints and fatigue from synthetic 5 Hz tracking, with basis tags)
 - Insights: `cd core && sbt "insights --seed 154 [--top 15]"` (ranked moments from the detectors)
 - Demo match: seed 154 with the default scenario (away counter goal 33', home red card 76', home high press 55-70, ten-man equaliser 81', 2-2). Use it for the viewer, video and evals.
 - Run core service: `cd core && sbt run` (SSE on http://127.0.0.1:8080, override with `SMI_PORT`; try `curl -N http://127.0.0.1:8080/events/stream`)

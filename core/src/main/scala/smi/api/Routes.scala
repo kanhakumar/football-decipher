@@ -91,16 +91,26 @@ object Routes:
 
       // ---- match control ----
       case req @ POST -> Root / "api" / "match" / "start" :? Seed(seed) =>
-        req.attemptAs[StartRequest].value.flatMap { body =>
-          val r = body.getOrElse(StartRequest())
-          val d = MatchConfig()
-          val cfg = MatchConfig(
-            seed.orElse(r.seed).getOrElse(d.seed),
-            r.speed.getOrElse(d.speed),
-            r.delayS.getOrElse(d.delayS),
-            r.tracking.getOrElse(d.tracking)
-          )
-          hub.start(cfg).flatMap(res => answer(res.map(Tools.state)))
+        // An empty body means defaults; a body that does not decode is refused, never ignored.
+        req.bodyText.compile.string.flatMap { text =>
+          val body =
+            if text.isBlank then Right(StartRequest())
+            else
+              io.circe.parser
+                .decode[StartRequest](text)
+                .left
+                .map(e => s"invalid start request: ${e.getMessage}")
+          body match
+            case Left(err) => BadRequest(ErrorView(err).asJson)
+            case Right(r) =>
+              val d = MatchConfig()
+              val cfg = MatchConfig(
+                seed.orElse(r.seed).getOrElse(d.seed),
+                r.speed.getOrElse(d.speed),
+                r.delayS.getOrElse(d.delayS),
+                r.tracking.getOrElse(d.tracking)
+              )
+              hub.start(cfg).flatMap(res => answer(res.map(Tools.state)))
         }
       case POST -> Root / "api" / "match" / "pause" => hub.pause.flatMap(p => json(Tools.state(p)))
       case POST -> Root / "api" / "match" / "resume" =>

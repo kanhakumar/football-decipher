@@ -1,6 +1,6 @@
 package smi
 
-import cats.effect.{IO, Resource}
+import cats.effect.IO
 import io.circe.Json
 import io.circe.parser.parse
 import io.circe.syntax.*
@@ -124,7 +124,9 @@ class ApiSuite extends CatsEffectSuite:
     yield
       def clock(s: String, side: String) = field(s, side, "match_clock_s").asNumber.get.toDouble
       val gap = clock(running, "live") - clock(running, "viewer")
-      assert(gap >= 9 && gap <= 16, s"live is $gap s ahead of the viewer")
+      // Both clocks are the last event each side has seen, so the gap is the 10 s delay give or
+      // take the spacing between events (a few seconds in quiet spells).
+      assert(gap >= 6 && gap <= 16, s"live is $gap s ahead of the viewer")
       assertEquals(field(paused1, "status").asString, Some("paused"))
       assertEquals(
         field(paused1, "envelopes_live"),
@@ -233,6 +235,45 @@ class ApiSuite extends CatsEffectSuite:
       _ <- start(speed = 600)
       (_, body) <- fiber.joinWithNever
     yield assert(frames(body).size < 10, s"${frames(body).size} events from the abandoned match")
+  }
+
+  test("a start body that does not decode is refused, not replaced by defaults") {
+    val req = Request[IO](Method.POST, uri"/api/match/start").withEntity("{seed:154,speed:20}")
+    for
+      res <- app.run(req)
+      (unknown, _) <- post("/api/match/start", Json.obj("sped" -> 20.asJson))
+      (empty, state) <- call(Method.POST, "/api/match/start?seed=7")
+    yield
+      assertEquals((res.status, unknown, empty), (Status.BadRequest, Status.BadRequest, Status.Ok))
+      assertEquals(field(state, "seed").asNumber.flatMap(_.toLong), Some(7L))
+  }
+
+  test("the service logs requests and the match lifecycle") {
+    IO.ref(Vector.empty[String]).flatMap { lines =>
+      val log = smi.api.Log((_, msg) => lines.update(_ :+ msg))
+      Hub.resource(log).use { hub =>
+        val logged = smi.api.Log.requests(log)(Routes(hub).orNotFound)
+        def send(method: Method, uri: String, body: Json = Json.obj()) =
+          logged.run(Request[IO](method, Uri.unsafeFromString(uri)).withEntity(body)).void
+        def finished: IO[Unit] = hub.snapshot.flatMap(p =>
+          if p.status == smi.api.Status.Finished then IO.unit else IO.sleep(200.millis) >> finished
+        )
+        for
+          _ <- send(Method.POST, "/api/match/start", Json.obj("speed" -> 600.asJson))
+          _ <- finished
+          _ <- send(Method.GET, "/api/tools/team_stats?team=T_NOPE")
+          out <- lines.get
+        yield
+          def has(s: String) =
+            assert(out.exists(_.contains(s)), s"no line with '$s' in\n${out.mkString("\n")}")
+          has("match 1 started: seed 154, speed 600.0x")
+          has("POST /api/match/start -> 200")
+          has("insight I_")
+          has("overlay O_90000001 show scoreline_update")
+          has("match finished 2-2")
+          has("GET /api/tools/team_stats?team=T_NOPE -> 400")
+      }
+    }
   }
 
   test("every route is documented in openapi.yaml") {

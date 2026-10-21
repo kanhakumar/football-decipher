@@ -57,7 +57,7 @@ Done when: the scripted match yields a sensible ranked list of insights and each
 Prompt: "Add a formation-anchored tracking synthesizer at 5 Hz: players move toward slots that shift with ball position and line height, with speed and acceleration limits and fatigue decline; the ball follows events; referees follow simple rules. Derive distance, top speed, sprint counts and a fatigue indicator per player per minute. Add a position provider interface that returns data or 'not available' so metrics degrade."
 Done when: workload numbers are plausible and consistent with events.
 
-## Step 10: Core API and MCP-ready endpoints (build, 3 hours)
+## Step 10: Core API and MCP-ready endpoints (build, 3 hours) [x] DONE
 Prompt: "Expose the core as HTTP and SSE: match control (start, pause, speed, seed), the viewer-delayed event stream, insights, overlay stream, and tool endpoints such as player workload, team shape, recent events and insight detail. Add OpenAPI. Keep the viewer delay configurable (default about 10 s)."
 Done when: curl and a test client can drive a full replay.
 

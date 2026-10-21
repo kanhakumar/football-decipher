@@ -2,24 +2,25 @@ package smi
 
 import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.*
-import fs2.io.file.Path
 import org.http4s.ember.server.EmberServerBuilder
-import smi.api.SseRoutes
-import smi.feed.ExampleFeed
+import org.http4s.server.middleware.CORS
+import smi.api.{Hub, Routes}
 
+/** The core service: HTTP and SSE API over one replayed match (ADR-013). */
 object Main extends IOApp.Simple:
-  private val examples = Path("../schema/examples/examples.ndjson")
-
   def run: IO[Unit] =
-    for
-      port <- IO(sys.env.get("SMI_PORT").flatMap(Port.fromString).getOrElse(port"8080"))
-      app = SseRoutes(ExampleFeed.fromNdjson(examples)).orNotFound
-      _ <- EmberServerBuilder
-        .default[IO]
-        .withHost(ipv4"127.0.0.1")
-        .withPort(port)
-        .withHttpApp(app)
-        .build
-        .evalTap(s => IO.println(s"smi-core listening on ${s.address}"))
-        .useForever
-    yield ()
+    val port = sys.env.get("SMI_PORT").flatMap(Port.fromString).getOrElse(port"8080")
+    Hub.resource
+      .flatMap { hub =>
+        // The viewer is served from another origin, so the API allows cross-origin reads.
+        val app = CORS.policy.withAllowOriginAll(Routes(hub).orNotFound)
+        EmberServerBuilder
+          .default[IO]
+          .withHost(ipv4"127.0.0.1")
+          .withPort(port)
+          .withHttpApp(app)
+          .withShutdownTimeout(scala.concurrent.duration.Duration(1, "s"))
+          .build
+      }
+      .evalTap(s => IO.println(s"smi-core listening on ${s.address}"))
+      .useForever

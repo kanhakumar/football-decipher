@@ -101,7 +101,10 @@ object Engine:
       )
     case Payload.Delete(d) => remove(s, d.eventId)
     case Payload.Frame(f) =>
-      s.copy(capability = math.max(s.capability, 1), workload = s.workload.add(f))
+      s.copy(
+        capability = math.max(s.capability, 1),
+        workload = s.workload.add(f, s.meta.map(_.homeTeamId))
+      )
     case Payload.Raw(_) => s
 
   // ---- updates: subtract the old version's contributions, add the new one's ----
@@ -264,6 +267,42 @@ object Engine:
 
   def player(s: EngineState, id: String, player: PlayerId, w: Window = Window.Match): MetricValue =
     query(s, id, Holder.Player(player), w)
+
+  /** A player's average position (own team frame) over a window, and how many samples it used. */
+  final case class AveragePosition(player: PlayerId, x: Double, y: Double, samples: Int)
+
+  /** Team shape: average positions from tracking when the window is covered, else from the players'
+    * own event locations (an estimate).
+    */
+  def shape(
+      s: EngineState,
+      team: TeamId,
+      w: Window = Window.Match
+  ): (Vector[AveragePosition], Basis) =
+    if s.capability >= 1 && coverage(s, w) >= Workload.MinCoverage then
+      val sums = s.workload.sums.iterator.filter((k, _) => w.contains(k)).map(_._2).toVector
+      def total(id: String, p: PlayerId) = sums.map(_.getOrElse((id, Holder.Player(p)), 0.0)).sum
+      val players = sums
+        .flatMap(_.keys.collect { case ("shape_n", Holder.Player(p)) => p })
+        .distinct
+        .filter(p =>
+          s.lineups.get(team).exists(l => (l.starters ++ l.bench).exists(_.playerId == p))
+        )
+      val positions = players.flatMap { p =>
+        val n = total("shape_n", p)
+        Option.when(n > 0)(
+          AveragePosition(p, total("shape_x", p) / n, total("shape_y", p) / n, n.toInt)
+        )
+      }
+      (positions.sortBy(_.player.value), Basis.Tracking)
+    else
+      val located = s.ordered
+        .map(_.event)
+        .filter(e => e.teamId == team && w.contains(e) && e.x.isDefined && e.playerId.isDefined)
+      val positions = located.groupBy(_.playerId.get).toVector.map { (p, es) =>
+        AveragePosition(p, es.map(_.x.get).sum / es.size, es.map(_.y.get).sum / es.size, es.size)
+      }
+      (positions.sortBy(_.player.value), Basis.EventEstimate)
 
   /** Value per minute of a period, for every minute that has any data in that period. */
   def series(

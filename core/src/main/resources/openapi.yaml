@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: Synthetic Match Intelligence core API
+  version: 0.1.0
+  description: |
+    HTTP and server-sent event API of the deterministic core (ADR-013). One replayed match at a
+    time. The live side (engine, detectors, tools) runs at the generator's position; the event
+    stream for viewers runs `delay_s` of match time behind it (default 10 s). All data is
+    synthetic. Payload shapes follow the JSON Schemas in /schema (canonical, insight, overlay).
+servers:
+  - url: http://127.0.0.1:8080
+paths:
+  /health:
+    get:
+      summary: Liveness check
+      responses:
+        "200": { description: ok, content: { text/plain: { schema: { type: string } } } }
+  /openapi.yaml:
+    get:
+      summary: This document
+      responses:
+        "200": { description: OpenAPI document, content: { application/yaml: { schema: { type: string } } } }
+  /api/match/start:
+    post:
+      summary: Start (or restart) a replayed match
+      description: Generates the match for the seed and starts playback. Restarting ends open streams of the previous match.
+      parameters:
+        - { name: seed, in: query, required: false, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                seed: { type: integer, format: int64, default: 154 }
+                speed: { type: number, minimum: 0.25, maximum: 600, default: 1 }
+                delay_s: { type: number, minimum: 0, maximum: 60, default: 10 }
+                tracking: { type: boolean, default: false, description: Add 5 Hz tracking frames (capability level 1) }
+      responses:
+        "200": { $ref: "#/components/responses/MatchState" }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/match/pause:
+    post:
+      summary: Pause playback
+      responses: { "200": { $ref: "#/components/responses/MatchState" } }
+  /api/match/resume:
+    post:
+      summary: Resume playback
+      responses: { "200": { $ref: "#/components/responses/MatchState" } }
+  /api/match/speed:
+    post:
+      summary: Change playback speed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [speed]
+              properties: { speed: { type: number, minimum: 0.25, maximum: 600 } }
+      responses:
+        "200": { $ref: "#/components/responses/MatchState" }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/match/state:
+    get:
+      summary: Playback status, clocks, score and counts
+      responses: { "200": { $ref: "#/components/responses/MatchState" } }
+  /api/stream/events:
+    get:
+      summary: Viewer-delayed canonical feed (SSE)
+      description: Each SSE message is one canonical envelope; `id` is its index (equal to `seq`), `event` its payload type. Resume with Last-Event-ID or `from`.
+      parameters:
+        - { $ref: "#/components/parameters/From" }
+      responses:
+        "200": { description: Event stream, content: { text/event-stream: { schema: { type: string } } } }
+  /api/stream/insights:
+    get:
+      summary: Insights as the detectors publish them (SSE, live side)
+      description: Every insight version in order, including retractions (`status`) and replacements (`supersedes`).
+      parameters:
+        - { $ref: "#/components/parameters/From" }
+      responses:
+        "200": { description: Event stream, content: { text/event-stream: { schema: { type: string } } } }
+  /api/stream/overlays:
+    get:
+      summary: Overlays to schedule by video_ts_ms (SSE)
+      parameters:
+        - { $ref: "#/components/parameters/From" }
+      responses:
+        "200": { description: Event stream, content: { text/event-stream: { schema: { type: string } } } }
+  /api/insights:
+    get:
+      summary: Active insights, best first
+      parameters:
+        - { name: min_importance, in: query, required: false, schema: { type: number, minimum: 0, maximum: 1 } }
+        - { name: kind, in: query, required: false, schema: { type: string } }
+        - { name: all, in: query, required: false, schema: { type: boolean }, description: Every version in emission order instead }
+      responses:
+        "200": { description: Insights, content: { application/json: { schema: { type: object } } } }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/insights/{insight_id}:
+    get:
+      summary: Insight detail with an evidence summary
+      parameters:
+        - { $ref: "#/components/parameters/InsightId" }
+      responses:
+        "200": { $ref: "#/components/responses/InsightDetail" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/overlays:
+    post:
+      summary: Publish an overlay (from the agent service)
+      description: The body must validate against overlay.schema.json. IDs from O_90000000 up are reserved for the core.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, description: overlay.schema.json } } }
+      responses:
+        "202": { description: Accepted, content: { application/json: { schema: { type: object } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/tools/match_state:
+    get:
+      summary: "Tool: match state (score, clocks, possession, players on the pitch)"
+      responses: { "200": { $ref: "#/components/responses/MatchState" } }
+  /api/tools/team_stats:
+    get:
+      summary: "Tool: team metrics over a window, with basis tags"
+      parameters:
+        - { name: team, in: query, required: true, schema: { type: string, pattern: "^T_[A-Z0-9_]{1,16}$" } }
+        - { $ref: "#/components/parameters/Metrics" }
+        - { $ref: "#/components/parameters/Period" }
+        - { $ref: "#/components/parameters/FromMinute" }
+        - { $ref: "#/components/parameters/ToMinute" }
+        - { $ref: "#/components/parameters/LastMinutes" }
+      responses:
+        "200": { $ref: "#/components/responses/Stats" }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/tools/player_stats:
+    get:
+      summary: "Tool: player metrics over a window, with basis tags"
+      parameters:
+        - { $ref: "#/components/parameters/Player" }
+        - { $ref: "#/components/parameters/Metrics" }
+        - { $ref: "#/components/parameters/Period" }
+        - { $ref: "#/components/parameters/FromMinute" }
+        - { $ref: "#/components/parameters/ToMinute" }
+        - { $ref: "#/components/parameters/LastMinutes" }
+      responses:
+        "200": { $ref: "#/components/responses/Stats" }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/tools/player_workload:
+    get:
+      summary: "Tool: distance, high-speed distance, top speed, sprints and fatigue index"
+      description: Answers from tracking (basis tracking) when the window has enough frames; otherwise falls back (event_estimate) or reports not available.
+      parameters:
+        - { $ref: "#/components/parameters/Player" }
+        - { $ref: "#/components/parameters/Period" }
+        - { $ref: "#/components/parameters/FromMinute" }
+        - { $ref: "#/components/parameters/ToMinute" }
+        - { $ref: "#/components/parameters/LastMinutes" }
+      responses:
+        "200": { $ref: "#/components/responses/Stats" }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/tools/team_shape:
+    get:
+      summary: "Tool: average player positions (own team frame) over a window"
+      parameters:
+        - { name: team, in: query, required: true, schema: { type: string } }
+        - { $ref: "#/components/parameters/Period" }
+        - { $ref: "#/components/parameters/FromMinute" }
+        - { $ref: "#/components/parameters/ToMinute" }
+        - { $ref: "#/components/parameters/LastMinutes" }
+      responses:
+        "200": { description: Shape with basis, content: { application/json: { schema: { type: object } } } }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/tools/recent_events:
+    get:
+      summary: "Tool: the latest events, compact (at most 50)"
+      parameters:
+        - { name: n, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+        - { name: team, in: query, required: false, schema: { type: string } }
+      responses:
+        "200": { description: Events, content: { application/json: { schema: { type: object } } } }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/tools/insight/{insight_id}:
+    get:
+      summary: "Tool: insight detail with an evidence summary (at most 20 sample events)"
+      parameters:
+        - { $ref: "#/components/parameters/InsightId" }
+      responses:
+        "200": { $ref: "#/components/responses/InsightDetail" }
+        "404": { $ref: "#/components/responses/Error" }
+components:
+  parameters:
+    From: { name: from, in: query, required: false, schema: { type: integer, minimum: 0 }, description: First index to send (otherwise after Last-Event-ID, else 0) }
+    InsightId: { name: insight_id, in: path, required: true, schema: { type: string, pattern: "^I_[0-9]{1,6}$" } }
+    Player: { name: player, in: query, required: true, schema: { type: string, pattern: "^P_[A-Z0-9_]{1,24}$" } }
+    Metrics: { name: metrics, in: query, required: false, schema: { type: string }, description: Comma-separated metric IDs (default set when omitted) }
+    Period: { name: period, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 5 } }
+    FromMinute: { name: from_minute, in: query, required: false, schema: { type: number }, description: Display minute (second half starts at 45) }
+    ToMinute: { name: to_minute, in: query, required: false, schema: { type: number } }
+    LastMinutes: { name: last_minutes, in: query, required: false, schema: { type: number }, description: The last N minutes of the current period (overrides from and to) }
+  responses:
+    Error:
+      description: Bad request or not found
+      content: { application/json: { schema: { type: object, required: [error], properties: { error: { type: string } } } } }
+    MatchState:
+      description: Match state
+      content: { application/json: { schema: { type: object } } }
+    Stats:
+      description: Metrics with value, unit, basis and capability level (value omitted when undefined or not available)
+      content: { application/json: { schema: { type: object } } }
+    InsightDetail:
+      description: Latest version of the insight (insight.schema.json) and an evidence summary
+      content: { application/json: { schema: { type: object } } }

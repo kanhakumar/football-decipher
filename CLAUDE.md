@@ -88,7 +88,7 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 - Workload: `cd core && sbt "workload --seed 154"` (per-player distance, top speed, sprints and fatigue from synthetic 5 Hz tracking, with basis tags)
 - Insights: `cd core && sbt "insights --seed 154 [--top 15]"` (ranked moments from the detectors)
 - Demo match: seed 154 with the default scenario (away counter goal 33', home red card 76', home high press 55-70, ten-man equaliser 81', 2-2). Use it for the viewer, video and evals.
-- Run core service: `cd core && sbt run` (SSE on http://127.0.0.1:8080, override with `SMI_PORT`; try `curl -N http://127.0.0.1:8080/events/stream`)
+- Run core service: `cd core && sbt run` (API on http://127.0.0.1:8080, override with `SMI_PORT`; spec at /openapi.yaml). Replay: `curl -X POST localhost:8080/api/match/start -H "Content-Type: application/json" -d '{"seed":154,"speed":20}'`, then `curl -N localhost:8080/api/stream/events` (viewer-delayed) and `curl localhost:8080/api/tools/match_state`
 - Run agent service: TODO
 - Toolchain: JDK 25 (Temurin, installed with machine-wide JAVA_HOME; open a new terminal after install), Scala 3.9.0 LTS, sbt 1.13.0
 - Run tests: `cd core && sbt test`; `cd agents && .venv/Scripts/python -m pytest`

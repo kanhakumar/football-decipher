@@ -27,7 +27,10 @@ final case class Workload(
 ):
   import Workload.*
 
-  def add(f: TrackingFrame): Workload =
+  /** Folds in one frame. `home` turns frame coordinates (home team's frame) into each player's own
+    * team frame for average positions.
+    */
+  def add(f: TrackingFrame, home: Option[TeamId] = None): Workload =
     val t = f.wallclockUtc.toInstant.toEpochMilli
     val key = BucketKey(f.period, (f.periodClockS / 60).toInt)
     val start = (runners, sums.getOrElse(key, Map.empty), maxes.getOrElse(key, Map.empty))
@@ -36,9 +39,17 @@ final case class Workload(
         .get(p.playerId)
         .filter(r => r.period == f.period && t - r.wallMs <= GapMs && t > r.wallMs)
       val holders = Vector(Holder.Player(p.playerId), Holder.Team(p.teamId))
+      // Average position (team frame) for team shape: sums of x, y and samples per player.
+      val own = home.forall(_ == p.teamId)
+      val me = Holder.Player(p.playerId)
+      val shaped = Vector(
+        "shape_x" -> (if own then p.x else 105 - p.x),
+        "shape_y" -> (if own then p.y else 68 - p.y),
+        "shape_n" -> 1.0
+      ).foldLeft(b)((acc, kv) => acc.updated((kv._1, me), acc.getOrElse((kv._1, me), 0.0) + kv._2))
       prev match
         case None =>
-          (rs.updated(p.playerId, Runner(p.x, p.y, p.speedMs.getOrElse(0), t, f.period)), b, m)
+          (rs.updated(p.playerId, Runner(p.x, p.y, p.speedMs.getOrElse(0), t, f.period)), shaped, m)
         case Some(r) =>
           val d = StrictMath.hypot(p.x - r.x, p.y - r.y)
           val speed = p.speedMs.getOrElse(d / ((t - r.wallMs) / 1000.0))
@@ -47,7 +58,7 @@ final case class Workload(
           def plus(acc: Map[(String, Holder), Double], id: String, v: Double) =
             if v == 0 then acc
             else holders.foldLeft(acc)((a, h) => a.updated((id, h), a.getOrElse((id, h), 0.0) + v))
-          val withDistance = plus(b, "distance_covered", d)
+          val withDistance = plus(shaped, "distance_covered", d)
           val withHigh =
             plus(withDistance, "high_speed_distance", if speed > HighSpeed then d else 0)
           val withSprints = plus(withHigh, "sprints", if newSprint then 1 else 0)

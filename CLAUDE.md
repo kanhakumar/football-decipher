@@ -52,7 +52,7 @@ Core is a modular monolith (adapter, engine, detectors, API) with clean module b
 ## Conventions
 - Scala 3.9 LTS with sbt 1.x on JDK 25, scalafmt, munit + ScalaCheck. Effect stack (ADR-002): cats-effect + fs2 + http4s (Ember) + circe. Never mix in ZIO. No Akka (Pekko if needed). Pure core, effects at the edges.
 - Scala models are hand-written (ADR-003), pinned by golden round-trip tests and JVM schema validation against /schema. Python models are generated with datamodel-code-generator.
-- Python 3.11 or newer, Pydantic v2, ruff, pytest.
+- Python 3.11 or newer, Pydantic v2, ruff, pytest (async tests via the anyio plugin). Agent stack per ADR-014: Agent Framework workflow graph, official MCP SDK v2, httpx.
 - Determinism: every random draw comes from the seeded RNG. The same seed must produce byte-identical NDJSON.
 - Small modules, short functions, comments only where intent is not obvious.
 
@@ -89,7 +89,10 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 - Insights: `cd core && sbt "insights --seed 154 [--top 15]"` (ranked moments from the detectors)
 - Demo match: seed 154 with the default scenario (away counter goal 33', home red card 76', home high press 55-70, ten-man equaliser 81', 2-2). Use it for the viewer, video and evals.
 - Run core service: `cd core && sbt run` (API on http://127.0.0.1:8080, override with `SMI_PORT`; spec at /openapi.yaml; logs each request and the match lifecycle, insights and overlays to stdout). In Windows PowerShell, send JSON bodies with `Invoke-RestMethod -Method Post -ContentType application/json -Body '{...}'`; `curl` there is an alias, and `curl.exe -d '{...}'` loses the inner quotes. Replay: `curl -X POST localhost:8080/api/match/start -H "Content-Type: application/json" -d '{"seed":154,"speed":20}'`, then `curl -N localhost:8080/api/stream/events` (viewer-delayed) and `curl localhost:8080/api/tools/match_state`
-- Run agent service: TODO
+- MCP server: `cd agents && .venv/Scripts/python -m smi_agents.mcp_server` (stdio; `--http 8090` for streamable HTTP at /mcp; core from `SMI_CORE_URL`, default http://127.0.0.1:8080)
+- Narrate one insight: `cd agents && .venv/Scripts/python -m smi_agents narrate --insight I_0008 --persona casual --langs en,hi,es` (needs a running core with a match; starts the MCP server over stdio, or `--mcp-url`; `--team`, `--player`, `--metric` for club_fan, player_focus, metric_focus; model is the offline stub until the Foundry swap)
+- Run agent service: `cd agents && .venv/Scripts/python -m smi_agents follow --publish [--min-importance 0.6] [--persona casual] [--lang en]` (follows the core's insight stream and posts verified overlays; without `--publish` it prints them)
+- Agent models and fixtures: `cd agents && .venv/Scripts/python scripts/gen_models.py` (Pydantic models from /schema); `.venv/Scripts/python scripts/record_fixtures.py --core http://127.0.0.1:8080` (re-record the offline test fixture for seed 154 from a running core)
 - Toolchain: JDK 25 (Temurin, installed with machine-wide JAVA_HOME; open a new terminal after install), Scala 3.9.0 LTS, sbt 1.13.0
 - Run tests: `cd core && sbt test`; `cd agents && .venv/Scripts/python -m pytest`
 - Lint and format: `cd core && sbt scalafmtCheckAll`; `cd agents && .venv/Scripts/ruff check . ../schema`

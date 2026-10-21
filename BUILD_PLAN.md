@@ -61,7 +61,7 @@ Done when: workload numbers are plausible and consistent with events.
 Prompt: "Expose the core as HTTP and SSE: match control (start, pause, speed, seed), the viewer-delayed event stream, insights, overlay stream, and tool endpoints such as player workload, team shape, recent events and insight detail. Add OpenAPI. Keep the viewer delay configurable (default about 10 s)."
 Done when: curl and a test client can drive a full replay.
 
-## Step 11: Agent workflow with a stub LLM, then the real model (plan, 6 hours)
+## Step 11: Agent workflow with a stub LLM, then the real model (plan, 6 hours) [x] DONE (offline part; Foundry swap pending Azure)
 Prompt: "In /agents, build a thin MCP server that wraps the core API tools. Then build the Microsoft Agent Framework workflow: Explainer, Narrator, Verifier, then Personalize and Localize (en, hi, es), with a retry edge and a template fallback. Put the model behind an interface and start with a deterministic stub so tests run offline. The Verifier checks every number against the insight facts and the engine. Add tests: wrong number rejected, unsupported claim rejected, correct line accepted, three failures fall back to template."
 Then (once Azure is ready): swap the stub for the Foundry model deployment, using managed identity.
 Done when: the offline tests pass, then one real insight produces verified lines in three languages.

@@ -31,6 +31,7 @@ object Routes:
     "/api/insights/{insight_id}",
     "/api/overlays",
     "/api/tools/match_state",
+    "/api/tools/match_info",
     "/api/tools/team_stats",
     "/api/tools/player_stats",
     "/api/tools/player_workload",
@@ -151,6 +152,8 @@ object Routes:
       // ---- tools (for the MCP server) ----
       case GET -> Root / "api" / "tools" / "match_state" =>
         hub.snapshot.flatMap(p => json(Tools.state(p)))
+      case GET -> Root / "api" / "tools" / "match_info" =>
+        hub.snapshot.flatMap(p => json(Tools.info(p)))
       case GET -> Root / "api" / "tools" / "team_stats" :? Team(t) +& MetricsQ(ms) +& Period(
             pe
           ) +& From(f) +& To(to) +& Last(l) =>

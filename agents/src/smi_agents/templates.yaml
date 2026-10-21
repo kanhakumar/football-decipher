@@ -1,0 +1,271 @@
+# Template lines per reason code and language (D4 hot path, D7 fallback). Filled from the FactSheet
+# only: {team} {opponent} {player} {minute} and fact names, with :int, :1, :2 (decimals) or :pct
+# (share as a percentage). Every line must pass the Verifier for every insight that uses it
+# (tests/test_templates.py). Names stay in Latin script in every language.
+
+codes:
+  # ---- goal ----
+  counter_attack_goal:
+    en:
+      headline: "{player} finishes a counter for {team}"
+      body: "{team} won the ball and scored {possession_duration_s:int} seconds later, after {possession_passes:int} passes. It is {team_goals:int}-{opponent_goals:int}."
+    es:
+      headline: "{player} culmina un contraataque de {team}"
+      body: "{team} recuperó el balón y marcó {possession_duration_s:int} segundos después, tras {possession_passes:int} pases. Va {team_goals:int}-{opponent_goals:int}."
+    hi:
+      headline: "{player} ने {team} के काउंटर को गोल में बदला"
+      body: "{team} ने गेंद जीती और {possession_passes:int} पास के बाद {possession_duration_s:int} सेकंड में गोल कर दिया। स्कोर {team_goals:int}-{opponent_goals:int}।"
+  equaliser:
+    en:
+      headline: "{player} levels it for {team}"
+      body: "{team} are back on terms at {team_goals:int}-{opponent_goals:int} in minute {minute}, from a chance worth {xg:2} xG."
+    es:
+      headline: "{player} empata para {team}"
+      body: "{team} iguala {team_goals:int}-{opponent_goals:int} en el minuto {minute}, con una ocasión de {xg:2} xG."
+    hi:
+      headline: "{player} ने {team} को बराबरी दिलाई"
+      body: "मिनट {minute} में {team} ने स्कोर {team_goals:int}-{opponent_goals:int} से बराबर किया। मौके की कीमत {xg:2} xG थी।"
+  takes_lead:
+    en:
+      headline: "{player} puts {team} ahead"
+      body: "{team} lead {team_goals:int}-{opponent_goals:int} after a finish in minute {minute} from a chance worth {xg:2} xG."
+    es:
+      headline: "{player} adelanta a {team}"
+      body: "{team} gana {team_goals:int}-{opponent_goals:int} tras el gol del minuto {minute}, una ocasión de {xg:2} xG."
+    hi:
+      headline: "{player} के गोल से {team} को बढ़त"
+      body: "मिनट {minute} के गोल के बाद {team} {team_goals:int}-{opponent_goals:int} से आगे है। मौके की कीमत {xg:2} xG थी।"
+  extends_lead:
+    en:
+      headline: "{player} makes it {team_goals:int}-{opponent_goals:int} for {team}"
+      body: "{team} extend the lead in minute {minute} with a chance worth {xg:2} xG."
+    es:
+      headline: "{player} pone el {team_goals:int}-{opponent_goals:int} para {team}"
+      body: "{team} amplía su ventaja en el minuto {minute} con una ocasión de {xg:2} xG."
+    hi:
+      headline: "{player} ने {team} के लिए {team_goals:int}-{opponent_goals:int} किया"
+      body: "मिनट {minute} में {team} ने अपनी बढ़त और बड़ी की। मौके की कीमत {xg:2} xG थी।"
+  pulls_one_back:
+    en:
+      headline: "{player} pulls one back for {team}"
+      body: "{team} trail {team_goals:int}-{opponent_goals:int} after a goal in minute {minute} from a chance worth {xg:2} xG."
+    es:
+      headline: "{player} recorta distancias para {team}"
+      body: "{team} pierde {team_goals:int}-{opponent_goals:int} tras el gol del minuto {minute}, una ocasión de {xg:2} xG."
+    hi:
+      headline: "{player} ने {team} के लिए एक गोल वापस किया"
+      body: "मिनट {minute} के गोल के बाद भी {team} {team_goals:int}-{opponent_goals:int} से पीछे है। मौके की कीमत {xg:2} xG थी।"
+  # ---- red card ----
+  down_to_ten:
+    en:
+      headline: "{team} down to {players_left:int} men"
+      body: "{player} is sent off in minute {minute}. {team} play on with {players_left:int} at {team_goals:int}-{opponent_goals:int}."
+    es:
+      headline: "{team} se queda con {players_left:int}"
+      body: "{player} es expulsado en el minuto {minute}. {team} sigue con {players_left:int} jugadores con el {team_goals:int}-{opponent_goals:int}."
+    hi:
+      headline: "{team} के अब {players_left:int} खिलाड़ी"
+      body: "मिनट {minute} में {player} को लाल कार्ड मिला। स्कोर {team_goals:int}-{opponent_goals:int} है और {team} {players_left:int} खिलाड़ियों के साथ खेलेगी।"
+  down_to_nine:
+    en:
+      headline: "{team} down to {players_left:int} men"
+      body: "A second red card for {team}: {player} is sent off in minute {minute} at {team_goals:int}-{opponent_goals:int}."
+    es:
+      headline: "{team} se queda con {players_left:int}"
+      body: "Otra tarjeta roja para {team}: {player} es expulsado en el minuto {minute} con el {team_goals:int}-{opponent_goals:int}."
+    hi:
+      headline: "{team} के अब {players_left:int} खिलाड़ी"
+      body: "{team} को एक और लाल कार्ड: मिनट {minute} में {player} बाहर। स्कोर {team_goals:int}-{opponent_goals:int}।"
+  # ---- key chance ----
+  big_chance_missed:
+    en:
+      headline: "{player} misses a big chance"
+      body: "A chance worth {xg:2} xG from {distance_m:int} metres goes begging for {team} in minute {minute}."
+    es:
+      headline: "{player} falla una ocasión clarísima"
+      body: "{team} desperdicia en el minuto {minute} una ocasión de {xg:2} xG a {distance_m:int} metros."
+    hi:
+      headline: "{player} ने बड़ा मौका गंवाया"
+      body: "मिनट {minute} में {team} ने {distance_m:int} मीटर से {xg:2} xG का मौका गंवा दिया।"
+  big_chance_saved:
+    en:
+      headline: "Big save denies {player}"
+      body: "The keeper keeps out a chance worth {xg:2} xG from {distance_m:int} metres in minute {minute}."
+    es:
+      headline: "Gran parada ante {player}"
+      body: "El portero detiene en el minuto {minute} una ocasión de {xg:2} xG a {distance_m:int} metros."
+    hi:
+      headline: "शानदार बचाव, {player} का मौका नाकाम"
+      body: "मिनट {minute} में गोलकीपर ने {distance_m:int} मीटर से आए {xg:2} xG के मौके को बचाया।"
+  # ---- spells ----
+  momentum_swings_to_team:
+    en:
+      headline: "Momentum swings to {team}"
+      body: "{team} had {before_share:pct}% of the attacking actions from minute {before_from_minute:int} to {before_to_minute:int}, and {after_share:pct}% from then to minute {after_to_minute:int}."
+    es:
+      headline: "El impulso es ahora de {team}"
+      body: "{team} tuvo el {before_share:pct}% de las acciones ofensivas del minuto {before_from_minute:int} al {before_to_minute:int}, y el {after_share:pct}% desde entonces hasta el {after_to_minute:int}."
+    hi:
+      headline: "खेल का रुख {team} की ओर"
+      body: "मिनट {before_from_minute:int} से {before_to_minute:int} तक हमले की कार्रवाइयों में {team} का हिस्सा {before_share:pct}% था, और उसके बाद मिनट {after_to_minute:int} तक {after_share:pct}%।"
+  high_press_spell:
+    en:
+      headline: "{team} turn up the press"
+      body: "{team} pressed {after_pressures:int} times against {after_opponent_passes:int} {opponent} passes from minute {before_to_minute:int} to {after_to_minute:int}, a rate of {after_rate:2} per pass, up from {before_rate:2}."
+    es:
+      headline: "{team} sube la presión"
+      body: "{team} presionó {after_pressures:int} veces ante {after_opponent_passes:int} pases de {opponent} del minuto {before_to_minute:int} al {after_to_minute:int}: {after_rate:2} por pase, antes {before_rate:2}."
+    hi:
+      headline: "{team} ने दबाव बढ़ाया"
+      body: "मिनट {before_to_minute:int} से {after_to_minute:int} तक {team} ने {opponent} के {after_opponent_passes:int} पास पर {after_pressures:int} बार दबाव बनाया, यानी प्रति पास {after_rate:2}; पहले यह {before_rate:2} था।"
+  pressing_raises_chance_quality:
+    en:
+      headline: "{team}'s press is paying off"
+      body: "From minute {before_to_minute:int} to {after_to_minute:int}, {team} won the ball high {after_ball_wins_high:int} times and took {after_shots:int} shots."
+    es:
+      headline: "La presión de {team} da frutos"
+      body: "Del minuto {before_to_minute:int} al {after_to_minute:int}, {team} recuperó arriba {after_ball_wins_high:int} veces y remató {after_shots:int} veces."
+    hi:
+      headline: "{team} के दबाव का फायदा मिल रहा है"
+      body: "मिनट {before_to_minute:int} से {after_to_minute:int} तक {team} ने ऊपर {after_ball_wins_high:int} बार गेंद जीती और {after_shots:int} शॉट लगाए।"
+  game_turns_chaotic:
+    en:
+      headline: "The game turns end to end"
+      body: "Possession changed hands {after_possession_changes:int} times from minute {before_to_minute:int} to {after_to_minute:int}, up from {before_possession_changes:int}."
+    es:
+      headline: "El partido se vuelve de ida y vuelta"
+      body: "La posesión cambió de manos {after_possession_changes:int} veces del minuto {before_to_minute:int} al {after_to_minute:int}, antes {before_possession_changes:int}."
+    hi:
+      headline: "मैच में तेज़ उतार-चढ़ाव"
+      body: "मिनट {before_to_minute:int} से {after_to_minute:int} तक गेंद {after_possession_changes:int} बार एक टीम से दूसरी के पास गई; पहले यह {before_possession_changes:int} बार था।"
+  team_takes_control:
+    en:
+      headline: "{team} take control"
+      body: "{team} made {after_team_pass_share:pct}% of the passes from minute {before_to_minute:int} to {after_to_minute:int}, up from {before_team_pass_share:pct}%."
+    es:
+      headline: "{team} toma el control"
+      body: "{team} dio el {after_team_pass_share:pct}% de los pases del minuto {before_to_minute:int} al {after_to_minute:int}, antes el {before_team_pass_share:pct}%."
+    hi:
+      headline: "{team} ने खेल पर पकड़ बनाई"
+      body: "मिनट {before_to_minute:int} से {after_to_minute:int} तक {after_team_pass_share:pct}% पास {team} के थे; पहले यह {before_team_pass_share:pct}% था।"
+  tempo_rises:
+    en:
+      headline: "The tempo picks up"
+      body: "{after_per_minute:1} passes a minute from minute {before_to_minute:int} to {after_to_minute:int}, up from {before_per_minute:1}."
+    es:
+      headline: "Sube el ritmo"
+      body: "{after_per_minute:1} pases por minuto del minuto {before_to_minute:int} al {after_to_minute:int}, antes {before_per_minute:1}."
+    hi:
+      headline: "खेल की रफ़्तार बढ़ी"
+      body: "मिनट {before_to_minute:int} से {after_to_minute:int} तक हर मिनट {after_per_minute:1} पास; पहले {before_per_minute:1}।"
+  tempo_drops:
+    en:
+      headline: "The tempo drops"
+      body: "{after_per_minute:1} passes a minute from minute {before_to_minute:int} to {after_to_minute:int}, down from {before_per_minute:1}."
+    es:
+      headline: "Baja el ritmo"
+      body: "{after_per_minute:1} pases por minuto del minuto {before_to_minute:int} al {after_to_minute:int}, antes {before_per_minute:1}."
+    hi:
+      headline: "खेल की रफ़्तार धीमी"
+      body: "मिनट {before_to_minute:int} से {after_to_minute:int} तक हर मिनट {after_per_minute:1} पास; पहले {before_per_minute:1}।"
+  # ---- milestones ----
+  player_pass_milestone:
+    en:
+      headline: "{player} reaches {count:int} completed passes"
+      body: "{player} has completed {count:int} passes for {team} by minute {minute}."
+    es:
+      headline: "{player} llega a {count:int} pases completados"
+      body: "{player} suma {count:int} pases completados con {team} en el minuto {minute}."
+    hi:
+      headline: "{player} के {count:int} सफल पास पूरे"
+      body: "मिनट {minute} तक {player} ने {team} के लिए {count:int} सफल पास दिए हैं।"
+  brace:
+    en:
+      headline: "{player} scores again"
+      body: "{player} now has {count:int} goals for {team}, the latest in minute {minute}."
+    es:
+      headline: "{player} marca otra vez"
+      body: "{player} ya lleva {count:int} goles con {team}, el último en el minuto {minute}."
+    hi:
+      headline: "{player} का एक और गोल"
+      body: "{player} के अब {team} के लिए {count:int} गोल हैं, ताज़ा गोल मिनट {minute} में।"
+  hat_trick:
+    en:
+      headline: "Hat-trick for {player}"
+      body: "{player} now has {count:int} goals for {team}, the latest in minute {minute}."
+    es:
+      headline: "Triplete de {player}"
+      body: "{player} ya lleva {count:int} goles con {team}, el último en el minuto {minute}."
+    hi:
+      headline: "{player} की हैट्रिक"
+      body: "{player} के अब {team} के लिए {count:int} गोल हैं, ताज़ा गोल मिनट {minute} में।"
+  team_shot_milestone:
+    en:
+      headline: "{team} reach {count:int} shots"
+      body: "{team} have taken {count:int} shots by minute {minute}."
+    es:
+      headline: "{team} llega a {count:int} remates"
+      body: "{team} suma {count:int} remates en el minuto {minute}."
+    hi:
+      headline: "{team} के {count:int} शॉट"
+      body: "मिनट {minute} तक {team} ने {count:int} शॉट लगाए हैं।"
+
+# Whether the moment is good or bad news for the insight's subject team (its first team), for the
+# club fan's framing. Codes not listed are good news for the subject.
+polarity:
+  down_to_ten: bad
+  down_to_nine: bad
+  big_chance_missed: bad
+  big_chance_saved: bad
+  game_turns_chaotic: neutral
+  tempo_rises: neutral
+  tempo_drops: neutral
+
+# Persona framing around the code's line.
+personas:
+  analyst:
+    en: { tail: "Basis: {basis}, {evidence_count:int} events." }
+    es: { tail: "Base: {basis}, {evidence_count:int} eventos." }
+    hi: { tail: "आधार: {basis}, {evidence_count:int} इवेंट।" }
+  club_fan:
+    en: { for: "Good news for {fav} fans: ", against: "A tough moment for {fav}: ", neutral: "For {fav} fans: " }
+    es: { for: "Buenas noticias para la afición de {fav}: ", against: "Momento difícil para {fav}: ", neutral: "Para la afición de {fav}: " }
+    hi: { for: "{fav} के प्रशंसकों के लिए अच्छी खबर: ", against: "{fav} के लिए मुश्किल पल: ", neutral: "{fav} के प्रशंसकों के लिए: " }
+  player_focus:
+    en: { focus: "{fav_player} in focus: " }
+    es: { focus: "Foco en {fav_player}: " }
+    hi: { focus: "{fav_player} पर नज़र: " }
+
+basis:
+  event_data: { en: "event data", es: "datos de eventos", hi: "इवेंट डेटा" }
+  tracking: { en: "tracking data", es: "datos de seguimiento", hi: "ट्रैकिंग डेटा" }
+  event_estimate: { en: "an estimate from events", es: "una estimación a partir de eventos", hi: "इवेंट से अनुमान" }
+
+# Metric labels for overlay cards, by fact name.
+labels:
+  xg: { en: "xG", es: "xG", hi: "xG" }
+  possession_duration_s: { en: "Seconds to score", es: "Segundos hasta el gol", hi: "गोल तक सेकंड" }
+  possession_passes: { en: "Passes in the move", es: "Pases en la jugada", hi: "मूव में पास" }
+  players_left: { en: "Players left", es: "Jugadores en campo", hi: "बचे खिलाड़ी" }
+  distance_m: { en: "Distance (m)", es: "Distancia (m)", hi: "दूरी (मी)" }
+  before_share: { en: "Share before", es: "Cuota antes", hi: "पहले हिस्सा" }
+  after_share: { en: "Share now", es: "Cuota ahora", hi: "अब हिस्सा" }
+  after_shots: { en: "Shots in the spell", es: "Remates en la fase", hi: "इस दौर में शॉट" }
+  before_rate: { en: "Press rate before", es: "Presión antes", hi: "पहले दबाव दर" }
+  after_rate: { en: "Press rate now", es: "Presión ahora", hi: "अब दबाव दर" }
+  after_pressures: { en: "Pressures", es: "Presiones", hi: "दबाव" }
+  after_ball_wins_high: { en: "High ball wins", es: "Recuperaciones arriba", hi: "ऊपर गेंद जीती" }
+  before_possession_changes: { en: "Turnovers before", es: "Cambios antes", hi: "पहले बदलाव" }
+  after_possession_changes: { en: "Turnovers now", es: "Cambios ahora", hi: "अब बदलाव" }
+  after_passes_per_possession: { en: "Passes per possession", es: "Pases por posesión", hi: "प्रति कब्ज़ा पास" }
+  before_team_pass_share: { en: "Pass share before", es: "Pases antes", hi: "पहले पास हिस्सा" }
+  after_team_pass_share: { en: "Pass share now", es: "Pases ahora", hi: "अब पास हिस्सा" }
+  after_team_passes: { en: "Passes", es: "Pases", hi: "पास" }
+  before_per_minute: { en: "Passes/min before", es: "Pases/min antes", hi: "पहले पास/मिनट" }
+  after_per_minute: { en: "Passes/min now", es: "Pases/min ahora", hi: "अब पास/मिनट" }
+  count: { en: "Total", es: "Total", hi: "कुल" }
+  spell_shots: { en: "Shots", es: "Remates", hi: "शॉट" }
+  spell_xg: { en: "xG in the spell", es: "xG en la fase", hi: "इस दौर का xG" }
+  spell_possession_share: { en: "Possession", es: "Posesión", hi: "कब्ज़ा" }
+  spell_pass_completion: { en: "Pass completion", es: "Pases completados", hi: "सफल पास" }
+  spell_ppda: { en: "PPDA", es: "PPDA", hi: "PPDA" }

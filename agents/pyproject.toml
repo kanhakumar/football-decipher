@@ -3,10 +3,16 @@ name = "smi-agents"
 version = "0.1.0"
 description = "Agent workflow and MCP server for the Synthetic Match Intelligence Engine"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "agent-framework-core==1.20.0",
+    "mcp==2.3.0",
+    "httpx==0.28.1",
+    "pydantic>=2.13,<3",
+    "pyyaml>=6,<7",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6"]
+dev = ["pytest>=8", "ruff>=0.6", "datamodel-code-generator==0.83.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -17,7 +23,7 @@ packages = ["src/smi_agents"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]
 
 [tool.ruff]
 line-length = 100
@@ -25,3 +31,9 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["smi_agents", "conftest"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/smi_agents/models/*.py" = ["E501"]  # generated

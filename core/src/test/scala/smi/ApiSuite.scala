@@ -155,7 +155,17 @@ class ApiSuite extends CatsEffectSuite:
       (s7, workload) <- get("/api/tools/player_workload?player=P_HOM_02")
       (s8, _) <- get("/api/tools/insight/I_9999")
       (s9, list) <- get("/api/insights?min_importance=0.85")
+      (_, info) <- get("/api/tools/match_info")
     yield
+      val squads = field(info, "teams").asArray.get
+      assertEquals(
+        squads.flatMap(_.hcursor.get[String]("name").toOption),
+        Vector("Northgate FC", "Eastmere Rovers")
+      )
+      assertEquals(
+        squads.map(_.hcursor.downField("starters").values.map(_.size)),
+        Vector(Some(11), Some(11))
+      )
       assertEquals(
         List(s1, s2, s3, s4, s5, s6, s7, s8, s9),
         List(

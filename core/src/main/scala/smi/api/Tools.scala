@@ -83,6 +83,10 @@ object Tools:
       overlays = p.overlays.size
     )
 
+  def info(p: Playback): MatchInfoView =
+    val e = engine(p)
+    MatchInfoView(p.matchId, e.teams.toList.flatMap(e.lineups.get))
+
   private def metrics(ids: List[String], forPlayer: Boolean): Either[String, List[String]] =
     ids.find(id => !Metrics.byId.contains(id)) match
       case Some(bad) => Left(s"unknown metric '$bad'")

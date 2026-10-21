@@ -149,3 +149,8 @@ object InsightsView:
 final case class ErrorView(error: String)
 object ErrorView:
   given Codec.AsObject[ErrorView] = Wire.codec
+
+/** Team names and squads (the canonical lineups), so agents can name teams and players. */
+final case class MatchInfoView(matchId: Option[MatchId], teams: List[Lineup])
+object MatchInfoView:
+  given Codec.AsObject[MatchInfoView] = Wire.codec

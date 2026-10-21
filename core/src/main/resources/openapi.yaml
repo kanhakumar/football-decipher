@@ -123,6 +123,11 @@ paths:
     get:
       summary: "Tool: match state (score, clocks, possession, players on the pitch)"
       responses: { "200": { $ref: "#/components/responses/MatchState" } }
+  /api/tools/match_info:
+    get:
+      summary: "Tool: team names and squads (the canonical lineups: id, name, shirt, position)"
+      responses:
+        "200": { description: Match id and lineups, content: { application/json: { schema: { type: object } } } }
   /api/tools/team_stats:
     get:
       summary: "Tool: team metrics over a window, with basis tags"

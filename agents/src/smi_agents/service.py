@@ -7,11 +7,13 @@ A viewer asks for each moment in its own persona and language; identical request
 workflow run and the cache. The service reaches the core only through its MCP server, here in
 process (an in-memory MCP session over the same tools).
 
-Run: python -m smi_agents serve [--port 8090]
+Run: python -m smi_agents serve [--host 127.0.0.1] [--port 8090]
 """
 
 import itertools
+import os
 import time
+from collections.abc import Mapping
 from typing import Any
 
 from pydantic import ValidationError
@@ -36,7 +38,13 @@ def _tool_error(e: BaseException) -> ToolError | None:
     return None
 
 
-def create_app(narrator: Narrator) -> Starlette:
+def cors_origins(env: Mapping[str, str] = os.environ) -> list[str]:
+    """SMI_CORS_ORIGINS, comma-separated: `*` locally, the viewer's origin when deployed."""
+    raw = env.get("SMI_CORS_ORIGINS", "*")
+    return [o.strip() for o in raw.split(",") if o.strip()] or ["*"]
+
+
+def create_app(narrator: Narrator, origins: list[str] | None = None) -> Starlette:
     numbers = itertools.count(1)
     ids: dict[tuple, str] = {}  # one overlay id per distinct narration
 
@@ -80,10 +88,13 @@ def create_app(narrator: Narrator) -> Starlette:
 
     return Starlette(
         routes=[Route("/health", health), Route("/api/narrate", narrate, methods=["POST"])],
-        # The viewer is a static page on another origin. Tighten when deployed.
+        # The viewer is a static page on another origin.
         middleware=[
             Middleware(
-                CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+                CORSMiddleware,
+                allow_origins=cors_origins() if origins is None else origins,
+                allow_methods=["*"],
+                allow_headers=["*"],
             )
         ],
     )

@@ -19,7 +19,7 @@ import smi.model.*
 class ApiSuite extends CatsEffectSuite:
   override val munitIOTimeout = 3.minutes
 
-  private val hubs = ResourceSuiteLocalFixture("hub", Hub.resource)
+  private val hubs = ResourceSuiteLocalFixture("hub", Hub.resource())
   override def munitFixtures = List(hubs)
 
   private def app = Routes(hubs()).orNotFound

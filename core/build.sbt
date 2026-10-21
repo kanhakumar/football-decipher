@@ -6,6 +6,7 @@ val catsEffectVersion = "3.7.1"
 val fs2Version = "3.14.0"
 val http4sVersion = "0.23.38"
 val circeVersion = "0.14.17"
+val azureIdentityVersion = "1.18.7"
 
 lazy val root = (project in file("."))
   .settings(
@@ -25,12 +26,31 @@ lazy val root = (project in file("."))
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
       "io.circe" %% "circe-yaml-v12" % "1.15.0",
-      "org.slf4j" % "slf4j-nop" % "2.0.17",
+      // Azure (ADR-016): Event Hubs bus, Cosmos DB store, managed identity.
+      "com.azure" % "azure-messaging-eventhubs" % "5.21.7",
+      "com.azure" % "azure-cosmos" % "4.83.0",
+      "com.azure" % "azure-identity" % azureIdentityVersion,
+      // Warnings and errors from http4s and the Azure SDK reach stderr (simplelogger.properties).
+      "org.slf4j" % "slf4j-simple" % "2.0.20",
       "org.scalameta" %% "munit" % "1.3.6" % Test,
       "org.scalameta" %% "munit-scalacheck" % "1.3.1" % Test,
       "org.typelevel" %% "munit-cats-effect" % "2.2.1" % Test,
       "com.networknt" % "json-schema-validator" % "3.0.8" % Test
-    )
+    ),
+    // One runnable jar for the container image (core/Dockerfile).
+    assembly / mainClass := Some("smi.Main"),
+    assembly / assemblyJarName := "app.jar",
+    assembly / test := {},
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "services", _*)                      => MergeStrategy.filterDistinctLines
+      case PathList("META-INF", "versions", _, "module-info.class") => MergeStrategy.discard
+      case "module-info.class"                                         => MergeStrategy.discard
+      case PathList("META-INF", "io.netty.versions.properties")      => MergeStrategy.first
+      case PathList("META-INF", xs @ _*) if xs.lastOption.exists(_.endsWith(".SF")) => MergeStrategy.discard
+      case x =>
+        val old = (assembly / assemblyMergeStrategy).value
+        old(x)
+    }
   )
 
 addCommandAlias("generate", "runMain smi.generator.Generate")
@@ -39,3 +59,4 @@ addCommandAlias("rawfeed", "runMain smi.raw.RawFeed")
 addCommandAlias("stats", "runMain smi.Stats")
 addCommandAlias("insights", "runMain smi.Insights")
 addCommandAlias("workload", "runMain smi.WorkloadCli")
+addCommandAlias("publish-match", "runMain smi.Publish")

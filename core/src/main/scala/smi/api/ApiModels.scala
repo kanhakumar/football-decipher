@@ -38,11 +38,14 @@ final case class MatchStateView(
     score: ListMap[String, Int],
     possessionTeam: Option[TeamId],
     playersOnPitch: ListMap[String, Int],
-    envelopesTotal: Int,
+    /** Unknown until the last envelope of a bus match has arrived. */
+    envelopesTotal: Option[Int],
     envelopesLive: Int,
     envelopesViewer: Int,
     insights: Int,
-    overlays: Int
+    overlays: Int,
+    runId: Option[String] = None,
+    feed: String = "replay"
 )
 object MatchStateView:
   import Wire.given

@@ -1,0 +1,32 @@
+# Eval gate settings (eval/run.py). A run fails when a threshold is missed or a score regresses
+# against eval/baseline.json by more than the tolerance.
+
+match:
+  seed: 154            # the demo match (synthetic, deterministic)
+  min_importance: 0.6  # moment-path insights (D4)
+
+thresholds:
+  number_match_rate: {min: 1.0}    # every number in every line is a tool answer (rule 3)
+  verified_rate: {min: 1.0}        # every published line passed the Verifier
+  fallback_rate: {max: 0.25}       # template lines after three rejections
+  first_attempt_rate: {min: 0.6}
+  latency_p95_ms: {max: 4000}      # moment path budget, about 2-4 s (D4)
+  foundry_groundedness: {min: 3.5} # online only, 1-5 scales
+  foundry_relevance: {min: 3.5}
+  foundry_fluency: {min: 3.5}
+  foundry_coherence: {min: 3.5}
+
+# Relative drop allowed against the baseline before the gate fails.
+regression_tolerance: 0.05
+higher_is_better:
+  number_match_rate: true
+  verified_rate: true
+  first_attempt_rate: true
+  fallback_rate: false
+  foundry_groundedness: true
+  foundry_relevance: true
+  foundry_fluency: true
+  foundry_coherence: true
+
+foundry:
+  sample: 16  # English lines scored by the Foundry evaluators (each costs model calls)

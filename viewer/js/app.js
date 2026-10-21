@@ -7,8 +7,9 @@ import { InsightBook, displayClock, scoreAt, toScreen } from "./match.js";
 import { OverlayQueue, ViewerClock } from "./timeline.js";
 
 const params = new URLSearchParams(location.search);
-const CORE = params.get("core") ?? "http://127.0.0.1:8080";
-const AGENTS = params.get("agents") ?? "http://127.0.0.1:8090";
+const deployed = window.SMI_CONFIG ?? {}; // config.js: written by azd at deploy, local defaults here
+const CORE = params.get("core") ?? deployed.core ?? "http://127.0.0.1:8080";
+const AGENTS = params.get("agents") ?? deployed.agents ?? "http://127.0.0.1:8090";
 const MIN_IMPORTANCE = Number(params.get("min") ?? 0.6);
 const SVG = "http://www.w3.org/2000/svg";
 const $ = (id) => document.getElementById(id);
@@ -143,7 +144,7 @@ async function pollState() {
     const s = await core("/api/match/state");
     state.playback = s;
     clock.setPlayback(s.speed, s.status === "running");
-    const fingerprint = s.seed === undefined ? null : `${s.seed}|${s.envelopes_total}|${s.tracking}`;
+    const fingerprint = s.run_id ?? null; // a new run: started here, by someone else, or by the generator job
     const restarted = fingerprint !== state.fingerprint || s.envelopes_viewer < (state.lastViewer ?? 0);
     state.lastViewer = s.envelopes_viewer;
     if (restarted && fingerprint) {

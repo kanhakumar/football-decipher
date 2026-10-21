@@ -1,8 +1,8 @@
 package smi.api
 
-import cats.effect.{IO, Resource}
+import cats.effect.{Fiber, IO, Ref, Resource}
 import cats.syntax.all.*
-import cats.effect.std.Mutex
+import cats.effect.std.{Mutex, UUIDGen}
 import fs2.Stream
 import fs2.concurrent.SignallingRef
 import scala.concurrent.duration.*
@@ -35,8 +35,9 @@ object MatchConfig:
       Left(s"delay_s ${c.delayS} must be ${Delays._1} to ${Delays._2}")
     else Right(c)
 
-/** One replayed match. `live` is the generator's position (engine and detectors run here); `viewer`
-  * trails it by the viewer delay (ADR-013, D5).
+/** One match. `live` is the generator's position (engine and detectors run here); `viewer` trails
+  * it by the viewer delay (ADR-013, D5). With a `Replay` source the whole feed is known up front;
+  * with a `Bus` source it grows as envelopes arrive, and `ended` says the last one has (ADR-016).
   */
 final case class Playback(
     generation: Long = 0,
@@ -54,7 +55,14 @@ final case class Playback(
     overlays: Vector[Overlay] = Vector.empty,
     overlayFor: Map[InsightId, OverlayId] = Map.empty,
     /** Set once the detectors have been closed at the end of the feed. */
-    closed: Boolean = false
+    closed: Boolean = false,
+    source: FeedSource = FeedSource.Replay,
+    runId: String = "",
+    /** Whether the feed is complete (always for a replay; after the last bus message otherwise). */
+    ended: Boolean = true,
+    kickoffMs: Option[Long] = None,
+    /** Video time of the newest envelope received. */
+    latestMs: Double = 0
 ):
   def matchId: Option[MatchId] = feed.headOption.map(_.matchId)
 
@@ -62,13 +70,35 @@ final case class Playback(
   def tick(realMs: Double): Playback =
     if status != Status.Running then this
     else
-      val clock = clockMs + realMs * config.speed
       val delay = config.delayS * 1000
+      val advanced = clockMs + realMs * config.speed
+      val clock = source match
+        case FeedSource.Replay => advanced
+        // The viewer never passes what has arrived; during gaps in the feed the clock still runs.
+        case FeedSource.Bus => math.min(advanced, latestMs + delay)
       var v = viewer
       while v < feed.size && times(v) <= clock - delay do v += 1
-      val done = v == feed.size
-      feedLive(clock).closeDetectors
+      val done = ended && v == feed.size
+      // On a bus the live side processes every envelope as soon as it has arrived.
+      val liveUpTo = if source == FeedSource.Replay then clock else Double.PositiveInfinity
+      feedLive(liveUpTo).closeDetectors
         .copy(clockMs = clock, viewer = v, status = if done then Status.Finished else status)
+
+  /** Appends an envelope that arrived on the bus. */
+  def receive(env: Envelope, last: Boolean): Playback =
+    val kickoff = kickoffMs.orElse(env.payload match
+      case Payload.Meta(m) => Some(m.kickoffUtc.toInstant.toEpochMilli)
+      case _               => None
+    )
+    val t = env.emittedAt.toInstant.toEpochMilli - kickoff.getOrElse(0L)
+    copy(
+      feed = feed :+ env,
+      times = times :+ t,
+      kickoffMs = kickoff,
+      latestMs = math.max(latestMs, t.toDouble),
+      ended = ended || last,
+      clockMs = if feed.isEmpty then t.toDouble else clockMs
+    )
 
   private def feedLive(clock: Double): Playback =
     var p = this
@@ -80,7 +110,7 @@ final case class Playback(
 
   /** Closes the detectors once the live cursor has passed the last envelope. */
   private def closeDetectors: Playback =
-    if live == feed.size && feed.nonEmpty && !closed then
+    if ended && live == feed.size && feed.nonEmpty && !closed then
       process(Moments.finish(moments)).copy(closed = true)
     else this
 
@@ -114,8 +144,16 @@ final case class Playback(
     )
 
 /** The core's one live match: control, playback ticker and the state every route reads. */
-final class Hub(val state: SignallingRef[IO, Playback], lock: Mutex[IO], log: Log):
+final class Hub(
+    val state: SignallingRef[IO, Playback],
+    lock: Mutex[IO],
+    log: Log,
+    bus: Option[MatchBus],
+    store: MatchStore,
+    publishing: Ref[IO, Option[Fiber[IO, Throwable, Unit]]]
+):
   def snapshot: IO[Playback] = state.get
+  def source: FeedSource = if bus.isDefined then FeedSource.Bus else FeedSource.Replay
 
   def start(c: MatchConfig): IO[Either[String, Playback]] =
     MatchConfig.validate(c) match
@@ -126,21 +164,80 @@ final class Hub(val state: SignallingRef[IO, Playback], lock: Mutex[IO], log: Lo
             feed <- IO.blocking(Hub.feed(cfg))
             times = Hub.times(feed)
             prev <- state.get
-            next = Playback(
-              prev.generation + 1,
-              cfg,
-              Status.Running,
-              feed,
-              times,
-              clockMs = times.headOption.getOrElse(0L).toDouble
-            )
+            runId <- UUIDGen[IO].randomUUID.map(_.toString)
+            _ <- stopPublisher
+            next = bus match
+              case None =>
+                Playback(
+                  prev.generation + 1,
+                  cfg,
+                  Status.Running,
+                  feed,
+                  times,
+                  clockMs = times.headOption.getOrElse(0L).toDouble,
+                  runId = runId
+                )
+              case Some(_) =>
+                Playback(
+                  prev.generation + 1,
+                  cfg,
+                  Status.Running,
+                  source = FeedSource.Bus,
+                  runId = runId,
+                  ended = false
+                )
             _ <- state.set(next)
+            _ <- bus.traverse_(startPublisher(_, runId, feed))
             _ <- log.info(
               s"match ${next.generation} started: seed ${cfg.seed}, speed ${cfg.speed}x, " +
-                s"delay ${cfg.delayS} s, tracking ${cfg.tracking}, ${feed.size} envelopes"
+                s"delay ${cfg.delayS} s, tracking ${cfg.tracking}, ${feed.size} envelopes" +
+                bus.fold("")(b => s" via the ${b.name} bus (run $runId)")
             )
           yield Right(next)
         }
+
+  private def stopPublisher: IO[Unit] =
+    publishing.getAndSet(None).flatMap(_.traverse_(_.cancel))
+
+  /** The provider side of a bus match: publishes the generated feed at playback pace. */
+  private def startPublisher(b: MatchBus, runId: String, feed: Vector[Envelope]): IO[Unit] =
+    val control = state.get.map(p =>
+      Publisher.Control(p.config.speed, p.runId == runId, p.status == Status.Paused)
+    )
+    Publisher
+      .run(b, runId, feed, control)
+      .handleErrorWith(e => log.error(s"publishing run $runId failed", e))
+      .start
+      .flatMap(f => publishing.set(Some(f)))
+
+  /** Takes one envelope from the bus: for the current run, or the start of a run published
+    * elsewhere (the generator job). Envelopes of a replaced run are dropped.
+    */
+  def onBus(m: BusMessage): IO[Unit] =
+    lock.lock
+      .surround(state.modify { p =>
+        if p.source == FeedSource.Bus && p.runId == m.runId then
+          (p.receive(m.envelope, m.last), None)
+        else
+          m.envelope.payload match
+            case Payload.Meta(meta) if p.runId != m.runId =>
+              val speed = m.speed.max(MatchConfig.Speeds._1).min(MatchConfig.Speeds._2)
+              val cfg = MatchConfig(seed = meta.seed.getOrElse(0L), speed = speed)
+              val next = Playback(
+                p.generation + 1,
+                cfg,
+                Status.Running,
+                source = FeedSource.Bus,
+                runId = m.runId,
+                ended = false
+              ).receive(m.envelope, m.last)
+              (
+                next,
+                Some(s"match ${next.generation} started by another publisher (run ${m.runId})")
+              )
+            case _ => (p, None)
+      })
+      .flatMap(_.traverse_(log.info))
 
   /** Moves `from` to `to`; logs only when the status actually changes. */
   private def toggle(from: Status, to: Status): IO[Playback] =
@@ -182,7 +279,7 @@ final class Hub(val state: SignallingRef[IO, Playback], lock: Mutex[IO], log: Lo
       }
       .flatTap {
         case Right(o) =>
-          log.info(
+          state.get.flatMap(p => keep(store.saveOverlay(p.runId, o))) >> log.info(
             s"overlay ${o.overlayId.value} ${OverlayOp.wire(o.op)} accepted from the agent service"
           )
         case Left(err) => log.info(s"overlay refused: $err")
@@ -198,9 +295,11 @@ final class Hub(val state: SignallingRef[IO, Playback], lock: Mutex[IO], log: Lo
             lock.lock
               .surround(state.modify { p =>
                 val next = p.tick((now - last).toNanos / 1e6)
-                (next, Log.changes(p, next))
+                (next, (Log.changes(p, next), p, next))
               })
-              .flatMap(_.traverse_(log.info))
+              .flatMap((lines, before, after) =>
+                lines.traverse_(log.info) >> persist(before, after)
+              )
               .handleErrorWith(e => log.error("playback tick failed", e))
               .as((now, ()))
           }
@@ -208,15 +307,43 @@ final class Hub(val state: SignallingRef[IO, Playback], lock: Mutex[IO], log: Lo
         .as(())
     }
 
-object Hub:
-  def resource: Resource[IO, Hub] = resource(Log.silent)
+  /** Hands new insights and overlays to the store, off the ticker's path. */
+  private def persist(before: Playback, after: Playback): IO[Unit] =
+    if store eq MatchStore.none then IO.unit
+    else
+      val same = before.generation == after.generation
+      val insights = if same then after.insights.drop(before.insights.size) else after.insights
+      val overlays = if same then after.overlays.drop(before.overlays.size) else after.overlays
+      keep(
+        insights.traverse_(store.saveInsight(after.runId, _)) >>
+          overlays.traverse_(store.saveOverlay(after.runId, _))
+      ).whenA(insights.nonEmpty || overlays.nonEmpty)
 
-  def resource(log: Log): Resource[IO, Hub] =
+  private def keep(write: IO[Unit]): IO[Unit] =
+    write.handleErrorWith(e => log.error(s"saving to the ${store.name} store failed", e)).start.void
+
+object Hub:
+  def resource(
+      log: Log = Log.silent,
+      bus: Option[MatchBus] = None,
+      store: MatchStore = MatchStore.none
+  ): Resource[IO, Hub] =
     for
       ref <- Resource.eval(SignallingRef[IO].of(Playback()))
       lock <- Resource.eval(Mutex[IO])
-      hub = Hub(ref, lock, log)
+      publishing <- Resource.eval(Ref[IO].of(Option.empty[Fiber[IO, Throwable, Unit]]))
+      hub = Hub(ref, lock, log, bus, store, publishing)
       _ <- hub.ticker().compile.drain.background
+      _ <- bus.traverse_(b =>
+        b.subscribe.flatMap(messages =>
+          messages
+            .evalMap(m => hub.onBus(m).handleErrorWith(e => log.error("bus message failed", e)))
+            .compile
+            .drain
+            .background
+        )
+      )
+      _ <- Resource.onFinalize(hub.stopPublisher)
     yield hub
 
   def feed(c: MatchConfig): Vector[Envelope] =

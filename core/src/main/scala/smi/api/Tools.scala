@@ -76,11 +76,13 @@ object Tools:
       possessionTeam = d.possessionTeam,
       playersOnPitch =
         ListMap.from(e.teams.map(t => t.value -> d.onPitch.getOrElse(t, Set.empty).size)),
-      envelopesTotal = p.feed.size,
+      envelopesTotal = Option.when(p.ended)(p.feed.size),
       envelopesLive = p.live,
       envelopesViewer = p.viewer,
       insights = p.moments.active.size,
-      overlays = p.overlays.size
+      overlays = p.overlays.size,
+      runId = Option.when(p.generation > 0)(p.runId),
+      feed = if p.source == FeedSource.Bus then "bus" else "replay"
     )
 
   def info(p: Playback): MatchInfoView =

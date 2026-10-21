@@ -1,0 +1,4 @@
+# Only the assembled jar goes into the image context.
+*
+!Dockerfile
+!target/scala-3.9.0/app.jar

@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+# Step 13b. Images build in Azure Container Registry (remote build), so no local Docker.
+name: smi
+infra:
+  provider: bicep
+  path: infra
+  module: main
+services:
+  core:
+    project: ./core
+    host: containerapp
+    language: docker
+    docker:
+      path: Dockerfile
+      remoteBuild: true
+    hooks:
+      prepackage:
+        shell: pwsh
+        run: sbt assembly
+  agents:
+    project: ./agents
+    host: containerapp
+    language: docker
+    docker:
+      path: Dockerfile
+      remoteBuild: true
+  viewer:
+    project: ./viewer
+    host: staticwebapp
+    language: js
+    dist: .
+hooks:
+  postprovision:
+    shell: pwsh
+    run: ./infra/hooks/postprovision.ps1

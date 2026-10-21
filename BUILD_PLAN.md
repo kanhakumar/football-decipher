@@ -71,7 +71,7 @@ Prompt: "Build the viewer: a single web page styled like a broadcast screen with
 Done when: a full replay shows overlays on time, and switching persona or language changes the same moment.
 Demo seed: 154 (chosen in step 8, recorded in CLAUDE.md): away counter goal 33', home red card 76', home press spell detected, ten-man home equaliser 81', final 2-2.
 
-## Step 13: Azure deploy and hardening (plan, 6 hours)
+## Step 13: Azure deploy and hardening (plan, 6 hours) [ ] in progress: 13a code and 13b infra done; 13c deploy and 13d CI next. The GitHub repo is private for now: make it public in step 14.
 Prompt: "Create Bicep and azd for Event Hubs, Cosmos DB (serverless), Container Apps (generator job, core, agents), Static Web Apps, Key Vault, Application Insights and managed identity, plus GitHub Actions. Move the stream to Event Hubs and persistence to Cosmos. Add OpenTelemetry tracing to Foundry. Add an eval gate: replay a recorded match, run the number-match check and Foundry evaluations, and fail the build on regression. Do not create resources until I approve the plan."
 Done when: one `azd up` brings up everything and the eval gate runs in CI.
 

@@ -2,11 +2,13 @@
 
   python -m smi_agents narrate --insight I_0001 [--persona casual] [--langs en,hi,es]
   python -m smi_agents follow [--min-importance 0.6] [--persona casual] [--lang en] [--publish]
-  python -m smi_agents serve [--port 8090]
+  python -m smi_agents serve [--host 127.0.0.1] [--port 8090]
 
 All reach the core only through the MCP server (started over stdio, or --mcp-url for a running
 one); `follow` also reads the insight stream and posts overlays to the core API, and `serve`
-answers viewers' narration requests over HTTP.
+answers viewers' narration requests over HTTP. `--model foundry` (or SMI_MODEL=foundry) narrates
+with the Foundry deployment; SMI_COSMOS_ENDPOINT shares narrations through Cosmos DB;
+APPLICATIONINSIGHTS_CONNECTION_STRING exports traces.
 """
 
 import argparse
@@ -14,6 +16,7 @@ import json
 import logging
 import os
 import sys
+from collections.abc import Mapping
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -21,22 +24,26 @@ import anyio
 import httpx
 from mcp import Client, StdioServerParameters
 
-from smi_agents import overlay
+from smi_agents import overlay, tracing
+from smi_agents.cache import open_cache
 from smi_agents.facts import McpTools, ToolError
 from smi_agents.follow import follow, insight_stream
-from smi_agents.model import Model, StubModel
+from smi_agents.model import FoundryModel, Model, StubModel
 from smi_agents.types import LANGS, NarrationRequest
 from smi_agents.workflow import Narration, Narrator, warm_up
 
 log = logging.getLogger("smi_agents")
 
 
-def model_for(name: str) -> Model:
+def model_for(name: str, env: Mapping[str, str] = os.environ) -> Model:
     if name == "stub":
         return StubModel()
-    raise SystemExit(
-        f"model '{name}' is not configured yet (only 'stub'; Foundry comes with Azure)"
-    )
+    if name == "foundry":
+        try:
+            return FoundryModel.from_env(env)
+        except ValueError as e:
+            raise SystemExit(f"error: {e}") from None
+    raise SystemExit(f"error: unknown model '{name}' (stub or foundry)")
 
 
 @asynccontextmanager
@@ -60,8 +67,8 @@ def summary(n: Narration) -> str:
 
 async def narrate_cmd(args: argparse.Namespace) -> None:
     langs = [lang.strip() for lang in args.langs.split(",")]
-    async with mcp_client(args.core, args.mcp_url) as client:
-        narrator = Narrator(McpTools(client), model_for(args.model))
+    async with mcp_client(args.core, args.mcp_url) as client, open_cache() as cache:
+        narrator = Narrator(McpTools(client), args.narration_model, cache)
         for i, lang in enumerate(langs, start=1):
             req = NarrationRequest(
                 insight_id=args.insight,
@@ -80,6 +87,7 @@ async def follow_cmd(args: argparse.Namespace) -> None:
     async with (
         httpx.AsyncClient(base_url=args.core, timeout=30) as http,
         mcp_client(args.core, args.mcp_url) as client,
+        open_cache() as cache,
     ):
 
         async def post(o: dict[str, Any]) -> None:
@@ -89,7 +97,7 @@ async def follow_cmd(args: argparse.Namespace) -> None:
             res = await http.post("/api/overlays", json=o)
             log.info("%s %s -> %s", o["op"], o["overlay_id"], res.status_code)
 
-        narrator = Narrator(McpTools(client), model_for(args.model))
+        narrator = Narrator(McpTools(client), args.narration_model, cache)
         count = await follow(
             insight_stream(http),
             narrator,
@@ -106,12 +114,12 @@ async def serve_cmd(args: argparse.Namespace) -> None:
 
     from smi_agents.service import create_app
 
-    async with mcp_client(args.core, args.mcp_url) as client:
+    async with mcp_client(args.core, args.mcp_url) as client, open_cache() as cache:
         tools = McpTools(client)
         await warm_up(tools)
-        app = create_app(Narrator(tools, model_for(args.model)))
-        config = uvicorn.Config(app, host="127.0.0.1", port=args.port, log_level="warning")
-        log.info("agent service on http://127.0.0.1:%d (core %s)", args.port, args.core)
+        app = create_app(Narrator(tools, args.narration_model, cache))
+        config = uvicorn.Config(app, host=args.host, port=args.port, log_level="warning")
+        log.info("agent service on http://%s:%d (core %s)", args.host, args.port, args.core)
         await uvicorn.Server(config).serve()
 
 
@@ -124,7 +132,9 @@ def main() -> None:
     )
     parser.add_argument("--core", default=os.environ.get("SMI_CORE_URL", "http://127.0.0.1:8080"))
     parser.add_argument("--mcp-url", help="a running MCP server (default: start one over stdio)")
-    parser.add_argument("--model", default="stub")
+    parser.add_argument(
+        "--model", default=os.environ.get("SMI_MODEL", "stub"), help="stub or foundry"
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     n = sub.add_parser("narrate", help="narrate one insight and print the overlays")
@@ -142,13 +152,17 @@ def main() -> None:
     f.add_argument("--publish", action="store_true", help="post overlays to the core")
 
     s = sub.add_parser("serve", help="HTTP narration API for the viewer")
+    s.add_argument("--host", default="127.0.0.1", help="0.0.0.0 in the container")
     s.add_argument("--port", type=int, default=int(os.environ.get("SMI_AGENTS_PORT", "8090")))
 
     args = parser.parse_args()
+    args.narration_model = model_for(args.model)  # fails fast, before the event loop
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    for noisy in ("httpx", "agent_framework"):
+    for noisy in ("httpx", "agent_framework", "azure"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
     logging.getLogger("mcp").setLevel(logging.ERROR)  # tool failures are reported below
+    if tracing.setup():
+        log.info("tracing to Application Insights")
     try:
         anyio.run(COMMANDS[args.command], args)
     except* KeyboardInterrupt:  # Ctrl+C is how `serve` and `follow` are stopped

@@ -1,0 +1,11 @@
+{
+ "offline": {
+  "lines": 120,
+  "insights": 8,
+  "number_match_rate": 1.0,
+  "verified_rate": 1.0,
+  "fallback_rate": 0.0,
+  "first_attempt_rate": 1.0,
+  "latency_p95_ms": 31.2
+ }
+}

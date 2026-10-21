@@ -21,6 +21,7 @@ from agent_framework import Executor, Workflow, WorkflowBuilder, WorkflowContext
 from pydantic import ValidationError
 
 from smi_agents import templates
+from smi_agents.cache import InMemoryCache, NarrationCache
 from smi_agents.facts import StaleRequest, Tools, gather
 from smi_agents.model import Model, Task, system_prompt
 from smi_agents.types import FactSheet, Lang, Line, NarrationRequest, Verdict
@@ -308,20 +309,22 @@ async def warm_up(tools: Tools | None = None) -> None:
 class Narrator:
     """Runs the workflow per request and caches by (insight, persona, language, focus) (D3)."""
 
-    def __init__(self, tools: Tools, model: Model) -> None:
+    def __init__(self, tools: Tools, model: Model, cache: NarrationCache | None = None) -> None:
         self.tools = tools
         self.model = model
-        self.cache: dict[tuple, Narration] = {}
+        self.cache = cache or InMemoryCache()
         self.locks: dict[tuple, asyncio.Lock] = {}
 
     async def narrate(self, req: NarrationRequest) -> Narration:
         key = tuple(req.model_dump().values())
         # Concurrent requests for the same line (several viewers) share one workflow run.
         async with self.locks.setdefault(key, asyncio.Lock()):
-            if key not in self.cache:
-                result = await build(self.tools, self.model).run(req)
-                outputs = result.get_outputs()
-                if not outputs:
-                    raise RuntimeError(f"narration of {req.insight_id} produced no output")
-                self.cache[key] = outputs[-1]
-        return self.cache[key]
+            cached = await self.cache.get(req)
+            if cached is not None:
+                return cached
+            result = await build(self.tools, self.model).run(req)
+            outputs = result.get_outputs()
+            if not outputs:
+                raise RuntimeError(f"narration of {req.insight_id} produced no output")
+            await self.cache.put(outputs[-1])
+            return outputs[-1]

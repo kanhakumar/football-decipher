@@ -2,12 +2,14 @@
 
 `StubModel` is deterministic and offline (tests, rehearsals). `ScriptedModel` replays queued replies
 to exercise the Verifier's retry and fallback paths. `ChatClientModel` adapts any Agent Framework
-chat client (the Foundry deployment, once Azure is ready); nothing else changes when it is swapped.
+chat client; `FoundryModel` is the one over the Foundry deployment. Nothing else changes when the
+model is swapped: the Verifier, retry and template fallback guard every reply.
 """
 
 import json
+import os
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from functools import cache
 from importlib.resources import files
 from typing import Any, Literal, Protocol
@@ -65,12 +67,18 @@ class ScriptedModel:
         return await self.then.complete(task, system, payload)
 
 
+JSON_OPTIONS: dict[str, Any] = {"response_format": {"type": "json_object"}, "temperature": 0.3}
+
+
 class ChatClientModel:
     """Any Agent Framework chat client (`get_response`), asked for a JSON object."""
 
-    def __init__(self, client: Any, name: str = "chat-client") -> None:
+    def __init__(
+        self, client: Any, name: str = "chat-client", options: dict[str, Any] | None = None
+    ) -> None:
         self.client = client
         self.name = name
+        self.options = options or JSON_OPTIONS
 
     async def complete(self, task: Task, system: str, payload: dict[str, Any]) -> str:
         from agent_framework import Message
@@ -79,7 +87,39 @@ class ChatClientModel:
             Message("system", [system]),
             Message("user", [json.dumps(payload, ensure_ascii=False)]),
         ]
-        response = await self.client.get_response(
-            messages, options={"response_format": {"type": "json_object"}, "temperature": 0.3}
-        )
+        response = await self.client.get_response(messages, options=self.options)
         return response.text
+
+
+DEFAULT_DEPLOYMENT = "gpt-5-mini"
+# gpt-5 models reason and take no temperature; low effort keeps a moment near 2-4 s (D4).
+FOUNDRY_OPTIONS: dict[str, Any] = {
+    "response_format": {"type": "json_object"},
+    "reasoning": {"effort": "low"},
+}
+
+
+class FoundryModel(ChatClientModel):
+    """The Foundry deployment through Agent Framework's Foundry chat client (Responses API),
+    signed in with `DefaultAzureCredential` (managed identity in Azure, `az login` locally)."""
+
+    def __init__(self, endpoint: str, deployment: str = DEFAULT_DEPLOYMENT, client: Any = None):
+        if client is None:
+            from agent_framework_foundry import FoundryChatClient
+            from azure.identity.aio import DefaultAzureCredential
+
+            client = FoundryChatClient(
+                project_endpoint=endpoint, model=deployment, credential=DefaultAzureCredential()
+            )
+        super().__init__(client, name=f"foundry:{deployment}", options=FOUNDRY_OPTIONS)
+        self.endpoint = endpoint
+        self.deployment = deployment
+
+    @classmethod
+    def from_env(cls, env: Mapping[str, str] = os.environ, client: Any = None) -> "FoundryModel":
+        endpoint = env.get("AZURE_AI_PROJECT_ENDPOINT")
+        if not endpoint:
+            raise ValueError(
+                "--model foundry needs AZURE_AI_PROJECT_ENDPOINT (the project endpoint)"
+            )
+        return cls(endpoint, env.get("SMI_MODEL_DEPLOYMENT") or DEFAULT_DEPLOYMENT, client)

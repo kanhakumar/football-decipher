@@ -40,3 +40,6 @@ out/
 
 # Local reference material, never committed (hard rule: synthetic data only)
 docs/*.json
+
+# Eval reports (eval/run.py)
+eval/out/

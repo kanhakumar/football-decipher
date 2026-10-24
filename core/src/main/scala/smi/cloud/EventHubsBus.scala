@@ -1,5 +1,6 @@
 package smi.cloud
 
+import cats.effect.std.{Dispatcher, Queue}
 import cats.effect.{IO, Resource}
 import com.azure.identity.DefaultAzureCredentialBuilder
 import com.azure.messaging.eventhubs.models.{CreateBatchOptions, EventPosition, PartitionEvent}
@@ -8,7 +9,6 @@ import fs2.Stream
 import io.circe.parser.decode
 import io.circe.syntax.*
 import java.nio.charset.StandardCharsets.UTF_8
-import reactor.adapter.JdkFlowAdapter
 import smi.api.{BusMessage, MatchBus}
 import smi.model.Envelope
 
@@ -39,22 +39,31 @@ final class EventHubsBus(namespace: String, hub: String) extends MatchBus:
       if current.getCount > 0 then producer.send(current)
     }
 
+  /** Receives with unbounded demand and hands each event, in order, to an fs2 queue. (A Reactive
+    * Streams bridge with a fixed buffer stalled after six buffers in Azure: 1,536 of 1,666.)
+    */
   def subscribe: Resource[IO, Stream[IO, BusMessage]] =
-    Resource
-      .make(
+    for
+      consumer <- Resource.make(
         IO.blocking(
           builder
             .consumerGroup(EventHubClientBuilder.DEFAULT_CONSUMER_GROUP_NAME)
             .buildAsyncConsumerClient()
         )
       )(c => IO.blocking(c.close()))
-      .map { consumer =>
-        val events = consumer.receiveFromPartition(Partition, EventPosition.latest())
-        fs2.interop.flow
-          .fromPublisher[IO](JdkFlowAdapter.publisherToFlowPublisher(events), 256)
-          .map(fromEvent)
-          .unNone
-      }
+      dispatcher <- Dispatcher.sequential[IO]
+      queue <- Resource.eval(Queue.unbounded[IO, PartitionEvent])
+      _ <- Resource.make(
+        IO(
+          consumer
+            .receiveFromPartition(Partition, EventPosition.latest())
+            .subscribe(
+              (e: PartitionEvent) => dispatcher.unsafeRunSync(queue.offer(e)),
+              (err: Throwable) => System.err.println(s"Event Hubs receive failed: $err")
+            )
+        )
+      )(subscription => IO(subscription.dispose()))
+    yield Stream.fromQueueUnterminated(queue).map(fromEvent).unNone
 
   private def toEvent(m: BusMessage): EventData =
     val event = new EventData(m.envelope.asJson.noSpaces.getBytes(UTF_8))

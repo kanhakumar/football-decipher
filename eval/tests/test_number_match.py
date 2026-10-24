@@ -42,3 +42,11 @@ def test_tool_answers_are_walked_but_strings_and_flags_are_not_numbers():
     answer = {"metrics": [{"metric": "xg", "value": 1.27, "basis": "event_data"}], "ok": True}
     assert list(tool_numbers(answer)) == [1.27]
     assert [v for _, v, _ in line_numbers(card("P_HOM_09 at 1.27"))] == [1.27]
+
+
+def test_whole_number_metrics_claim_no_decimals():
+    # A card value of 68.0 means 68 (0.684 as a percentage), not 68.0 with one decimal.
+    assert check(card("x", metrics=[{"label": "Share", "value": 68.0, "unit": "%"}]), [GOAL]) == []
+    assert check(card("x", metrics=[{"label": "Share", "value": 68.1, "unit": "%"}]), [GOAL]) == [
+        "68.1"
+    ]

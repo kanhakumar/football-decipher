@@ -11,6 +11,7 @@ support it.
 import re
 from collections.abc import Iterable
 
+from smi_agents import templates
 from smi_agents.types import FactSheet, Lang, Line, Verdict
 
 HEADLINE_MAX = 120
@@ -328,6 +329,18 @@ def verify(line: Line, sheet: FactSheet, lang: Lang) -> Verdict:
         pattern = rf"(?<!\w){re.escape(alias)}(?!\w)"
         if any(re.search(pattern, t) for t in _texts(line)):
             reasons.append(f"unsupported_name:{alias}")
+
+    # The moment belongs to its first team (and its players): the headline must say so, or a
+    # line can credit one side with the other side's numbers. Neutral moments are exempt.
+    if templates.table()["polarity"].get(sheet.code) != "neutral":
+        subject = {sheet.subject_team, *(p.root for p in sheet.insight.players or [])}
+        named = (
+            eid
+            for alias, eid in _aliases(sheet).items()
+            if re.search(rf"(?<!\w){re.escape(alias)}(?!\w)", line.headline)
+        )
+        if not subject & set(named):
+            reasons.append("subject_not_in_headline")
 
     joined = " ".join(_texts(line))
     for tag, (patterns, needs) in _CLAIMS.items():

@@ -30,11 +30,18 @@ def tool_numbers(answer: Any) -> Iterator[float]:
             yield from tool_numbers(v)
 
 
+def _number_text(value: Any) -> str:
+    """A metric value as written on the card: 68.0 shows as 68 (no claimed decimal place)."""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
 def line_numbers(overlay: dict[str, Any]) -> list[tuple[str, float, int]]:
     """(as written, value, decimals) for every number in a published overlay's text and metrics."""
     content = overlay.get("content", {})
     texts = [content.get("headline", ""), content.get("body", "")]
-    texts += [str(m.get("value", "")) for m in content.get("metrics", [])]
+    texts += [_number_text(m.get("value", "")) for m in content.get("metrics", [])]
     out = []
     for text in texts:
         for m in _NUMBER.finditer(text.translate(_DIGITS)):

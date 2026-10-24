@@ -134,8 +134,11 @@ def foundry_scores(lines: list[dict[str, Any]], sample: int) -> dict[str, float]
     scores: dict[str, list[float]] = {name: [] for name in evaluators}
     for line in english:
         text = f"{line['headline']} {line['body']}"
-        query = f"Explain this football moment for a {line['persona']} viewer."
-        context = json.dumps(line["facts"])
+        query = (
+            f"Explain why this {line['kind'].replace('_', ' ')} moment ({line['code']}) matters "
+            f"to a {line['persona'].replace('_', ' ')} viewer."
+        )
+        context = json.dumps(line["context"], ensure_ascii=False)
         for name, evaluate in evaluators.items():
             args = {"response": text}
             if name in ("groundedness",):
@@ -192,6 +195,20 @@ async def run(args: argparse.Namespace, config: dict[str, Any]) -> dict[str, Any
                                 "template_fallback": n.template_fallback,
                                 "first_attempt": first,
                                 "facts": insight["facts"],
+                                "kind": insight["kind"],
+                                "code": n.sheet.code,
+                                # What the narrator was given: the evaluators judge against it.
+                                "context": {
+                                    "subject_team": n.sheet.roster.get(n.sheet.subject_team),
+                                    "minute": n.sheet.minute,
+                                    "facts": n.sheet.numbers,
+                                    "names": n.sheet.names,
+                                    "supports": sorted(n.sheet.support),
+                                },
+                                "attempts": [
+                                    {"stage": a.stage, "ok": a.ok, "reasons": a.reasons}
+                                    for a in n.trail
+                                ],
                             }
                         )
 

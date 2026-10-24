@@ -95,7 +95,7 @@ DEFAULT_DEPLOYMENT = "gpt-5-mini"
 # gpt-5 models reason and take no temperature; low effort keeps a moment near 2-4 s (D4).
 FOUNDRY_OPTIONS: dict[str, Any] = {
     "response_format": {"type": "json_object"},
-    "reasoning": {"effort": "low"},
+    "reasoning": {"effort": "minimal"},
 }
 
 

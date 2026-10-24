@@ -97,8 +97,16 @@ def _parse_line(reply: str) -> Line:
 
 
 def _payload(job: Job, **extra: Any) -> dict[str, Any]:
+    sheet = job.sheet
+    players = [sheet.roster.get(p.root, p.root) for p in sheet.insight.players or []]
     return {
-        "sheet": job.sheet.model_dump(mode="json"),
+        # Whose moment it is, in words: the facts belong to this team (and these players).
+        "subject": {
+            "team": sheet.roster.get(sheet.subject_team, sheet.subject_team),
+            "opponent": sheet.roster.get(sheet.other_team or "", None),
+            "players": players,
+        },
+        "sheet": sheet.model_dump(mode="json"),
         "request": job.request.model_dump(mode="json"),
         **extra,
     }

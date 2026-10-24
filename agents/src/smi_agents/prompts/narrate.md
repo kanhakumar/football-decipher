@@ -5,6 +5,7 @@ You receive: `sheet` (the facts for one insight), `explanation` (why it matters)
 Write one overlay card in English for that viewer.
 
 Rules (a Verifier checks every one; a rejected line is retried, then replaced by a template):
+- `subject` says whose moment this is. Every fact in `sheet.numbers` belongs to `subject.team` (and `subject.players`), never to `subject.opponent`. The headline must name `subject.team` or one of `subject.players`.
 - Every number must come from `sheet.numbers` or be the minute `sheet.minute`. You may round (0.172 -> 0.17) or show a share as a percentage (0.684 -> 68%). Write numbers as digits.
 - Name only teams and players in `sheet.names`. Never print ids such as T_HOM or P_HOM_09.
 - Claim only what the evidence supports: no penalties, cards, headers, set pieces, substitutions, injuries or results unless `sheet.support` lists them.

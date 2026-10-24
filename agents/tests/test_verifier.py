@@ -70,16 +70,20 @@ async def test_names_must_belong_to_the_moment(sheets):
 
 async def test_rounding_and_percentages(sheets):
     press = sheets["press"]  # after_rate 0.556, before_rate 0.333
+
+    def northgate(text: str) -> Line:
+        return Line(headline=f"Northgate FC: {text}")
+
     ok = Line(headline="Northgate FC press", body="0.56 per pass, up from 0.33; that is 56% now.")
     assert reasons(ok, press) == []
-    assert reasons(Line(headline="Pressing at 0.6 per pass"), press) == []  # 0.556 rounds to 0.6
-    assert reasons(Line(headline="Pressing at 0.7 per pass"), press) == ["unsupported_number:0.7"]
-    assert reasons(Line(headline="Pressing on 61% of passes"), press) == ["unsupported_number:61"]
+    assert reasons(northgate("pressing at 0.6 per pass"), press) == []  # 0.556 rounds to 0.6
+    assert reasons(northgate("pressing at 0.7 per pass"), press) == ["unsupported_number:0.7"]
+    assert reasons(northgate("pressing on 61% of passes"), press) == ["unsupported_number:61"]
     # spell possession is already a percentage (49.5): it may not be scaled again
     possession = press.numbers["spell_possession_share"]
     assert possession > 1
-    assert reasons(Line(headline=f"{possession:.1f}% possession"), press) == []
-    assert reasons(Line(headline=f"{possession * 100:.0f}% possession"), press) != []
+    assert reasons(northgate(f"{possession:.1f}% possession"), press) == []
+    assert reasons(northgate(f"{possession * 100:.0f}% possession"), press) != []
 
 
 async def test_hindi_and_spanish(sheets):
@@ -105,5 +109,20 @@ async def test_length_limits(sheets):
     assert reasons(line, goal) == [
         "body_too_long:401",
         "headline_too_long:121",
+        "subject_not_in_headline",
         "too_many_metrics:5",
     ]
+
+
+async def test_the_headline_must_name_the_moments_team(tools):
+    # Seen in the first online eval: Northgate's momentum swing (I_0007) credited to Eastmere.
+    from smi_agents.facts import gather
+
+    swing = await gather(tools, "I_0007")
+    wrong = Line(headline="Eastmere Rovers take 82% of the actions", body="")
+    assert reasons(wrong, swing) == ["subject_not_in_headline"]
+    right = Line(headline="Momentum swings to Northgate FC", body="82% of the actions now.")
+    assert reasons(right, swing) == []
+    # Neutral moments (a tempo change) need no team in the headline.
+    tempo = await gather(tools, "I_0003")
+    assert reasons(Line(headline="The tempo picks up"), tempo) == []

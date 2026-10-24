@@ -7,6 +7,8 @@ on:
   workflow_dispatch:
   push:
     branches: [master]
+    # Docs-only changes do not redeploy.
+    paths-ignore: ["**/*.md", "docs/**"]
 
 permissions:
   id-token: write

@@ -61,7 +61,7 @@ Done when: workload numbers are plausible and consistent with events.
 Prompt: "Expose the core as HTTP and SSE: match control (start, pause, speed, seed), the viewer-delayed event stream, insights, overlay stream, and tool endpoints such as player workload, team shape, recent events and insight detail. Add OpenAPI. Keep the viewer delay configurable (default about 10 s)."
 Done when: curl and a test client can drive a full replay.
 
-## Step 11: Agent workflow with a stub LLM, then the real model (plan, 6 hours) [x] DONE (offline part; Foundry swap pending Azure)
+## Step 11: Agent workflow with a stub LLM, then the real model (plan, 6 hours) [x] DONE (Foundry gpt-5-mini live since step 13: verified lines in en, hi and es)
 Prompt: "In /agents, build a thin MCP server that wraps the core API tools. Then build the Microsoft Agent Framework workflow: Explainer, Narrator, Verifier, then Personalize and Localize (en, hi, es), with a retry edge and a template fallback. Put the model behind an interface and start with a deterministic stub so tests run offline. The Verifier checks every number against the insight facts and the engine. Add tests: wrong number rejected, unsupported claim rejected, correct line accepted, three failures fall back to template."
 Then (once Azure is ready): swap the stub for the Foundry model deployment, using managed identity.
 Done when: the offline tests pass, then one real insight produces verified lines in three languages.
@@ -71,7 +71,7 @@ Prompt: "Build the viewer: a single web page styled like a broadcast screen with
 Done when: a full replay shows overlays on time, and switching persona or language changes the same moment.
 Demo seed: 154 (chosen in step 8, recorded in CLAUDE.md): away counter goal 33', home red card 76', home press spell detected, ten-man home equaliser 81', final 2-2.
 
-## Step 13: Azure deploy and hardening (plan, 6 hours) [ ] in progress: 13a code and 13b infra done; 13c deploy and 13d CI next. The GitHub repo is private for now: make it public in step 14.
+## Step 13: Azure deploy and hardening (plan, 6 hours) [x] DONE (deployed to rg-fd-demo, East US 2; Deploy workflow provisions, deploys and runs the online eval gate; the GitHub repo is private for now: make it public in step 14)
 Prompt: "Create Bicep and azd for Event Hubs, Cosmos DB (serverless), Container Apps (generator job, core, agents), Static Web Apps, Key Vault, Application Insights and managed identity, plus GitHub Actions. Move the stream to Event Hubs and persistence to Cosmos. Add OpenTelemetry tracing to Foundry. Add an eval gate: replay a recorded match, run the number-match check and Foundry evaluations, and fail the build on regression. Do not create resources until I approve the plan."
 Done when: one `azd up` brings up everything and the eval gate runs in CI.
 

@@ -112,7 +112,7 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 - [ ] Phase 2: engine and moment detectors
 - [ ] Phase 3: agent workflow, personas, languages, verifier, recap
 - [ ] Phase 4: viewer and overlays
-- [ ] Phase 5: hardening, eval gate, deploy
+- [x] Phase 5: hardening, eval gate, deploy (step 13: live on Azure, rg-fd-demo; Deploy workflow with online eval gate)
 - [ ] Phase 6: video, README, pitch, submit
 
 ## Glossary

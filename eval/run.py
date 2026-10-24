@@ -122,11 +122,13 @@ def foundry_scores(lines: list[dict[str, Any]], sample: int) -> dict[str, float]
         azure_deployment=os.environ.get("SMI_MODEL_DEPLOYMENT", "gpt-5-mini"),
     )
     credential = DefaultAzureCredential()
+    # gpt-5 models are reasoning models: they take max_completion_tokens, not max_tokens.
+    judge = {"credential": credential, "is_reasoning_model": True}
     evaluators = {
-        "groundedness": GroundednessEvaluator(config, credential=credential),
-        "relevance": RelevanceEvaluator(config, credential=credential),
-        "fluency": FluencyEvaluator(config, credential=credential),
-        "coherence": CoherenceEvaluator(config, credential=credential),
+        "groundedness": GroundednessEvaluator(config, **judge),
+        "relevance": RelevanceEvaluator(config, **judge),
+        "fluency": FluencyEvaluator(config, **judge),
+        "coherence": CoherenceEvaluator(config, **judge),
     }
     english = [line for line in lines if line["lang"] == "en"][:sample]
     scores: dict[str, list[float]] = {name: [] for name in evaluators}

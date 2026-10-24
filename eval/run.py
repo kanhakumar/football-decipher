@@ -152,44 +152,46 @@ async def run(args: argparse.Namespace, config: dict[str, Any]) -> dict[str, Any
 
         model: Model = FoundryModel.from_env()
         http = httpx.AsyncClient(base_url=args.core, timeout=60)
-        await replay_on(http, match["seed"])
     else:
         model = StubModel()
         http = httpx.AsyncClient(base_url="http://recorded.core", transport=recorded_core())
 
     lines: list[dict[str, Any]] = []
     latencies: list[float] = []
-    async with http, Client(build_server(http)) as client:
-        tools = RecordingTools(McpTools(client))
-        listed = await tools.call("list_insights", {"min_importance": 0.0})
-        moments = [i for i in listed["insights"] if i["importance"] >= match["min_importance"]]
-        narrator = Narrator(tools, model)
-        number = 0
-        for insight in moments:
-            for persona in PERSONAS:
-                for lang in LANGS:
-                    tools.answers.clear()
-                    started = time.perf_counter()
-                    n = await narrator.narrate(requests_for(insight, persona, lang))
-                    latencies.append((time.perf_counter() - started) * 1000)
-                    number += 1
-                    shown = overlay.show(n, overlay.overlay_id(number))
-                    answers = [part for name, a in tools.answers for part in usable(name, a)]
-                    first = all(a.attempt == 1 and a.ok for a in n.trail)
-                    lines.append(
-                        {
-                            "insight_id": insight["insight_id"],
-                            "persona": persona,
-                            "lang": lang,
-                            "headline": shown["content"]["headline"],
-                            "body": shown["content"].get("body", ""),
-                            "unmatched": check(shown, answers),
-                            "verified": n.verified,
-                            "template_fallback": n.template_fallback,
-                            "first_attempt": first,
-                            "facts": insight["facts"],
-                        }
-                    )
+    async with http:  # opened before its first request: httpx clients open only once
+        if args.online:
+            await replay_on(http, match["seed"])
+        async with Client(build_server(http)) as client:
+            tools = RecordingTools(McpTools(client))
+            listed = await tools.call("list_insights", {"min_importance": 0.0})
+            moments = [i for i in listed["insights"] if i["importance"] >= match["min_importance"]]
+            narrator = Narrator(tools, model)
+            number = 0
+            for insight in moments:
+                for persona in PERSONAS:
+                    for lang in LANGS:
+                        tools.answers.clear()
+                        started = time.perf_counter()
+                        n = await narrator.narrate(requests_for(insight, persona, lang))
+                        latencies.append((time.perf_counter() - started) * 1000)
+                        number += 1
+                        shown = overlay.show(n, overlay.overlay_id(number))
+                        answers = [part for name, a in tools.answers for part in usable(name, a)]
+                        first = all(a.attempt == 1 and a.ok for a in n.trail)
+                        lines.append(
+                            {
+                                "insight_id": insight["insight_id"],
+                                "persona": persona,
+                                "lang": lang,
+                                "headline": shown["content"]["headline"],
+                                "body": shown["content"].get("body", ""),
+                                "unmatched": check(shown, answers),
+                                "verified": n.verified,
+                                "template_fallback": n.template_fallback,
+                                "first_attempt": first,
+                                "facts": insight["facts"],
+                            }
+                        )
 
     total = len(lines)
     scores: dict[str, Any] = {

@@ -670,7 +670,6 @@ setInterval(renderMoments, 2000);
   frame();
   requestAnimationFrame(loop);
 })();
-// Browsers pause requestAnimationFrame in hidden tabs; keep the timeline moving there too.
-setInterval(() => {
-  if (document.hidden) frame();
-}, 250);
+// Browsers pause requestAnimationFrame in hidden or occluded windows, sometimes without setting
+// document.hidden; a timer keeps the timeline moving regardless (frame() is idempotent).
+setInterval(frame, 100);

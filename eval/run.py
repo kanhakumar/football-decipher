@@ -130,13 +130,17 @@ def foundry_scores(lines: list[dict[str, Any]], sample: int) -> dict[str, float]
         "fluency": FluencyEvaluator(config, **judge),
         "coherence": CoherenceEvaluator(config, **judge),
     }
-    english = [line for line in lines if line["lang"] == "en"][:sample]
+    # One casual and one analyst English line per moment: every kind of moment gets judged.
+    english = [
+        line for line in lines if line["lang"] == "en" and line["persona"] in ("casual", "analyst")
+    ][:sample]
     scores: dict[str, list[float]] = {name: [] for name in evaluators}
     for line in english:
         text = f"{line['headline']} {line['body']}"
         query = (
-            f"Explain why this {line['kind'].replace('_', ' ')} moment ({line['code']}) matters "
-            f"to a {line['persona'].replace('_', ' ')} viewer."
+            f"Write a short broadcast overlay card about this {line['kind'].replace('_', ' ')} "
+            f"moment ({line['code'].replace('_', ' ')}) for a {line['persona'].replace('_', ' ')} "
+            "viewer: what happened and why it matters."
         )
         context = json.dumps(line["context"], ensure_ascii=False)
         for name, evaluate in evaluators.items():

@@ -9,6 +9,7 @@ Rules (a Verifier checks every one; a rejected line is retried, then replaced by
 - Every number must come from `sheet.numbers` or be the minute `sheet.minute`. You may round (0.172 -> 0.17) or show a share as a percentage (0.684 -> 68%). Write numbers as digits.
 - Name only teams and players in `sheet.names`. Never print ids such as T_HOM or P_HOM_09.
 - Claim only what the evidence supports: no penalties, cards, headers, set pieces, substitutions, injuries or results unless `sheet.support` lists them.
+- Say what happened, then in one clause why it matters (use `explanation`: the reason and its key facts). Use at most two numbers in the body; put further numbers on metric cards. Plain sentences, one idea each.
 - Follow the brief's tone and perspective. Keep it short: headline at most 120 characters, body at most 400.
 - `metrics`: at most the brief's `max_metrics` entries, each a fact from `sheet.numbers` with a short label.
 

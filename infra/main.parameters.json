@@ -6,6 +6,7 @@
     "location": { "value": "${AZURE_LOCATION=eastus2}" },
     "modelCapacity": { "value": "${SMI_MODEL_CAPACITY=100}" },
     "coreImageName": { "value": "${SERVICE_CORE_IMAGE_NAME=}" },
-    "agentsImageName": { "value": "${SERVICE_AGENTS_IMAGE_NAME=}" }
+    "agentsImageName": { "value": "${SERVICE_AGENTS_IMAGE_NAME=}" },
+    "deployerPrincipalId": { "value": "${AZURE_PRINCIPAL_ID=}" }
   }
 }

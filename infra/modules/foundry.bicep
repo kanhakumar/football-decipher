@@ -8,6 +8,8 @@ param identityId string
 param modelName string
 param modelVersion string
 param modelCapacity int
+@description('The identity running azd (optional): may call the model, for smoke tests and the eval gate.')
+param deployerPrincipalId string = ''
 
 var openAiUser = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
 var azureAiUser = '53ca6127-db72-4b80-b1b0-d745d6d5456d'
@@ -39,8 +41,10 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
   }
 }
 
+// After the project: the account accepts one change at a time (RequestConflict otherwise).
 resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
   parent: account
+  dependsOn: [project]
   name: modelName
   sku: { name: 'GlobalStandard', capacity: modelCapacity }
   properties: {
@@ -64,6 +68,24 @@ resource useProject 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   properties: {
     principalId: principalId
     principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', azureAiUser)
+  }
+}
+
+resource deployerUsesModels 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(deployerPrincipalId)) {
+  scope: account
+  name: guid(account.id, deployerPrincipalId, openAiUser)
+  properties: {
+    principalId: deployerPrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', openAiUser)
+  }
+}
+
+resource deployerUsesProject 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(deployerPrincipalId)) {
+  scope: project
+  name: guid(project.id, deployerPrincipalId, azureAiUser)
+  properties: {
+    principalId: deployerPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', azureAiUser)
   }
 }

@@ -16,6 +16,11 @@ thresholds:
   foundry_fluency: {min: 3.5}
   foundry_coherence: {min: 3.5}
 
+# Per-mode overrides. Online narration makes 2-3 real model calls per line (explain, narrate,
+# localize); the limit is set from the first measured run.
+online_thresholds:
+  latency_p95_ms: {max: 15000}
+
 # Relative drop allowed against the baseline before the gate fails.
 regression_tolerance: 0.05
 higher_is_better:

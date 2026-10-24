@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
-# Step 13b. Images build in Azure Container Registry (remote build), so no local Docker.
+# Images build with Docker where azd runs: the GitHub Actions runner (.github/workflows/azure-dev.yml).
+# Remote builds in Container Registry (ACR Tasks) are not available on this subscription.
 name: smi
 infra:
   provider: bicep
@@ -12,10 +13,10 @@ services:
     language: docker
     docker:
       path: Dockerfile
-      remoteBuild: true
+      remoteBuild: false
     hooks:
       prepackage:
-        shell: pwsh
+        shell: sh
         run: sbt assembly
   agents:
     project: ./agents
@@ -23,7 +24,7 @@ services:
     language: docker
     docker:
       path: Dockerfile
-      remoteBuild: true
+      remoteBuild: false
   viewer:
     project: ./viewer
     host: staticwebapp
@@ -31,5 +32,5 @@ services:
     dist: .
 hooks:
   postprovision:
-    shell: pwsh
-    run: ./infra/hooks/postprovision.ps1
+    shell: sh
+    run: ./infra/hooks/postprovision.sh

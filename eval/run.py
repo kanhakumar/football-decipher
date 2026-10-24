@@ -201,6 +201,7 @@ async def run(args: argparse.Namespace, config: dict[str, Any]) -> dict[str, Any
         "first_attempt_rate": round(sum(line["first_attempt"] for line in lines) / total, 4),
         "latency_p95_ms": round(statistics.quantiles(latencies, n=20)[-1], 1),
         "model": model.name,
+        "mode": "online" if args.online else "offline",
     }
     if args.online:
         scores |= await asyncio.to_thread(foundry_scores, lines, config["foundry"]["sample"])
@@ -212,7 +213,8 @@ def judge(
 ) -> list[str]:
     """Threshold misses and regressions against the baseline (empty = the gate passes)."""
     problems = []
-    for metric, rule in config["thresholds"].items():
+    thresholds = config["thresholds"] | config.get(f"{scores['mode']}_thresholds", {})
+    for metric, rule in thresholds.items():
         if metric not in scores:
             continue
         value = scores[metric]

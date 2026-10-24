@@ -43,3 +43,6 @@ docs/*.json
 
 # Eval reports (eval/run.py)
 eval/out/
+
+# Written by npm during azd packaging (the viewer has no dependencies)
+viewer/package-lock.json

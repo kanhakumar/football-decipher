@@ -21,6 +21,9 @@ param modelCapacity int = 100
 param coreImageName string = ''
 param agentsImageName string = ''
 
+@description('Who runs azd (you locally, the pipeline in CI): may call the model for smoke tests and the online eval gate.')
+param deployerPrincipalId string = ''
+
 var tags = { 'azd-env-name': environmentName }
 var token = toLower(uniqueString(subscription().id, environmentName, location))
 // Known before deployment, so role assignment names derived from it show in what-if.
@@ -81,6 +84,7 @@ module foundry 'modules/foundry.bicep' = {
     modelName: modelName
     modelVersion: modelVersion
     modelCapacity: modelCapacity
+    deployerPrincipalId: deployerPrincipalId
   }
 }
 
@@ -127,6 +131,7 @@ output VIEWER_URL string = viewer.outputs.url
 output GENERATOR_JOB_NAME string = apps.outputs.generatorJobName
 output AZURE_AI_ACCOUNT_ENDPOINT string = foundry.outputs.accountEndpoint
 output AZURE_AI_PROJECT_ENDPOINT string = foundry.outputs.projectEndpoint
+output AZURE_OPENAI_ENDPOINT string = foundry.outputs.accountEndpoint
 output SMI_MODEL_DEPLOYMENT string = foundry.outputs.deploymentName
 output SMI_COSMOS_ENDPOINT string = cosmos.outputs.endpoint
 output SMI_EVENTHUBS_NAMESPACE string = eventHubs.outputs.namespaceFqdn

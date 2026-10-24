@@ -14,10 +14,8 @@ services:
     docker:
       path: Dockerfile
       remoteBuild: false
-    hooks:
-      prepackage:
-        shell: sh
-        run: sbt assembly
+    # The image copies target/scala-3.9.0/app.jar: run `sbt assembly` in core/ first (the Deploy
+    # workflow does; azd did not run a prepackage hook before its Docker build).
   agents:
     project: ./agents
     host: containerapp

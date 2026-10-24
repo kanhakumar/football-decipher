@@ -103,7 +103,7 @@ Ask before adding a dependency or an Azure resource. Region and model deployment
 - Toolchain: JDK 25 (Temurin, installed with machine-wide JAVA_HOME; open a new terminal after install), Scala 3.9.0 LTS, sbt 1.13.0
 - Run tests: `cd core && sbt test`; `cd agents && .venv/Scripts/python -m pytest`; `cd viewer && node --test tests/` (Node 18+, no packages)
 - Lint and format: `cd core && sbt scalafmtCheckAll`; `cd agents && .venv/Scripts/ruff check . ../schema`
-- Deploy: `azd up` (after `az login` and `azd auth login`); see Azure above.
+- Deploy: the Deploy workflow (`.github/workflows/azure-dev.yml`, on push to master or by hand) builds the images with Docker on the runner and runs `azd provision` and `azd deploy`, then the online eval gate. Locally `azd up` also works where Docker is installed, after `cd core && sbt assembly`; ACR remote builds are not allowed on this subscription.
 
 ## Status
 - [x] Local Scala spike: effect stack, model sync, SSE endpoint (docs/decisions.md ADR-002 to 004)

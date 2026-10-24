@@ -54,6 +54,9 @@ jobs:
 
       - name: Provision
         run: azd provision --no-prompt
+      - name: Build the core jar (the core image copies it)
+        working-directory: core
+        run: sbt assembly
       - name: Deploy (core image, agents image, viewer)
         run: azd deploy --no-prompt
 

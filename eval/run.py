@@ -248,11 +248,11 @@ def judge(
         if "max" in rule and value > rule["max"]:
             problems.append(f"{metric} {value} is above the maximum {rule['max']}")
     if baseline:
-        tolerance = config["regression_tolerance"]
-        for metric, direction in config["higher_is_better"].items():
+        for metric, rule in config["regression"].items():
             if metric in scores and metric in baseline:
-                drop = (baseline[metric] - scores[metric]) * (1 if direction else -1)
-                if drop > tolerance * max(abs(baseline[metric]), 1e-9):
+                sign = 1 if rule["higher_is_better"] else -1
+                drop = (baseline[metric] - scores[metric]) * sign
+                if drop > rule["tolerance"] * max(abs(baseline[metric]), 1e-9) + 1e-9:
                     problems.append(
                         f"{metric} regressed: {scores[metric]} against baseline {baseline[metric]}"
                     )

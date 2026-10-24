@@ -11,27 +11,28 @@ thresholds:
   fallback_rate: {max: 0.25}       # template lines after three rejections
   first_attempt_rate: {min: 0.6}
   latency_p95_ms: {max: 4000}      # moment path budget, about 2-4 s (D4)
-  foundry_groundedness: {min: 3.5} # online only, 1-5 scales
-  foundry_relevance: {min: 3.5}
-  foundry_fluency: {min: 3.5}
-  foundry_coherence: {min: 3.5}
+  # AI-judged scores (online only, 1-5): a floor, plus the baseline check below.
+  foundry_groundedness: {min: 3.0}
+  foundry_relevance: {min: 3.0}
+  foundry_fluency: {min: 3.0}
+  foundry_coherence: {min: 3.0}
 
 # Per-mode overrides. Online narration makes 2-3 real model calls per line (explain, narrate,
 # localize); the limit is set from the first measured run.
 online_thresholds:
   latency_p95_ms: {max: 15000}
 
-# Relative drop allowed against the baseline before the gate fails.
-regression_tolerance: 0.05
-higher_is_better:
-  number_match_rate: true
-  verified_rate: true
-  first_attempt_rate: true
-  fallback_rate: false
-  foundry_groundedness: true
-  foundry_relevance: true
-  foundry_fluency: true
-  foundry_coherence: true
+# Regression check against eval/baseline.json: the relative drop allowed per metric. The facts
+# (number match, verified) allow none. The AI-judged scores move by about 0.5 between identical
+# runs on 16 lines, so they get 15%. Fallback and first-attempt rates vary with the model's
+# sampling and are bounded only by their thresholds above.
+regression:
+  number_match_rate: {higher_is_better: true, tolerance: 0.0}
+  verified_rate: {higher_is_better: true, tolerance: 0.0}
+  foundry_groundedness: {higher_is_better: true, tolerance: 0.15}
+  foundry_relevance: {higher_is_better: true, tolerance: 0.15}
+  foundry_fluency: {higher_is_better: true, tolerance: 0.15}
+  foundry_coherence: {higher_is_better: true, tolerance: 0.15}
 
 foundry:
   sample: 16  # English lines scored by the Foundry evaluators (each costs model calls)

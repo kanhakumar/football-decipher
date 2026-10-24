@@ -7,5 +7,18 @@
   "fallback_rate": 0.0,
   "first_attempt_rate": 1.0,
   "latency_p95_ms": 31.2
+ },
+ "online": {
+  "lines": 120,
+  "insights": 8,
+  "number_match_rate": 1.0,
+  "verified_rate": 1.0,
+  "fallback_rate": 0.0833,
+  "first_attempt_rate": 0.7917,
+  "latency_p95_ms": 13081.9,
+  "foundry_groundedness": 4.81,
+  "foundry_relevance": 3.94,
+  "foundry_fluency": 3.31,
+  "foundry_coherence": 3.94
  }
 }

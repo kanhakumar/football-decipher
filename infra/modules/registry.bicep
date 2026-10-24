@@ -9,7 +9,8 @@ param identityId string
 var acrPull = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
 
 resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
-  name: 'crsmi${token}'
+  #disable-next-line BCP334 // the token is always 13 characters
+  name: 'crfd${token}'
   location: location
   tags: tags
   sku: { name: 'Basic' }

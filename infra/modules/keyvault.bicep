@@ -15,7 +15,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
 }
 
 resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
-  name: 'kv-smi-${token}'
+  name: 'kv-fd-${token}'
   location: location
   tags: tags
   properties: {

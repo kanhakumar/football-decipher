@@ -13,7 +13,7 @@ var containers = [
 ]
 
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
-  name: 'cosmos-smi-${token}'
+  name: 'cosmos-fd-${token}'
   location: location
   tags: tags
   kind: 'GlobalDocumentDB'
@@ -28,8 +28,8 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
 
 resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-11-15' = {
   parent: account
-  name: 'smi'
-  properties: { resource: { id: 'smi' } }
+  name: 'fd'
+  properties: { resource: { id: 'fd' } }
 }
 
 resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-11-15' = [

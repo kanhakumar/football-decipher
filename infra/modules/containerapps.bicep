@@ -38,7 +38,7 @@ var javaEnv = [
 var resources = { cpu: json('0.5'), memory: '1Gi' }
 
 resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
-  name: 'cae-smi-${token}'
+  name: 'cae-fd-${token}'
   location: location
   tags: tags
   properties: {

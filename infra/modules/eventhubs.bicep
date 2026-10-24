@@ -12,7 +12,7 @@ var roles = [
 ]
 
 resource namespace 'Microsoft.EventHub/namespaces@2024-01-01' = {
-  name: 'evhns-smi-${token}'
+  name: 'evhns-fd-${token}'
   location: location
   tags: tags
   sku: { name: 'Basic', tier: 'Basic', capacity: 1 }

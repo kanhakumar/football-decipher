@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 # Images build with Docker where azd runs: the GitHub Actions runner (.github/workflows/azure-dev.yml).
 # Remote builds in Container Registry (ACR Tasks) are not available on this subscription.
-name: smi
+name: fd
 infra:
   provider: bicep
   path: infra

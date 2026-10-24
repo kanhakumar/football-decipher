@@ -4,7 +4,7 @@ targetScope = 'subscription'
 
 @minLength(1)
 @maxLength(32)
-@description('azd environment name; the resource group is rg-smi-<env>.')
+@description('azd environment name; the resource group is rg-fd-<env>.')
 param environmentName string
 
 @description('Region for every resource.')
@@ -27,11 +27,11 @@ param deployerPrincipalId string = ''
 var tags = { 'azd-env-name': environmentName }
 var token = toLower(uniqueString(subscription().id, environmentName, location))
 // Known before deployment, so role assignment names derived from it show in what-if.
-var identityResourceId = resourceId(subscription().subscriptionId, rg.name, 'Microsoft.ManagedIdentity/userAssignedIdentities', 'id-smi-${token}')
+var identityResourceId = resourceId(subscription().subscriptionId, rg.name, 'Microsoft.ManagedIdentity/userAssignedIdentities', 'id-fd-${token}')
 var placeholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
-  name: 'rg-smi-${environmentName}'
+  name: 'rg-fd-${environmentName}'
   location: location
   tags: tags
 }

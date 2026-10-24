@@ -16,7 +16,7 @@ import smi.model.*
   * (ADR-016). Append-only per match run: an item per insight version and per overlay operation,
   * partitioned by match id, so a run can be read back for the recap and the eval.
   */
-final class CosmosStore(endpoint: String, database: String = "smi") extends MatchStore:
+final class CosmosStore(endpoint: String, database: String = "fd") extends MatchStore:
   val name = "cosmos"
   private val client = new CosmosClientBuilder()
     .endpoint(endpoint)

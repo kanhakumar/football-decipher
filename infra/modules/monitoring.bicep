@@ -3,7 +3,7 @@ param tags object
 param token string
 
 resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  name: 'log-smi-${token}'
+  name: 'log-fd-${token}'
   location: location
   tags: tags
   properties: {
@@ -13,7 +13,7 @@ resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 }
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: 'appi-smi-${token}'
+  name: 'appi-fd-${token}'
   location: location
   tags: tags
   kind: 'web'

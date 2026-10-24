@@ -3,7 +3,7 @@ param tags object
 param token string
 
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: 'id-smi-${token}'
+  name: 'id-fd-${token}'
   location: location
   tags: tags
 }

@@ -173,7 +173,13 @@ The pipeline must show a path to real provider data without using any. "synthfee
 
 ## ADR-022: A release branch for deploys, versioned by tags (accepted, 2026-10-26)
 - Why: every push to master deployed. A deploy takes about 35 minutes, and its eval breaks if anyone starts a match on the live site meanwhile. We want to choose what goes live, and know which version is running.
-- Flow: feature branches (`feature/...`) merge into `master`; CI runs on every push and pull request. `master` is promoted to `release` with a fast-forward push (`git push origin master:release`), so `release` only ever holds commits that are already on master. Nobody commits on `release` directly.
+- Flow: feature branches (`feature/...`) reach `master` through pull requests; CI runs on every push and pull request. A `PR policy` check fails any pull request that does not go from `feature/...` into `master`.
+- Promotion: the `Promote master to release` workflow (run by hand, owner only) fast-forwards `release` to `master` and starts the Deploy workflow. A push made with the workflow token does not trigger other workflows, so Promote starts Deploy itself. Promote fast-forwards rather than cherry-picks: `release` only ever holds commits already on `master`, with the same commit ids, so a tag on `release` names a `master` commit. Promote refuses to run when `release` has diverged.
+- Guardrails (GitHub rulesets, `infra/github/rulesets`, applied by `infra/scripts/github-rulesets.sh`):
+  - `master` takes changes only through pull requests that pass the policy check and CI, and can't be deleted or force-pushed.
+  - On `release`, only the GitHub Actions app (Promote) may create, update or delete the branch.
+  - The admin role bypasses both rulesets.
+  - GitHub enforces rulesets only on public repositories or on paid plans, so they are applied when the repository is made public. Until then the owner is the only person with write access.
 - Deploy: the Deploy workflow runs on pushes to `release` (docs-only changes excepted), or by hand on `release`. The job refuses other refs.
 - Versions: when the online eval gate passes, the workflow tags the deployed commit and creates a GitHub Release, with the eval scores and notes generated from the commits since the last release. The first is `v1.0.0`; each deploy bumps the patch version, and a manual run can bump the minor or major version. A deploy that fails its gate gets no tag. The running version is the newest release.
 - Trust: the deploy identity's federated credentials name `refs/heads/release` only. The `master`, `main` and `pull_request` credentials are removed, so no other branch or pull request can get an Azure token. That matters once the repository is public.

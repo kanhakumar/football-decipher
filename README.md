@@ -126,15 +126,14 @@ Without the app registrations the APIs stay open and the viewer runs without sig
 
 ### Branches and releases
 
-- Work happens on feature branches (`feature/...`) and merges into `master`. CI runs on every push and pull request.
-- To deploy, promote `master` to `release`:
-
-  ```bash
-  git push origin master:release
-  ```
-
-  The push must fast-forward. Never commit on `release` directly.
-- A push to `release` runs the Deploy workflow (`.github/workflows/azure-dev.yml`). It provisions with azd, deploys the core, the agents and the viewer, and runs the online eval gate.
+- Work happens on feature branches (`feature/...`). Each one reaches `master` through a pull request. CI runs on every push and pull request, and the **PR policy** check fails any pull request that does not go from `feature/...` into `master`.
+- To deploy, run the **Promote master to release** workflow (Actions tab, or `gh workflow run "Promote master to release" -f bump=patch`). It fast-forwards `release` to the latest `master` and starts the deploy. It refuses to run when `release` has commits that are not on `master`, and only the repository owner may run it.
+- Guardrails (rulesets in `infra/github/rulesets`, applied with `sh infra/scripts/github-rulesets.sh`):
+  - `master` takes changes only through pull requests that pass the PR policy check and CI, and can't be deleted or force-pushed.
+  - Only the Promote workflow can update `release`.
+  - The repository admin can bypass both rulesets.
+  GitHub enforces rulesets on public repositories, or on private ones with a paid plan.
+- The Deploy workflow (`.github/workflows/azure-dev.yml`) runs for `release` only (`.github/workflows/azure-dev.yml`). It provisions with azd, deploys the core, the agents and the viewer, and runs the online eval gate.
 - When the gate passes, the workflow tags the commit and creates a GitHub Release with the eval scores and notes generated from the commits. The first tag is `v1.0.0`. Each later deploy bumps the patch version; run the workflow by hand to bump the minor or major version instead.
 - Azure trusts only the `release` branch. The deploy signs in with OIDC (repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_ENV_NAME`, `AZURE_LOCATION`), and its federated credential names `refs/heads/release`. Pushes to `master` and pull requests cannot get Azure tokens.
 - During the eval (about 15 minutes after the deploy step), don't start a match on the live site. The deployed core plays one shared match, and a new start would replace the one being evaluated.

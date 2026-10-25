@@ -5,7 +5,9 @@ import scala.collection.mutable
 import smi.GeneratedMatches.Match
 import smi.model.*
 
-/** Invariants from CLAUDE.md, checked on 50 seeds of the default scenario. */
+/** Feed invariants (monotonic seq and clocks, spatial continuity, score, players), checked on 50
+  * seeds of the default scenario.
+  */
 class GeneratorInvariantsSuite extends FunSuite:
   private val matches = GeneratedMatches.default
 

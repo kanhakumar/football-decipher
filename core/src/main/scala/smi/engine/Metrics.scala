@@ -34,7 +34,7 @@ object Calc:
     case _                                => false
 
 /** A metric declares what data it requires (capability level), its fallback when that data is
-  * missing, and the basis of its output (CLAUDE.md, ADR-010).
+  * missing, and the basis of its output (ADR-010).
   */
 final case class MetricDef(
     id: String,

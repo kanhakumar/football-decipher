@@ -1,6 +1,6 @@
 # Decisions
 
-Short ADR-style log. Newest at the bottom. Keep CLAUDE.md in sync when a decision changes.
+Short ADR-style log. Newest at the bottom.
 
 ## ADR-001: Toolchain (accepted, 2026-10-20)
 JDK 25 (Temurin LTS), Scala 3.9 LTS, sbt 1.13, Python 3.13. Latest stable lines, not the newest releases: Scala Next (3.10) and sbt 2.x are skipped because they trade stability for features we do not need this week.
@@ -49,7 +49,7 @@ A scenario YAML (default: `core/src/main/resources/scenarios/default.yaml`, over
 - `sbt calibrate` measures seeds 1-200 and writes `docs/calibration.md` with `--report`. `CalibrationSuite` runs the same gate in `sbt test`.
 - The gate is the **baseline**: the default scenario's styles and phase with its beats removed. The full story scenario is reported next to it. Its scripted counter goal and red card add about one goal and one red card per match by design; the test checks the story stays in range on every other metric and adds 0.5 to 1.5 goals.
 - 200 seeds, not 50: goals per match vary by about 1.6, so a 50-seed average moves by about 0.2, almost half the 2.5-3.0 band. 200 seeds halve that.
-- Target bands: CLAUDE.md for goals, shots, completion, events and possession (35-65% in every match, plus a 45-55% average). Plausibility bands chosen for this project, not taken from any data source: shots on target 7-10, passes per team 350-550, fouls 18-26.
+- Target bands from the project brief: goals 2.5-3, shots 20-28, pass completion 78-90%, events 1,500-2,500 per match, possession 35-65% in every match (plus a 45-55% average). Plausibility bands chosen for this project, not taken from any data source: shots on target 7-10, passes per team 350-550, fouls 18-26.
 - Possession is measured as the share of passes. Shots on target are goals plus saves.
 - Main tuning changes: higher shot rates per grid cell, lower finishing (`0.46 e^(-d/7) + 0.02`), slower ball holding, more fouls, defenders on a yellow foul less, home slightly more direct (0.45).
 

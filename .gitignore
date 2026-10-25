@@ -45,3 +45,8 @@ docs/*.json
 eval/out/
 
 # Written by npm during azd packaging (the viewer has no dependencies)
+
+# Working notes, kept local: the build plan and Claude Code's project instructions.
+# The root CLAUDE.md only imports plan/CLAUDE.md so Claude Code still loads it.
+/plan/
+/CLAUDE.md

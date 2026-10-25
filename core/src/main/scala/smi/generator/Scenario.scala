@@ -47,7 +47,7 @@ final case class Beat(kind: BeatKind, team: Side, minute: Double):
 object Beat:
   given Codec.AsObject[Beat] = Wire.codec
 
-/** Generator-only match script. The pipeline never reads it (CLAUDE.md, ADR-007). */
+/** Generator-only match script. The pipeline never reads it (ADR-007). */
 final case class Scenario(
     name: String,
     teams: Teams,

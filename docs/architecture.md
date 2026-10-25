@@ -85,7 +85,7 @@ sequenceDiagram
   A->>A: verify, retry with reasons, localize, verify
   A-->>V: verified model line
   Note over V: the viewer clock reaches t_start_ms
-  V->>V: show the card; the model line replaces the quick line in place
+  V->>V: show the card, the model line replaces the quick line in place
 ```
 
 Timing:

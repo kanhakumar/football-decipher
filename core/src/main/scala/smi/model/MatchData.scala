@@ -34,7 +34,7 @@ object MatchMeta:
     }) ++ m.score.toList.flatMap((team, goals) => atLeast(s"score.$team", goals, 0))
   }
 
-/** A squad member. Generator attributes never appear here (see CLAUDE.md). */
+/** A squad member. Generator attributes never appear here (ADR-007). */
 final case class Player(
     playerId: PlayerId,
     name: String,

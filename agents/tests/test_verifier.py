@@ -8,8 +8,8 @@ from smi_agents.verifier import verify
 pytestmark = pytest.mark.anyio
 
 
-def reasons(line: Line, sheet, lang="en") -> list[str]:
-    return verify(line, sheet, lang).reasons
+def reasons(line: Line, sheet, lang="en", plain=False) -> list[str]:
+    return verify(line, sheet, lang, plain).reasons
 
 
 async def test_a_correct_line_is_accepted(sheets):
@@ -170,3 +170,19 @@ async def test_level_games_chase_phrasing_and_hindi_defending(sheets, tools, cor
         body="At 2-2 the game is level; el partido está empatado.",
     )
     assert "unsupported_claim:equaliser" not in reasons(line, level)
+
+
+async def test_plain_personas_get_no_technical_terms(sheets):
+    goal = sheets["goal"]
+    technical = Line(
+        headline="Liam Carver finishes a counter", body="A chance worth 0.10 xG makes it 2-1."
+    )
+    assert reasons(technical, goal) == []  # fine for the analyst
+    assert reasons(technical, goal, plain=True) == ["technical_term:decimal", "technical_term:xG"]
+    press = Line(headline="Northgate FC press", body="Northgate FC pressed harder; PPDA fell.")
+    assert "technical_term:PPDA" in reasons(press, sheets["press"], plain=True)
+    plain = Line(
+        headline="Liam Carver finishes a counter",
+        body="Eastmere Rovers lead 2-1 after a quick break.",
+    )
+    assert reasons(plain, goal, plain=True) == []

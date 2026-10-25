@@ -166,6 +166,7 @@ class Personalize(Executor):
             "persona": req.persona,
             "tone": TONES[req.persona],
             "max_metrics": templates.METRICS_BY_PERSONA[req.persona],
+            "plain": templates.is_plain(req.persona),
             "perspective_team": sheet.names.get(req.favourite_team or "")
             if req.favourite_team in teams
             else None,
@@ -226,7 +227,8 @@ class Verify(Executor):
         if draft.line is None:
             verdict = Verdict(ok=False, reasons=[draft.error or "no_line"])
         else:
-            verdict = verify(draft.line, draft.job.sheet, draft.lang)
+            plain = templates.is_plain(draft.job.request.persona)
+            verdict = verify(draft.line, draft.job.sheet, draft.lang, plain)
         draft.job.trail.append(Attempt(draft.stage, draft.attempt, verdict.ok, verdict.reasons))
         await ctx.send_message(Checked(draft, verdict))
 
@@ -243,7 +245,7 @@ class Template(Executor):
         job = checked.draft.job
         lang = job.request.lang
         line = templates.render(job.sheet, job.request, lang)
-        verdict = verify(line, job.sheet, lang)
+        verdict = verify(line, job.sheet, lang, templates.is_plain(job.request.persona))
         await ctx.yield_output(
             Narration(job.request, job.sheet, line, verdict.ok, True, job.trail, self.model_name)
         )
@@ -350,5 +352,5 @@ class Narrator:
         It passes the same Verifier; it is not a fallback, so `template_fallback` stays false."""
         sheet = await _gather_for(self.tools, req)
         line = templates.render(sheet, req, req.lang)
-        verdict = verify(line, sheet, req.lang)
+        verdict = verify(line, sheet, req.lang, templates.is_plain(req.persona))
         return Narration(req, sheet, line, verdict.ok, False, [], "template")

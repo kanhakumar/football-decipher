@@ -73,8 +73,10 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function started(services: ReturnType<typeof fakeServices>) {
-  const b = new Broadcast({ core: CORE, agents: AGENTS }, { auth: NO_AUTH, fetch: services.fetchFn, now: () => wall, storage: null });
+async function started(services: ReturnType<typeof fakeServices>, persona = "casual") {
+  const saved = JSON.stringify({ persona });
+  const storage = { getItem: () => saved, setItem: () => {} };
+  const b = new Broadcast({ core: CORE, agents: AGENTS }, { auth: NO_AUTH, fetch: services.fetchFn, now: () => wall, storage });
   await b.start();
   await vi.advanceTimersByTimeAsync(0);
   return b;
@@ -146,7 +148,7 @@ test("routine moments are template-only corner cards; the ticker-only ones are n
   const services = fakeServices({
     insights: [goal({ insight_id: "I_0003", kind: "control_vs_chaos", importance: 0.45, facts: { after_to_minute: 20 } }), goal({ insight_id: "I_0004", kind: "milestone", importance: 0.3 })],
   });
-  const b = await started(services);
+  const b = await started(services, "analyst");
   await vi.waitFor(() => assert.equal(services.calls.filter((c) => c.url.endsWith("/api/narrate")).length, 1));
   assert.deepEqual(services.calls.filter((c) => c.url.endsWith("/api/narrate")).map((c) => [c.body.insight_id, c.body.mode]), [["I_0003", "template"]]);
   b.onEnvelope({ match_id: "SYN-154", payload_type: "event", payload: { event_id: "E_1", type: "pass", period: 1, period_clock_s: 600, video_ts_ms: 600_000, team_id: "T_HOM" } });
@@ -169,5 +171,38 @@ test("a refused start shows the core's reason, and the button is busy meanwhile"
   const s = b.getSnapshot();
   assert.isFalse(s.busy.start);
   assert.equal(s.toasts.at(-1)?.text, "Could not start: delay_s too big");
+  b.stop();
+});
+
+test("a casual fan is not shown tactics; switching to analyst brings them in", async () => {
+  const tactics = goal({ insight_id: "I_0005", kind: "tactical_shift", importance: 0.58, facts: { after_to_minute: 20 } });
+  const services = fakeServices({ insights: [goal(), tactics] });
+  const b = await started(services);
+  await vi.waitFor(() => assert.equal(services.calls.filter((c) => c.url.endsWith("/api/narrate")).length, 2));
+  const narrated = () => services.calls.filter((c) => c.url.endsWith("/api/narrate")).map((c) => c.body.insight_id);
+  assert.notInclude(narrated(), "I_0005", "never narrated for a casual fan");
+  b.onEnvelope({ match_id: "SYN-154", payload_type: "event", payload: { event_id: "E_1", type: "pass", period: 1, period_clock_s: 1300, video_ts_ms: 1_300_000, team_id: "T_HOM" } });
+  b.frame();
+  assert.deepEqual(b.getSnapshot().moments.map((m) => m.id), ["I_0002"]);
+  b.setSetting("persona", "analyst");
+  await vi.waitFor(() => assert.include(narrated(), "I_0005"));
+  b.frame();
+  assert.sameMembers(b.getSnapshot().moments.map((m) => m.id), ["I_0002", "I_0005"]);
+  b.stop();
+});
+
+test("Start stays busy, counting down, until kickoff reaches the viewer", async () => {
+  const services = fakeServices({ playback: { status: "idle", run_id: undefined } });
+  const b = await started(services);
+  Object.assign(services.playback, { status: "running", run_id: "run-2", live: { match_clock_s: 0 } });
+  await b.startMatch({ seed: 154, speed: 10, delay_s: 120, tracking: false });
+  let s = b.getSnapshot();
+  assert.isTrue(s.busy.start, "still waiting for kickoff");
+  assert.equal(s.startingS, 12);
+  b.onEnvelope({ match_id: "SYN-154", payload_type: "event", payload: { event_id: "E_1", type: "pass", period: 1, period_clock_s: 1, video_ts_ms: 1000, team_id: "T_HOM" } });
+  b.frame();
+  s = b.getSnapshot();
+  assert.isFalse(s.busy.start);
+  assert.isNull(s.startingS);
   b.stop();
 });

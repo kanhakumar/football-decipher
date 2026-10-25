@@ -93,7 +93,7 @@ export function MatchControls({ s, b }: { s: Snapshot; b: Broadcast }) {
           <input type="checkbox" checked={form.tracking} onChange={(e) => setForm({ ...form, tracking: e.target.checked })} /> Tracking
         </label>
         <button type="submit" className={s.busy.start ? "busy" : ""} disabled={s.busy.start || s.gate}>
-          Start
+          {s.startingS !== null ? `Starting… ${Math.ceil(s.startingS)} s` : "Start"}
         </button>
         <button
           type="button"

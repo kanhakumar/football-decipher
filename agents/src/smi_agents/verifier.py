@@ -307,7 +307,16 @@ def _aliases(sheet: FactSheet) -> dict[str, str]:
     return out
 
 
-def verify(line: Line, sheet: FactSheet, lang: Lang) -> Verdict:
+# Words a plain persona (ADR-021) should not meet: technical stats and decimals.
+_TECHNICAL = {
+    "xG": r"(?<!\w)x\s?G(?!\w)",
+    "PPDA": r"(?<!\w)PPDA(?!\w)",
+    "decimal": r"(?<![\d.,])\d+[.,]\d+(?![\d])",
+}
+
+
+def verify(line: Line, sheet: FactSheet, lang: Lang, plain: bool = False) -> Verdict:
+    """`plain`: the line is for a plain persona (casual, club fan, player focus)."""
     reasons: list[str] = []
     if not line.headline.strip():
         reasons.append("empty_headline")
@@ -368,6 +377,10 @@ def verify(line: Line, sheet: FactSheet, lang: Lang) -> Verdict:
             reasons.append("subject_not_in_headline")
 
     joined = " ".join(_texts(line))
+    if plain:
+        for term, pattern in _TECHNICAL.items():
+            if re.search(pattern, joined):
+                reasons.append(f"technical_term:{term}")
     if "match_context" in sheet.support:
         for phrase in _CONTEXT_PHRASES.get(lang, []):
             joined = re.sub(phrase, " ", joined, flags=re.IGNORECASE)

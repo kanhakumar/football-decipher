@@ -268,3 +268,42 @@ button.link { background: none; color: var(--accent); border: 0; padding: 0; fon
   .kickoff { grid-column: 1 / -1; grid-row: 1; }
   .team-sheet ol { columns: 1; }
 }
+
+/* Lighter, smaller overlays (ADR-021): the match stays visible under every card */
+.lower-third {
+  max-width: 640px; right: auto;
+  background: linear-gradient(90deg, #0d1426a6, #121c3499);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.3);
+}
+.lower-third .card-body { font-size: clamp(10px, 1.35cqi, 16px); padding: 0.6em 0.9em; }
+.lower-third h2 { font-size: 1.3em; }
+.lower-third p {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.lower-third:hover p, .lower-third:focus-within p { -webkit-line-clamp: unset; }
+.metrics { margin-top: 0.45em; }
+.metrics li { font-size: 0.78em; background: #ffffff1a; }
+.badges { margin-top: 0.4em; font-size: 0.65em; }
+.corner-card {
+  max-width: 32%; background: #0e1424a6; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  font-size: clamp(10px, 1.4cqi, 16px); padding: 0.5em 0.8em;
+}
+.corner-card .corner-body { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.shape-caption { background: #0e142499; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); max-width: 45%; }
+.prematch {
+  background: #0b102080; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  justify-content: space-between; padding: 12% 3% 14%;
+}
+.prematch-teams { align-items: stretch; }
+.team-sheet { background: #0e1424b3; border-radius: 8px; padding: 0.6em 0.8em; max-width: 22em; }
+.team-sheet.away { justify-self: end; }
+.team-sheet ol { columns: 1; }
+.kickoff { background: #0e1424cc; border-radius: 10px; padding: 0.5em 1.2em; }
+.prematch-note { background: #0e1424b3; border-radius: 6px; padding: 0.4em 0.8em; align-self: center; }
+@media (max-width: 980px) {
+  .lower-third { max-width: none; right: 2%; }
+  .corner-card { max-width: 55%; }
+  .prematch { padding: 14% 2% 16%; }
+  .team-sheet ol { display: none; }
+}

@@ -428,3 +428,31 @@ labels:
   before_line_m: { en: "Line before (m)", es: "Línea antes (m)", hi: "पहले लाइन (मी)" }
   after_line_m: { en: "Line now (m)", es: "Línea ahora (m)", hi: "अब लाइन (मी)" }
   line_change_m: { en: "Line moved (m)", es: "Cambio de línea (m)", hi: "लाइन बदलाव (मी)" }
+
+# The match situation in plain words (ADR-021): the body of a template line for a plain persona
+# (casual, club fan, player focus), from the context facts. Pieces are joined in this order.
+situation:
+  en:
+    leading: "{team} lead {ctx_score_for:int}-{ctx_score_against:int}"
+    level: "It is {ctx_score_for:int}-{ctx_score_against:int}"
+    trailing: "{team} are {ctx_score_for:int}-{ctx_score_against:int} down"
+    minutes_left: " with {ctx_minutes_left:int} minutes left"
+    short_handed: ", and a player down"
+    extra_man: ", against ten men"
+    end: "."
+  es:
+    leading: "{team} gana {ctx_score_for:int}-{ctx_score_against:int}"
+    level: "El marcador va {ctx_score_for:int}-{ctx_score_against:int}"
+    trailing: "{team} pierde {ctx_score_for:int}-{ctx_score_against:int}"
+    minutes_left: " a falta de {ctx_minutes_left:int} minutos"
+    short_handed: ", y con uno menos"
+    extra_man: ", contra diez"
+    end: "."
+  hi:
+    leading: "{team} {ctx_score_for:int}-{ctx_score_against:int} से आगे है"
+    level: "स्कोर {ctx_score_for:int}-{ctx_score_against:int} है"
+    trailing: "{team} {ctx_score_for:int}-{ctx_score_against:int} से पीछे है"
+    minutes_left: ", {ctx_minutes_left:int} मिनट बाकी हैं"
+    short_handed: ", और एक खिलाड़ी कम है"
+    extra_man: ", सामने दस खिलाड़ी हैं"
+    end: "।"

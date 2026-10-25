@@ -19,6 +19,7 @@ import {
   type Group,
   type Tier,
 } from "./lib/match";
+import { showsShapeMaps, visibleTo } from "./lib/personas";
 import { DEFAULTS, viewSettings, type ViewSettings } from "./lib/settings";
 import { followStream } from "./lib/sse";
 import { OverlayQueue, ViewerClock } from "./lib/timeline";
@@ -123,6 +124,8 @@ export interface Snapshot {
   shape: ShapeView | null;
   momentum: { home: number; label: string; figures: string } | null;
   prematch: { countdownS: number; delayS: number } | null;
+  /** Seconds to kickoff while a Start from this viewer waits for the match to play. */
+  startingS: number | null;
   moments: MomentRow[];
   latency: { delay: string; quick: string; model: string; lead: string; leadLate: boolean; onTime: string; onTimeOk: boolean | null };
   player: { title: string; rows: { label: string; value: string; basis: string }[]; note: string } | null;
@@ -209,6 +212,8 @@ export class Broadcast {
   private preferenceTimer: ReturnType<typeof setTimeout> | null = null;
   private timers: ReturnType<typeof setInterval>[] = [];
   private ready = false;
+  /** A Start from this viewer that has not reached kickoff yet, and when to give up on it. */
+  private starting: { deadline: number } | null = null;
   private gate = false;
 
   private snapshot: Snapshot;
@@ -279,21 +284,39 @@ export class Broadcast {
 
   // ---------------------------------------------------------------- user actions
 
+  /** Starts a match. The button stays busy until kickoff reaches the viewer (ADR-021): the delay
+   * runs first, and the pre-match screen shows the countdown. */
   async startMatch(body: { seed: number; speed: number; delay_s: number; tracking: boolean }): Promise<void> {
-    await this.withBusy("start", async () => {
-      try {
-        await this.core("/api/match/start", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        this.fingerprint = null; // reconnect on the next poll
-        await this.poll();
-        this.toast(`Match started: seed ${body.seed} at ${body.speed}x`, "ok");
-      } catch (e) {
-        this.toast(`Could not start: ${message(e)}`, "bad");
-      }
-    });
+    if (this.busy.start) return;
+    this.busy = { ...this.busy, start: true };
+    this.emit();
+    try {
+      await this.core("/api/match/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      this.fingerprint = null; // reconnect on the next poll
+      await this.poll();
+      const waitS = body.delay_s / body.speed + 30;
+      this.starting = { deadline: this.now() + waitS * 1000 };
+      this.toast(`Match started: seed ${body.seed} at ${body.speed}x`, "ok");
+    } catch (e) {
+      this.busy = { ...this.busy, start: false };
+      this.toast(`Could not start: ${message(e)}`, "bad");
+    }
+    this.emit();
+  }
+
+  /** Ends the Start wait once kickoff plays, or gives up on it. */
+  private settleStart(): void {
+    if (!this.starting) return;
+    const played = this.clock.ts !== null;
+    const late = this.now() > this.starting.deadline;
+    if (!played && !late) return;
+    if (late && !played) this.toast("The match has not reached this screen yet; it may still be loading.", "warn");
+    this.starting = null;
+    this.busy = { ...this.busy, start: false };
   }
 
   async togglePause(): Promise<void> {
@@ -315,7 +338,7 @@ export class Broadcast {
     this.saveSettings();
     if (key !== "groups") {
       this.settingsVersion += 1;
-      this.renarrateAll();
+      this.renarrateAll(); // what the persona sees and how it is said may both change
       void this.refreshPlayer();
     }
     this.emit();
@@ -593,7 +616,12 @@ export class Broadcast {
     const tier = tierOf(insight.importance, this.view);
     if (insight.status === "retracted" || tier === "ticker") return;
     this.moments.set(insight.insight_id, { insight, tier });
-    this.enqueueNarration(insight.insight_id);
+    if (this.visible(this.moments.get(insight.insight_id)!)) this.enqueueNarration(insight.insight_id);
+  }
+
+  /** Whether this viewer's persona follows the moment (ADR-021). */
+  private visible(m: Moment): boolean {
+    return visibleTo(this.settings.persona || this.view.defaultPersona, this.settings, m.insight);
   }
 
   private withdraw(insightId: string): void {
@@ -635,7 +663,7 @@ export class Broadcast {
 
   private async requestLine(insightId: string, mode: "template" | "model"): Promise<void> {
     const m = this.moments.get(insightId);
-    if (!m || m.retracted || !this.agentsOk) return;
+    if (!m || m.retracted || !this.agentsOk || !this.visible(m)) return;
     const s = this.settings;
     const version = this.settingsVersion;
     const started = this.now();
@@ -675,7 +703,13 @@ export class Broadcast {
   private renarrateAll(): void {
     for (const m of this.moments.values()) {
       m.source = null;
-      this.enqueueNarration(m.insight.insight_id);
+      if (this.visible(m)) {
+        this.enqueueNarration(m.insight.insight_id);
+      } else if (m.overlay) {
+        // No longer this persona's moment: off the timeline, quietly (not a correction).
+        for (const item of this.queue.retractInsight(m.insight.insight_id)) item.wasShowing = false;
+        m.overlay = undefined;
+      }
     }
   }
 
@@ -754,6 +788,7 @@ export class Broadcast {
         if (c.change === "shown" && c.item.slot === "lower") this.lastShownLateMs = c.item.lateMs;
       }
     }
+    this.settleStart();
     this.emit();
   }
 
@@ -804,6 +839,7 @@ export class Broadcast {
       shape: this.shapeView(),
       momentum: this.momentum,
       prematch: this.prematchView(wall),
+      startingS: this.starting ? (this.prematchView(wall)?.countdownS ?? 0) : null,
       moments: this.momentRows(ts),
       latency: this.latencyView(),
       player: this.player,
@@ -890,7 +926,7 @@ export class Broadcast {
     if (ts === null) return null;
     for (const m of this.moments.values()) {
       const t = m.insight.video_ts_ms;
-      if (m.tier === "model" && !m.overlay && !m.retracted && t <= ts && ts < t + 8000) return m;
+      if (m.tier === "model" && !m.overlay && !m.retracted && this.visible(m) && t <= ts && ts < t + 8000) return m;
     }
     return null;
   }
@@ -935,7 +971,7 @@ export class Broadcast {
 
   private shapeView(): ShapeView | null {
     const item = this.queue.showing("pitch");
-    if (!item) return null;
+    if (!item || !showsShapeMaps(this.settings.persona || this.view.defaultPersona)) return null;
     const o = item.overlay;
     const formation = o.content.formation ? ` · lineup ${o.content.formation}` : "";
     return {
@@ -950,7 +986,7 @@ export class Broadcast {
     const groups = new Set(this.settings.groups);
     return [...this.moments.values()]
       .filter((m) => m.insight.video_ts_ms <= now) // never ahead of the viewer
-      .filter((m) => groups.has(groupOf(m.insight.kind)))
+      .filter((m) => this.visible(m) && groups.has(groupOf(m.insight.kind)))
       .sort((a, b) => b.insight.video_ts_ms - a.insight.video_ts_ms)
       .map((m) => {
         const minute = momentMinute(m.insight);

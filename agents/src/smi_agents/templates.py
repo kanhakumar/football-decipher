@@ -16,10 +16,24 @@ _NOT_METRICS = {"minute", "team_goals", "opponent_goals", "evidence_count"}
 METRICS_BY_PERSONA = {
     "analyst": 4,
     "metric_focus": 3,
-    "casual": 2,
-    "club_fan": 2,
-    "player_focus": 2,
+    "casual": 1,
+    "club_fan": 1,
+    "player_focus": 1,
 }
+# Plain personas (ADR-021) get everyday words: no xG, PPDA, rates or decimals, one simple chip.
+PLAIN_PERSONAS = {"casual", "club_fan", "player_focus"}
+PLAIN_METRICS = {
+    "after_shots",
+    "possession_passes",
+    "players_left",
+    "count",
+    "passer_progressive_passes",
+    "after_team_passes",
+}
+
+
+def is_plain(persona: str) -> bool:
+    return persona in PLAIN_PERSONAS
 
 
 class TemplateError(KeyError):
@@ -101,6 +115,8 @@ def metrics(sheet: FactSheet, req: NarrationRequest, lang: Lang) -> list[LineMet
     if req.metric_focus:
         focus = [k for k in order if k in (req.metric_focus, f"spell_{req.metric_focus}")]
         order = focus + [k for k in order if k not in focus]
+    if is_plain(req.persona):
+        order = [k for k in order if k in PLAIN_METRICS]
     picked = [m for k in order if (m := _metric(sheet, k, lang)) is not None]
     return picked[: METRICS_BY_PERSONA.get(req.persona, 2)]
 
@@ -128,8 +144,27 @@ def render(sheet: FactSheet, req: NarrationRequest, lang: Lang) -> Line:
     if entry is None:
         raise TemplateError(f"{sheet.code}/{lang}")
     values = _values(sheet, req, lang)
+    body = fill(entry["body"], values)
+    if is_plain(req.persona) and "ctx_game_state" in sheet.insight.facts:
+        body = situation(sheet, lang, values)  # the match situation instead of the statistics
     return Line(
         headline=fill(entry["headline"], values),
-        body=frame(fill(entry["body"], values), sheet, req, lang),
+        body=frame(body, sheet, req, lang),
         metrics=metrics(sheet, req, lang),
     )
+
+
+def situation(sheet: FactSheet, lang: Lang, values: dict[str, Any]) -> str:
+    """The match situation in plain words, from the context facts (ADR-017): the score from the
+    subject team's side, the time left and the players on the pitch."""
+    words = table()["situation"][lang]
+    f = sheet.insight.facts
+    text = fill(words[str(f["ctx_game_state"])], values)
+    if int(f.get("ctx_minutes_left", 0)) > 0:
+        text += fill(words["minutes_left"], values)
+    players, against = int(f.get("ctx_players_for", 11)), int(f.get("ctx_players_against", 11))
+    if players < against:
+        text += words["short_handed"]
+    elif against < players:
+        text += words["extra_man"]
+    return text + words["end"]

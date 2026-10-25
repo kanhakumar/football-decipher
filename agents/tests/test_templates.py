@@ -47,7 +47,7 @@ async def test_every_template_line_of_the_demo_match_passes_the_verifier(tools, 
         for req in PERSONAS:
             for lang in LANGS:
                 line = templates.render(sheet, req, lang)
-                verdict = verify(line, sheet, lang)
+                verdict = verify(line, sheet, lang, templates.is_plain(req.persona))
                 if not verdict.ok:
                     failures.append((iid, sheet.code, lang, req.persona, verdict.reasons))
     assert failures == []
@@ -66,3 +66,17 @@ async def test_metric_cards_follow_the_persona(sheets):
     card = templates.metrics(press, possession, "en")[0]
     assert (card.label, card.unit) == ("Possession", "%")
     assert card.value == round(press.numbers["spell_possession_share"], 1)
+
+
+async def test_plain_personas_get_the_situation_not_the_statistics(sheets):
+    goal = sheets["goal"]  # Eastmere Rovers 2-1 up after the 33' counter
+    casual = templates.render(goal, NarrationRequest(insight_id="I_1", persona="casual"), "en")
+    analyst = templates.render(goal, NarrationRequest(insight_id="I_1", persona="analyst"), "en")
+    assert casual.headline == analyst.headline
+    assert casual.body.startswith("Eastmere Rovers lead 2-1 with ")
+    assert "xG" not in casual.body and "seconds" in analyst.body
+    assert len(casual.metrics) <= 1 and all(m.label != "xG" for m in casual.metrics)
+    assert len(analyst.metrics) == 4
+    red = sheets["red"]  # Northgate down to ten, 1-2
+    es = templates.render(red, NarrationRequest(insight_id="I_1", persona="casual"), "es")
+    assert es.body == "Northgate FC pierde 1-2 a falta de 14 minutos, y con uno menos."

@@ -22,6 +22,8 @@ test("the demo match plays with every viewer behaviour", async ({ page }) => {
     await expect(page.getByLabel(/Delay s/)).toHaveValue("480");
     await page.getByRole("button", { name: "Start" }).click();
     await expect(page.getByText("Match started: seed 154 at 40x")).toBeVisible();
+    // The button waits for kickoff to play, counting down (ADR-021).
+    await expect(page.getByRole("button", { name: /Starting… \d+ s/ })).toBeDisabled();
   });
 
   await test.step("before kickoff reaches the viewer: both teams and a countdown", async () => {
@@ -30,6 +32,7 @@ test("the demo match plays with every viewer behaviour", async ({ page }) => {
     await expect(prematch).toContainText("Eastmere Rovers");
     await expect(prematch).toContainText("Kick-off in");
     await expect(prematch).toBeHidden({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: "Start" })).toBeEnabled();
   });
 
   await test.step("cards: a verified key pass, then the goal, which moves the score", async () => {
@@ -39,7 +42,14 @@ test("the demo match plays with every viewer behaviour", async ({ page }) => {
     await expect(moments(page)).toContainText("Goal · verified");
   });
 
-  await test.step("the shape map: average positions on the pitch, labelled as an estimate", async () => {
+  await test.step("a casual fan follows the story: no tactics, tempo or shape maps", async () => {
+    await expect(moments(page)).not.toContainText("Tactics");
+    await expect(moments(page)).not.toContainText("Tempo");
+    await expect(page.getByTestId("shape-map")).toHaveCount(0);
+    await page.getByLabel("Persona").selectOption("analyst");
+  });
+
+  await test.step("the analyst gets the shape map: average positions on the pitch, labelled as an estimate", async () => {
     await expect(page.getByTestId("shape-map")).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(/estimated from events/)).toBeVisible();
   });

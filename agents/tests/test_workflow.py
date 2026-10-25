@@ -107,7 +107,8 @@ async def test_personas_change_the_same_moment(tools):
     assert all(n.verified for n in (casual, analyst, home_fan, away_fan))
     press_casual = await narrator.narrate(NarrationRequest(insight_id="I_0024"))
     press_analyst = await narrator.narrate(NarrationRequest(insight_id="I_0024", persona="analyst"))
-    assert (len(press_casual.line.metrics), len(press_analyst.line.metrics)) == (2, 4)
+    # A casual fan gets one simple chip, the analyst four (ADR-021).
+    assert (len(press_casual.line.metrics), len(press_analyst.line.metrics)) == (1, 4)
 
 
 async def test_results_are_cached_per_insight_persona_and_language(tools, core):

@@ -63,6 +63,8 @@ def _support(insight: Insight, by_type: dict[str, int]) -> set[str]:
     scored, conceded = facts.get("ctx_score_for", 0), facts.get("ctx_score_against", 0)
     if scored != conceded:
         tokens |= {"score=lead", "score=trail"}  # one side leads, the other trails
+    elif scored > 0:
+        tokens.add("equaliser")  # level with goals: "level at 2-2", empatado, बराबर
     if "ctx_score_for" in facts:
         tokens.add("match_context")  # allows the score phrases in verifier._CONTEXT_PHRASES
     if "team_goals" in facts and "opponent_goals" in facts:

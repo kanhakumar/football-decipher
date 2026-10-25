@@ -1,5 +1,7 @@
 import pytest
 
+from conftest import all_insight_ids
+from smi_agents.facts import gather
 from smi_agents.types import Line, LineMetric
 from smi_agents.verifier import verify
 
@@ -146,3 +148,25 @@ async def test_the_match_situation_may_be_described_but_not_new_events(sheets):
         "unsupported_claim:goal"
     ]
     assert reasons(Line(headline="Northgate FC equalise"), press) == ["unsupported_claim:equaliser"]
+
+
+async def test_level_games_chase_phrasing_and_hindi_defending(sheets, tools, core):
+    press = sheets["press"]  # Northgate trail 1-2
+    chase = Line(headline="Northgate FC press", body="Northgate FC press hard to get back level.")
+    assert reasons(chase, press) == []
+    es = Line(headline="Northgate FC presiona", body="Northgate FC quiere ir a por el empate.")
+    assert reasons(es, press, "es") == []
+    defending = Line(headline="Northgate FC का दबाव", body="Eastmere Rovers बचाव कर रही है।")
+    assert reasons(defending, press, "hi") == []
+    # A spell in a level game (2-2): the score may be called level, in every language.
+    level = None
+    for iid in all_insight_ids(core):
+        sheet = await gather(tools, iid)
+        if sheet.code == "pressure_without_reward":
+            level = sheet
+    assert level is not None
+    line = Line(
+        headline="Eastmere Rovers dominate",
+        body="At 2-2 the game is level; el partido está empatado.",
+    )
+    assert "unsupported_claim:equaliser" not in reasons(line, level)

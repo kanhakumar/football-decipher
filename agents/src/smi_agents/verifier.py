@@ -214,7 +214,7 @@ _CLAIMS: dict[str, tuple[dict[Lang, list[str]], set[str]]] = {
         {
             "en": [r"\bsaved?\b", r"\bsaves\b", r"\bkeeper\b", r"\bgoalkeeper\b"],
             "es": [r"\bparad[ao]\b", r"\batajad", r"\bportero\b"],
-            "hi": [r"बचा", r"गोलकीपर"],
+            "hi": [r"बचा(?!व)", r"गोलकीपर"],  # बचाव is "defending", not a save
         },
         {"outcome=saved", "shot_outcome=saved", "big_chance_saved", "goalkeeper"},
     ),
@@ -239,16 +239,17 @@ _CONTEXT_PHRASES: dict[Lang, list[str]] = {
         r"\b(?:chas\w*|need\w*|push\w* for|search\w* for|hunt\w* for|look\w* for|go\w* for)"
         r" (?:an|the) equali[sz]er\b",
         r"\bgoal difference\b",
+        r"\b(?:get|getting|got|draw|drawing|pull|pulling) (?:back )?level\b",
     ],
     "es": [
         r"\b(?:un|dos|tres|\d) gol(?:es)? "
         r"(?:abajo|arriba|por debajo|por encima|de desventaja|de ventaja)\b",
         r"\bel marcador\b",
-        r"\b(?:busca\w*|necesita\w*|persigue\w*|en busca de|a por) (?:el|un) empate\b",
+        r"\b(?:busca\w*|necesita\w*|persigue\w*|en busca de|a por|ir a por) (?:el|un) empate\b",
     ],
     "hi": [
         r"(?:एक|दो|तीन|\d) गोल (?:से )?(?:पीछे|आगे)",
-        r"बराबरी (?:की तलाश|के लिए|का गोल ढूंढ)",
+        r"बराबरी (?:की तलाश|के लिए|का गोल ढूंढ|करने की कोशिश|की कोशिश)",
     ],
 }
 

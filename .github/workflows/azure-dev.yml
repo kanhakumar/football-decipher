@@ -1,18 +1,26 @@
 # Deploy: provision and deploy with azd, then the online eval gate against the deployed core and
-# the Foundry model. Signs in with OIDC (federated credential set up by `azd pipeline config`);
-# no secrets are stored. Images build with Docker on this runner.
+# the Foundry model, then tag the release (ADR-022). Runs only for the `release` branch: work
+# lands on master through feature branches, and master is promoted to release to deploy. Signs
+# in with OIDC (a federated credential for refs/heads/release only); no secrets are stored.
+# Images build with Docker on this runner.
 name: Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to bump when the eval gate passes
+        type: choice
+        options: [patch, minor, major]
+        default: patch
   push:
-    branches: [master]
+    branches: [release]
     # Docs-only changes do not redeploy.
     paths-ignore: ["**/*.md", "docs/**"]
 
 permissions:
   id-token: write
-  contents: read
+  contents: write # the release tag and GitHub Release
 
 concurrency:
   group: deploy
@@ -32,6 +40,8 @@ env:
 
 jobs:
   deploy:
+    # Azure trusts only the release branch; a manual run on another branch would fail to sign in.
+    if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -91,3 +101,23 @@ jobs:
         with:
           name: eval-online
           path: eval/out/report.json
+
+      - name: Tag the release (v1.0.0, then the next patch, or minor or major from a manual run)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ inputs.bump || 'patch' }}
+        run: |
+          last=$(git ls-remote --tags --refs origin 'v*' | sed 's#.*refs/tags/##' | sort -V | tail -1)
+          if [ -z "$last" ]; then
+            next=v1.0.0
+          else
+            IFS=. read -r major minor patch <<< "${last#v}"
+            case "$BUMP" in
+              major) next="v$((major + 1)).0.0" ;;
+              minor) next="v$major.$((minor + 1)).0" ;;
+              *) next="v$major.$minor.$((patch + 1))" ;;
+            esac
+          fi
+          scores=$(python -c "import json; s = json.load(open('eval/out/report.json'))['scores']; print(', '.join(f'{k} {v}' for k, v in s.items()))")
+          gh release create "$next" --target "$GITHUB_SHA" --title "$next" --generate-notes             --notes "Deployed to Azure and passed the online eval gate: $scores"
+          echo "Released $next" >> "$GITHUB_STEP_SUMMARY"

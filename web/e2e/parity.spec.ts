@@ -1,12 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 // Parity with the vanilla viewer (ADR-020): every behaviour /viewer has, against the real core and
 // the agent service (stub model), on the demo match (seed 154) at 40x. One match, in order.
 
 test.describe.configure({ mode: "serial" });
 
-const lowerThird = (page) => page.getByTestId("lower-third");
-const moments = (page) => page.getByTestId("moments");
+const lowerThird = (page: Page) => page.getByTestId("lower-third");
+const moments = (page: Page) => page.getByTestId("moments");
 
 test("the demo match plays with every viewer behaviour", async ({ page }) => {
   await page.goto("/");

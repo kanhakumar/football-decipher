@@ -23,6 +23,7 @@ class Type(Enum):
     milestone_badge = "milestone_badge"
     scoreline_update = "scoreline_update"
     recap_card = "recap_card"
+    shape_map = "shape_map"
 
 
 class Style(Enum):
@@ -64,6 +65,15 @@ class Metric(BaseModel):
     unit: str | None = None
 
 
+class Position(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    player_id: Annotated[str, Field(pattern="^P_[A-Z0-9_]{1,24}$")]
+    x: Annotated[float, Field(ge=0.0, le=105.0)]
+    y: Annotated[float, Field(ge=0.0, le=68.0)]
+
+
 class Content(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -73,6 +83,20 @@ class Content(BaseModel):
     metrics: Annotated[list[Metric] | None, Field(max_length=4)] = None
     player_id: Annotated[str | None, Field(pattern="^P_[A-Z0-9_]{1,24}$")] = None
     team_id: Annotated[str | None, Field(pattern="^T_[A-Z0-9_]{1,16}$")] = None
+    positions: Annotated[
+        list[Position] | None,
+        Field(
+            description="shape_map: each player's average position over the spell, in the team's own frame (attacking toward x = 105).",
+            max_length=11,
+        ),
+    ] = None
+    formation: Annotated[
+        str | None,
+        Field(
+            description="shape_map: the team's lineup formation, when all 11 are on the pitch.",
+            pattern="^[0-9](-[0-9]){2,4}$",
+        ),
+    ] = None
 
 
 class EvidenceEventId(RootModel[str]):

@@ -3,30 +3,33 @@
 // viewer's own persona and language (D3). It computes no match facts itself: every number on
 // screen comes from the core or from a verified narration.
 
-import { InsightBook, displayClock, scoreAt, toScreen } from "./match.js";
-import { OverlayQueue, ViewerClock } from "./timeline.js";
+import { GROUPS, InsightBook, displayClock, groupOf, scoreAt, shapeDots, tierOf, toScreen } from "./match.js";
+import { OverlayQueue, ViewerClock, suggestDelay } from "./timeline.js";
 
 const params = new URLSearchParams(location.search);
 const deployed = window.SMI_CONFIG ?? {}; // config.js: written by azd at deploy, local defaults here
 const CORE = params.get("core") ?? deployed.core ?? "http://127.0.0.1:8080";
 const AGENTS = params.get("agents") ?? deployed.agents ?? "http://127.0.0.1:8090";
-const MIN_IMPORTANCE = Number(params.get("min") ?? 0.6);
 const SVG = "http://www.w3.org/2000/svg";
 const $ = (id) => document.getElementById(id);
 
 const KIND = {
   en: { goal: "Goal", red_card: "Red card", key_chance: "Big chance", momentum_swing: "Momentum",
-    pressure_shift: "Pressing", control_vs_chaos: "Control", rhythm_change: "Tempo", milestone: "Milestone" },
+    pressure_shift: "Pressing", control_vs_chaos: "Control", rhythm_change: "Tempo", milestone: "Milestone",
+    player_spotlight: "Key pass", tactical_shift: "Tactics" },
   es: { goal: "Gol", red_card: "Tarjeta roja", key_chance: "Ocasión", momentum_swing: "Impulso",
-    pressure_shift: "Presión", control_vs_chaos: "Control", rhythm_change: "Ritmo", milestone: "Hito" },
+    pressure_shift: "Presión", control_vs_chaos: "Control", rhythm_change: "Ritmo", milestone: "Hito",
+    player_spotlight: "Pase clave", tactical_shift: "Táctica" },
   hi: { goal: "गोल", red_card: "लाल कार्ड", key_chance: "बड़ा मौका", momentum_swing: "रुख",
-    pressure_shift: "दबाव", control_vs_chaos: "नियंत्रण", rhythm_change: "रफ़्तार", milestone: "उपलब्धि" },
+    pressure_shift: "दबाव", control_vs_chaos: "नियंत्रण", rhythm_change: "रफ़्तार", milestone: "उपलब्धि",
+    player_spotlight: "अहम पास", tactical_shift: "रणनीति" },
 };
 const BADGES = {
-  en: { verified: "Verified", template: "Template line", basis: { event_data: "Event data", tracking: "Tracking", event_estimate: "Estimate" } },
-  es: { verified: "Verificado", template: "Plantilla", basis: { event_data: "Datos de eventos", tracking: "Seguimiento", event_estimate: "Estimación" } },
-  hi: { verified: "सत्यापित", template: "टेम्पलेट", basis: { event_data: "इवेंट डेटा", tracking: "ट्रैकिंग", event_estimate: "अनुमान" } },
+  en: { verified: "Verified", template: "Template line", quick: "Quick line", pending: "Analysing this moment…", basis: { event_data: "Event data", tracking: "Tracking", event_estimate: "Estimate" } },
+  es: { verified: "Verificado", template: "Plantilla", quick: "Línea rápida", pending: "Analizando la jugada…", basis: { event_data: "Datos de eventos", tracking: "Seguimiento", event_estimate: "Estimación" } },
+  hi: { verified: "सत्यापित", template: "टेम्पलेट", quick: "त्वरित पंक्ति", pending: "इस पल का विश्लेषण…", basis: { event_data: "इवेंट डेटा", tracking: "ट्रैकिंग", event_estimate: "अनुमान" } },
 };
+const GROUP_LABELS = { chances: "Goals and chances", flow: "Pressing and momentum", tactics: "Tactics", players: "Players" };
 const STAT_LABELS = {
   passes: "Passes", passes_completed: "Passes completed", shots: "Shots", xg: "xG",
   progressive_passes: "Progressive passes", pressures: "Pressures", tackles_won: "Tackles won",
@@ -37,6 +40,7 @@ const BASIS_SHORT = { event_data: "events", tracking: "tracking", event_estimate
 
 const clock = new ViewerClock();
 const queue = new OverlayQueue({ minShowMs: 4500 });
+const MODEL_SLOTS = 2; // model narrations in flight at once
 const book = new InsightBook();
 
 const state = {
@@ -47,7 +51,7 @@ const state = {
   players: {}, // player id -> { name, shirt, team }
   settings: loadSettings(),
   settingsVersion: 0,
-  moments: new Map(), // insight id -> { insight, overlay, narration, leadMs, roundTripMs }
+  moments: new Map(), // insight id -> { insight, overlay, narration, source, leadMs, roundTripMs }
   playback: null,
   fingerprint: null,
   streams: [],
@@ -59,12 +63,14 @@ const state = {
   lastShownLateMs: null,
   lastScore: "",
   agentsOk: false,
+  coreOk: true,
+  quickMs: null, // round trip of the last quick (template) line
 };
 
 // ---------------------------------------------------------------- settings
 
 function loadSettings() {
-  const fallback = { persona: "casual", lang: "en", team: "", player: "", metric: "" };
+  const fallback = { persona: "casual", lang: "en", team: "", player: "", metric: "", groups: Object.keys(GROUPS) };
   try {
     return { ...fallback, ...JSON.parse(localStorage.getItem("decipher.settings") ?? "{}") };
   } catch {
@@ -78,6 +84,29 @@ function saveSettings() {
   } catch {
     /* private mode: settings last for this page only */
   }
+}
+
+function bindFilters() {
+  $("moment-filters").replaceChildren(
+    ...Object.keys(GROUPS).map((g) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "filter";
+      b.textContent = GROUP_LABELS[g];
+      const sync = () => b.setAttribute("aria-pressed", String(state.settings.groups.includes(g)));
+      b.addEventListener("click", () => {
+        const on = new Set(state.settings.groups);
+        if (on.has(g)) on.delete(g);
+        else on.add(g);
+        state.settings.groups = Object.keys(GROUPS).filter((k) => on.has(k));
+        saveSettings();
+        sync();
+        renderMoments();
+      });
+      sync();
+      return b;
+    }),
+  );
 }
 
 function bindSettings() {
@@ -101,7 +130,10 @@ function bindSettings() {
 
 async function core(path, init) {
   const res = await fetch(CORE + path, init);
-  if (!res.ok) throw new Error(`${path}: ${res.status}`);
+  if (!res.ok) {
+    const detail = await res.json().then((b) => b.error).catch(() => null);
+    throw new Error(detail ?? `${path}: ${res.status}`);
+  }
   return res.json();
 }
 
@@ -143,6 +175,7 @@ async function pollState() {
   try {
     const s = await core("/api/match/state");
     state.playback = s;
+    state.coreOk = true;
     clock.setPlayback(s.speed, s.status === "running");
     const fingerprint = s.run_id ?? null; // a new run: started here, by someone else, or by the generator job
     const restarted = fingerprint !== state.fingerprint || s.envelopes_viewer < (state.lastViewer ?? 0);
@@ -154,10 +187,12 @@ async function pollState() {
     }
     renderStatus(s);
   } catch {
-    $("status").textContent = `Core not reachable at ${CORE}. Start it with: cd core && sbt run`;
+    state.coreOk = false;
+    $("status").textContent = `Core not reachable at ${CORE}.`;
     $("live-chip").textContent = "OFFLINE";
     $("live-chip").className = "live-chip";
   }
+  renderHealth();
 }
 
 async function checkAgents() {
@@ -171,6 +206,7 @@ async function checkAgents() {
   } catch {
     state.agentsOk = false;
   }
+  renderHealth();
 }
 
 // ---------------------------------------------------------------- feed (viewer side)
@@ -294,8 +330,9 @@ function drawFrame(f) {
 
 function onInsight(insight) {
   for (const id of book.add(insight)) withdraw(id);
-  if (insight.status === "retracted" || insight.importance < MIN_IMPORTANCE) return;
-  state.moments.set(insight.insight_id, { insight });
+  const tier = tierOf(insight.importance);
+  if (insight.status === "retracted" || tier === "ticker") return;
+  state.moments.set(insight.insight_id, { insight, tier });
   enqueueNarration(insight.insight_id);
 }
 
@@ -308,13 +345,40 @@ function withdraw(insightId) {
   renderMoments();
 }
 
-let chain = Promise.resolve();
+// Every moment gets the template line at once (D4: a card is on the timeline before its moment),
+// then the model line, which replaces it in place. Model requests run MODEL_SLOTS at a time,
+// the moment the viewer reaches first going first.
+const waiting = new Set();
+let inFlight = 0;
 
 function enqueueNarration(insightId) {
-  chain = chain.then(() => narrate(insightId)).catch((e) => console.warn(e));
+  requestLine(insightId, "template").catch(reportNarrationError);
+  if (state.moments.get(insightId)?.tier !== "model") return; // routine moments: the template line only
+  waiting.add(insightId);
+  pumpModel();
 }
 
-async function narrate(insightId) {
+function pumpModel() {
+  while (inFlight < MODEL_SLOTS && waiting.size) {
+    const next = [...waiting].sort(
+      (a, b) => (state.moments.get(a)?.insight.video_ts_ms ?? 0) - (state.moments.get(b)?.insight.video_ts_ms ?? 0),
+    )[0];
+    waiting.delete(next);
+    inFlight += 1;
+    requestLine(next, "model")
+      .catch(reportNarrationError)
+      .finally(() => {
+        inFlight -= 1;
+        pumpModel();
+      });
+  }
+}
+
+function reportNarrationError(e) {
+  if (!String(e.message).includes(": 409")) toast(`Narration failed: ${e.message}`, "warn"); // 409: an old match
+}
+
+async function requestLine(insightId, mode) {
   const m = state.moments.get(insightId);
   if (!m || m.retracted || !state.agentsOk) return;
   const s = state.settings;
@@ -331,28 +395,33 @@ async function narrate(insightId) {
       favourite_team: s.team || null,
       favourite_player: s.player || null,
       metric_focus: s.metric || null,
+      mode,
     }),
   });
   if (!res.ok) throw new Error(`narrate ${insightId}: ${res.status} ${await res.text()}`);
   const data = await res.json();
   if (version !== state.settingsVersion || m.retracted) return; // settings changed meanwhile
-  const now = clock.now(performance.now());
-  Object.assign(m, {
-    overlay: data.overlay,
-    narration: data.narration,
-    roundTripMs: performance.now() - started,
-    leadMs: now === null ? null : data.overlay.t_start_ms - now,
-  });
-  state.lastNarration = m;
-  queue.replaceForInsight(data.overlay);
+  if (mode === "template" && m.source === "model" && m.version === version) return; // model was faster
+  const roundTripMs = performance.now() - started;
+  if (mode === "template") {
+    state.quickMs = roundTripMs;
+  } else {
+    const now = clock.now(performance.now());
+    Object.assign(m, { roundTripMs, leadMs: now === null ? null : data.overlay.t_start_ms - now });
+    state.lastNarration = m;
+  }
+  // Routine moments go to the corner card, so the lower third stays for the big ones.
+  const shown = m.tier === "template" ? { ...data.overlay, style: "corner_card" } : data.overlay;
+  Object.assign(m, { overlay: shown, narration: data.narration, source: mode, version });
+  queue.replaceForInsight(shown);
   renderMoments();
 }
 
 function renarrateAll() {
-  const ordered = [...state.moments.values()].sort(
-    (a, b) => (b.insight.video_ts_ms ?? 0) - (a.insight.video_ts_ms ?? 0),
-  );
-  for (const m of ordered) enqueueNarration(m.insight.insight_id);
+  for (const m of state.moments.values()) {
+    m.source = null;
+    enqueueNarration(m.insight.insight_id);
+  }
 }
 
 function onCoreOverlay(o) {
@@ -364,7 +433,7 @@ function onCoreOverlay(o) {
     if (item?.wasShowing) state.correction = { overlay: item.overlay, until: performance.now() + 4000 };
     return;
   }
-  if (o.type === "scoreline_update") queue.put(o);
+  if (o.type === "scoreline_update" || o.type === "shape_map") queue.put(o);
 }
 
 // ---------------------------------------------------------------- rendering
@@ -375,13 +444,19 @@ function renderCard(o, { retracted = false } = {}) {
   const lang = o.lang ?? "en";
   const kind = m ? KIND[lang]?.[m.insight.kind] ?? m.insight.kind : "";
   const minute = m ? momentMinute(m.insight) : null;
-  if (card.dataset.key !== `${o.overlay_id}|${retracted}`) {
-    card.dataset.key = `${o.overlay_id}|${retracted}`;
+  // The model line reuses the quick line's overlay id: the key includes the text so it swaps in.
+  const key = `${o.overlay_id}|${o.content.headline}|${o.content.body ?? ""}|${retracted}`;
+  if (card.dataset.key !== key) {
+    const sameCard = card.dataset.key?.startsWith(`${o.overlay_id}|`);
+    card.dataset.key = key;
     card.hidden = false;
     card.classList.toggle("retracted", retracted);
-    card.style.animation = "none";
-    void card.offsetWidth; // restart the slide-in
-    card.style.animation = "";
+    card.classList.remove("pending");
+    if (!sameCard) {
+      card.style.animation = "none";
+      void card.offsetWidth; // restart the slide-in, but not when the model line replaces the quick one
+      card.style.animation = "";
+    }
     $("card-kicker").textContent = [kind, minute ? `${minute}'` : ""].filter(Boolean).join(" · ");
     $("card-headline").textContent = o.content.headline;
     $("card-body").textContent = o.content.body ?? "";
@@ -399,6 +474,7 @@ function renderCard(o, { retracted = false } = {}) {
     const badges = [];
     if (o.verified) badges.push(["ok", `✓ ${words.verified}`]);
     if (o.template_fallback) badges.push(["warn", words.template]);
+    else if (m?.source === "template") badges.push(["quick", words.quick]);
     if (o.basis) badges.push(["", words.basis[o.basis] ?? o.basis]);
     $("card-badges").replaceChildren(
       ...badges.map(([cls, text]) => {
@@ -415,6 +491,37 @@ function renderCard(o, { retracted = false } = {}) {
   $("card-correction").hidden = !retracted;
 }
 
+/** The moment is on screen but no line has arrived yet: a placeholder instead of nothing. */
+function renderPending(m) {
+  const card = $("lower-third");
+  const key = `pending|${m.insight.insight_id}|${state.settings.lang}`;
+  if (card.dataset.key === key) return;
+  card.dataset.key = key;
+  card.hidden = false;
+  card.classList.remove("retracted");
+  card.classList.add("pending");
+  const lang = state.settings.lang;
+  const minute = momentMinute(m.insight);
+  $("card-kicker").textContent = [KIND[lang]?.[m.insight.kind] ?? m.insight.kind, minute ? `${minute}'` : ""]
+    .filter(Boolean)
+    .join(" · ");
+  $("card-headline").textContent = (BADGES[lang] ?? BADGES.en).pending;
+  $("card-body").textContent = "";
+  $("card-metrics").replaceChildren();
+  $("card-badges").replaceChildren();
+  $("card-correction").hidden = true;
+}
+
+/** A moment the viewer has reached in the last 8 s of video whose line has not arrived. */
+function pendingMoment(ts) {
+  if (ts === null) return null;
+  for (const m of state.moments.values()) {
+    const t = m.insight.video_ts_ms;
+    if (m.tier === "model" && !m.overlay && !m.retracted && t <= ts && ts < t + 8000) return m;
+  }
+  return null;
+}
+
 function renderCorner(item) {
   const corner = $("corner-card");
   if (!item) {
@@ -422,12 +529,59 @@ function renderCorner(item) {
     corner.dataset.key = "";
     return;
   }
-  if (corner.dataset.key === item.overlay.overlay_id) return;
-  corner.dataset.key = item.overlay.overlay_id;
+  const o = item.overlay;
+  const key = `${o.overlay_id}|${o.content.headline}`;
+  if (corner.dataset.key === key) return;
+  corner.dataset.key = key;
   corner.hidden = false;
   const kicker = document.createElement("small");
-  kicker.textContent = "SCORE UPDATE";
-  corner.replaceChildren(kicker, item.overlay.content.headline);
+  const m = state.moments.get(o.insight_id);
+  if (o.type === "scoreline_update" || !m) {
+    kicker.textContent = "SCORE UPDATE";
+    corner.replaceChildren(kicker, o.content.headline);
+    return;
+  }
+  const minute = momentMinute(m.insight);
+  kicker.textContent = [KIND[o.lang ?? "en"]?.[m.insight.kind] ?? m.insight.kind, minute ? `${minute}'` : ""].filter(Boolean).join(" · ");
+  const head = document.createElement("b");
+  head.textContent = o.content.headline;
+  const body = document.createElement("span");
+  body.className = "corner-body";
+  body.textContent = o.content.body ?? "";
+  corner.lang = o.lang ?? "en";
+  corner.replaceChildren(kicker, head, body);
+}
+
+/** The shape map: average positions of one team over a spell, drawn on the pitch. */
+function renderShape(item) {
+  const g = $("shape");
+  const caption = $("shape-caption");
+  if (!item) {
+    if (g.dataset.key) g.replaceChildren();
+    g.dataset.key = "";
+    caption.hidden = true;
+    return;
+  }
+  const o = item.overlay;
+  if (g.dataset.key === o.overlay_id) return;
+  g.dataset.key = o.overlay_id;
+  g.replaceChildren(
+    ...shapeDots(o, state.homeId, state.players).flatMap((d) => {
+      const c = document.createElementNS(SVG, "circle");
+      c.setAttribute("cx", d.x);
+      c.setAttribute("cy", d.y);
+      c.setAttribute("r", 2);
+      c.style.fill = d.home ? "var(--home)" : "var(--away)";
+      const t = document.createElementNS(SVG, "text");
+      t.setAttribute("x", d.x);
+      t.setAttribute("y", d.y + 0.9);
+      t.textContent = d.shirt;
+      return [c, t];
+    }),
+  );
+  caption.hidden = false;
+  const formation = o.content.formation ? ` · lineup ${o.content.formation}` : "";
+  caption.textContent = `${o.content.headline}${formation} · players with actions in the spell, estimated from events`;
 }
 
 function renderScore(ts) {
@@ -471,6 +625,7 @@ function renderLatency() {
     const real = s.delay_s / s.speed;
     $("lat-delay").textContent = `${s.delay_s} s (${real < 10 ? real.toFixed(1) : Math.round(real)} s real)`;
   }
+  if (state.quickMs !== null) $("lat-quick").textContent = `${Math.round(state.quickMs)} ms`;
   const n = state.lastNarration;
   if (n?.narration) {
     $("lat-narration").textContent = `${Math.round(n.roundTripMs)} ms`;
@@ -485,26 +640,39 @@ function renderLatency() {
   }
 }
 
+function renderHealth() {
+  const agents = $("agents-chip");
+  agents.textContent = state.agentsOk ? `Agents: ${state.agentModel}` : "Agents: unreachable";
+  agents.className = `chip ${state.agentsOk ? "ok" : "bad"}`;
+  const core = $("core-chip");
+  core.textContent = state.coreOk ? "Core: connected" : "Core: unreachable";
+  core.className = `chip ${state.coreOk ? "ok" : "bad"}`;
+  $("banner").hidden = state.coreOk;
+}
+
 function renderStatus(s) {
   const chip = $("live-chip");
   const labels = { running: "LIVE", paused: "PAUSED", finished: "FULL TIME", idle: "WAITING" };
   chip.textContent = labels[s.status] ?? s.status.toUpperCase();
   chip.className = `live-chip ${s.status}`;
   $("pause").textContent = s.status === "paused" ? "Resume" : "Pause";
-  const agents = state.agentsOk ? `agents: ${state.agentModel} model` : `agent service not reachable at ${AGENTS}`;
+  $("pause").disabled = !["running", "paused"].includes(s.status);
   $("status").textContent =
     s.status === "idle"
-      ? `No match yet. Press Start. (${agents})`
+      ? "No match yet. Press Start."
       : `Seed ${s.seed} · ${s.speed}x · delay ${s.delay_s} s · ${
           s.tracking ? "tracking on (player dots)" : "tracking off (dots: last actions by team; tick Tracking and Start for players)"
-        } · ${agents}`;
+        }`;
+  if (!state.agentsOk) $("status").textContent += ` · agent service not reachable at ${AGENTS}`;
 }
 
 function renderMoments() {
   const now = clock.now(performance.now()) ?? -1;
+  const groups = new Set(state.settings.groups);
   const list = [...state.moments.values()]
-    .filter((m) => m.overlay && m.overlay.t_start_ms <= now) // never ahead of the viewer
-    .sort((a, b) => b.overlay.t_start_ms - a.overlay.t_start_ms);
+    .filter((m) => m.insight.video_ts_ms <= now) // never ahead of the viewer
+    .filter((m) => groups.has(groupOf(m.insight.kind)))
+    .sort((a, b) => b.insight.video_ts_ms - a.insight.video_ts_ms);
   $("moment-count").textContent = list.length ? `(${list.length})` : "";
   $("moments").replaceChildren(
     ...list.map((m) => {
@@ -516,12 +684,27 @@ function renderMoments() {
       min.textContent = minute === null ? "" : `${minute}'`;
       const head = document.createElement("span");
       head.className = "head";
-      head.textContent = m.overlay.content.headline;
-      head.lang = m.overlay.lang;
       const meta = document.createElement("span");
       meta.className = "meta";
-      const how = m.retracted ? "withdrawn" : m.overlay.template_fallback ? "template" : "verified";
-      meta.textContent = `${KIND.en[m.insight.kind] ?? m.insight.kind} · ${how}`;
+      const kind = KIND.en[m.insight.kind] ?? m.insight.kind;
+      if (!m.overlay) {
+        li.classList.add("pending");
+        head.textContent = BADGES.en.pending;
+        meta.textContent = kind;
+        li.append(min, head, meta);
+        return li;
+      }
+      head.textContent = m.overlay.content.headline;
+      head.lang = m.overlay.lang;
+      const how = m.retracted
+        ? "withdrawn"
+        : m.overlay.template_fallback
+          ? "template"
+          : m.source === "template"
+            ? "quick line, model line coming"
+            : "verified";
+      const late = !m.retracted && queue.missedInsight(m.insight.insight_id) ? " · not shown live, click to replay" : "";
+      meta.textContent = `${kind} · ${how}${late}`;
       li.append(min, head, meta);
       li.addEventListener("click", () => {
         if (!m.retracted) state.replay = { overlay: m.overlay, until: performance.now() + 6000 };
@@ -548,11 +731,13 @@ function frame() {
   if (correction) renderCard(correction.overlay, { retracted: true });
   else if (current) renderCard(current.overlay);
   else if (replay) renderCard(state.moments.get(replay.overlay.insight_id)?.overlay ?? replay.overlay);
+  else if (pendingMoment(ts)) renderPending(pendingMoment(ts));
   else {
     $("lower-third").hidden = true;
     $("lower-third").dataset.key = "";
   }
   renderCorner(queue.showing("corner"));
+  renderShape(queue.showing("pitch"));
   renderScore(ts);
   renderTag(wall);
   renderLatency();
@@ -631,8 +816,34 @@ async function refreshPlayerPanel() {
 
 // ---------------------------------------------------------------- controls
 
+function toast(message, kind = "") {
+  const t = document.createElement("div");
+  t.className = `toast ${kind}`;
+  t.textContent = message;
+  $("toasts").append(t);
+  setTimeout(() => t.remove(), 6000);
+}
+
+/** Disables the button and shows a spinner on it until the action settles. */
+async function busy(button, action) {
+  if (button.classList.contains("busy")) return;
+  button.classList.add("busy");
+  button.disabled = true;
+  try {
+    await action();
+  } finally {
+    button.classList.remove("busy");
+    button.disabled = false;
+    if (state.playback) renderStatus(state.playback); // Pause is disabled again when idle
+  }
+}
+
 function bindControls() {
-  $("start-form").addEventListener("submit", async (e) => {
+  $("speed").addEventListener("input", () => {
+    const speed = Number($("speed").value);
+    if (speed > 0) $("delay").value = suggestDelay(speed);
+  });
+  $("start-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const body = {
       seed: Number($("seed").value),
@@ -640,24 +851,35 @@ function bindControls() {
       delay_s: Number($("delay").value),
       tracking: $("tracking").checked,
     };
-    try {
-      await core("/api/match/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      state.fingerprint = null; // reconnect on the next poll
-      await pollState();
-    } catch (err) {
-      $("status").textContent = `Could not start: ${err.message}`;
-    }
+    busy($("start"), async () => {
+      try {
+        await core("/api/match/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        state.fingerprint = null; // reconnect on the next poll
+        await pollState();
+        toast(`Match started: seed ${body.seed} at ${body.speed}x`, "ok");
+      } catch (err) {
+        toast(`Could not start: ${err.message}`, "bad");
+      }
+    });
   });
-  $("pause").addEventListener("click", async () => {
+  $("pause").addEventListener("click", () => {
     const action = state.playback?.status === "paused" ? "resume" : "pause";
-    await core(`/api/match/${action}`, { method: "POST" }).catch(() => {});
-    await pollState();
+    busy($("pause"), async () => {
+      try {
+        await core(`/api/match/${action}`, { method: "POST" });
+        await pollState();
+      } catch (err) {
+        toast(`Could not ${action}: ${err.message}`, "bad");
+      }
+    });
   });
+  $("retry").addEventListener("click", () => busy($("retry"), pollState));
 }
 
 // ---------------------------------------------------------------- start
 
 bindSettings();
+bindFilters();
 bindControls();
 await checkAgents();
 await pollState();

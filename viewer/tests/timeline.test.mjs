@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { OverlayQueue, ViewerClock, MAX_EXTRAPOLATION_MS } from "../js/timeline.js";
+import { OverlayQueue, ViewerClock, MAX_EXTRAPOLATION_MS, suggestDelay } from "../js/timeline.js";
 
 const card = (id, start, extra = {}) => ({
   overlay_id: id, match_id: "SYN-154", insight_id: `I_${id.slice(-4)}`, op: "show",
@@ -66,4 +66,41 @@ test("another persona or language replaces the same moment in place", () => {
   assert.equal(now.overlay.overlay_id, "O_00000007");
   assert.equal(now.overlay.lang, "hi");
   assert.equal(q.items.size, 1);
+});
+
+test("the model line replaces the quick line on screen, keeping its slot", () => {
+  const q = new OverlayQueue({ minShowMs: 0 });
+  const quick = card("O_0001", 1000, { content: { headline: "Quick" } });
+  q.put(quick);
+  q.tick(1000, 0);
+  assert.equal(q.showing("lower").overlay.content.headline, "Quick");
+  q.replaceForInsight({ ...quick, content: { headline: "Model" } }); // same overlay id, new text
+  const now = q.showing("lower");
+  assert.equal(now.overlay.content.headline, "Model");
+  assert.equal(now.shownAt, 0, "still the same card: no second slide-in, no extra screen time");
+});
+
+test("a line that arrives after its slot is marked missed, so the list can say so", () => {
+  const q = new OverlayQueue({ minShowMs: 0 });
+  q.put(card("O_0002", 1000));
+  assert.equal(q.missedInsight("I_0002"), false);
+  q.tick(20_000, 0);
+  assert.equal(q.missedInsight("I_0002"), true);
+});
+
+test("the suggested delay leaves the model 12 s of real time, and never less than 30 s", () => {
+  assert.equal(suggestDelay(1), 30);
+  assert.equal(suggestDelay(10), 120);
+  assert.equal(suggestDelay(20), 240);
+  assert.equal(suggestDelay(0.5), 30);
+  assert.equal(suggestDelay(100), 600, "capped at the core's limit");
+});
+
+test("pitch drawings have their own slot, beside the cards", () => {
+  const q = new OverlayQueue({ minShowMs: 0 });
+  q.put(card("O_0003", 1000));
+  q.put(card("O_0004", 1000, { type: "shape_map", style: "pitch_overlay" }));
+  q.tick(1000, 0);
+  assert.equal(q.showing("lower").overlay.overlay_id, "O_0003");
+  assert.equal(q.showing("pitch").overlay.overlay_id, "O_0004");
 });

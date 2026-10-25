@@ -1,0 +1,36 @@
+{
+  "overlay_id": "O_90000007",
+  "match_id": "SYN-2026-0001",
+  "insight_id": "I_0031",
+  "op": "show",
+  "type": "shape_map",
+  "t_start_ms": 3900000,
+  "duration_ms": 10000,
+  "style": "pitch_overlay",
+  "lang": "en",
+  "persona": "casual",
+  "focus": { "team_id": "T_HOM" },
+  "content": {
+    "headline": "Northgate FC average positions, minutes 55 to 65",
+    "team_id": "T_HOM",
+    "formation": "4-3-3",
+    "positions": [
+      { "player_id": "P_HOM_01", "x": 6.2, "y": 34.0 },
+      { "player_id": "P_HOM_02", "x": 38.5, "y": 61.0 },
+      { "player_id": "P_HOM_04", "x": 31.0, "y": 42.5 },
+      { "player_id": "P_HOM_05", "x": 30.4, "y": 25.1 },
+      { "player_id": "P_HOM_03", "x": 37.9, "y": 7.6 },
+      { "player_id": "P_HOM_06", "x": 47.2, "y": 34.8 },
+      { "player_id": "P_HOM_08", "x": 58.0, "y": 47.3 },
+      { "player_id": "P_HOM_10", "x": 60.1, "y": 21.9 },
+      { "player_id": "P_HOM_07", "x": 77.5, "y": 58.2 },
+      { "player_id": "P_HOM_09", "x": 84.0, "y": 33.1 },
+      { "player_id": "P_HOM_11", "x": 76.9, "y": 9.4 }
+    ]
+  },
+  "basis": "event_estimate",
+  "importance": 0.58,
+  "verified": true,
+  "template_fallback": false,
+  "generated_at": "2026-10-18T16:05:00.000Z"
+}

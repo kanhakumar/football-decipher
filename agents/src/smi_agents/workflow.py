@@ -119,6 +119,14 @@ async def _ask(model: Model, task: Task, payload: dict[str, Any]) -> tuple[Line 
         return None, f"unparseable_reply:{type(e).__name__}"
 
 
+async def _gather_for(tools: Tools, req: NarrationRequest) -> FactSheet:
+    sheet = await gather(tools, req.insight_id)
+    if req.match_id and sheet.insight.match_id != req.match_id:
+        found = sheet.insight.match_id
+        raise StaleRequest(f"{req.insight_id} is from {found}, not {req.match_id}")
+    return sheet
+
+
 class Gather(Executor):
     def __init__(self, tools: Tools) -> None:
         super().__init__(id="gather")
@@ -126,11 +134,7 @@ class Gather(Executor):
 
     @handler
     async def run(self, req: NarrationRequest, ctx: WorkflowContext[Job]) -> None:
-        sheet = await gather(self.tools, req.insight_id)
-        if req.match_id and sheet.insight.match_id != req.match_id:
-            found = sheet.insight.match_id
-            raise StaleRequest(f"{req.insight_id} is from {found}, not {req.match_id}")
-        await ctx.send_message(Job(req, sheet))
+        await ctx.send_message(Job(req, await _gather_for(self.tools, req)))
 
 
 class Explain(Executor):
@@ -336,3 +340,11 @@ class Narrator:
                 raise RuntimeError(f"narration of {req.insight_id} produced no output")
             await self.cache.put(outputs[-1])
             return outputs[-1]
+
+    async def quick(self, req: NarrationRequest) -> Narration:
+        """The template line at once, no model (D4): the card a viewer shows while the model works.
+        It passes the same Verifier; it is not a fallback, so `template_fallback` stays false."""
+        sheet = await _gather_for(self.tools, req)
+        line = templates.render(sheet, req, req.lang)
+        verdict = verify(line, sheet, req.lang)
+        return Narration(req, sheet, line, verdict.ok, False, [], "template")

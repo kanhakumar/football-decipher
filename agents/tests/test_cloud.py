@@ -57,14 +57,14 @@ class FakeContainer:
 async def test_foundry_model_asks_the_deployment_for_json_with_the_system_prompt(tools):
     client = FakeChatClient()
     model = FoundryModel.from_env({"AZURE_AI_PROJECT_ENDPOINT": ENDPOINT}, client=client)
-    n = await Narrator(tools, model).narrate(NarrationRequest(insight_id="I_0008", lang="es"))
+    n = await Narrator(tools, model).narrate(NarrationRequest(insight_id="I_0012", lang="es"))
     assert n.verified and not n.template_fallback and n.model == "foundry:gpt-5-mini"
     assert [client.tasks[m[0].text] for m, _ in client.requests] == [
         "explain", "narrate", "localize"
     ]  # fmt: skip
     for messages, options in client.requests:
         assert [m.role for m in messages] == ["system", "user"]
-        assert json.loads(messages[1].text)["request"]["insight_id"] == "I_0008"
+        assert json.loads(messages[1].text)["request"]["insight_id"] == "I_0012"
         assert options["response_format"] == {"type": "json_object"}
         assert "temperature" not in options  # gpt-5 models refuse it
 
@@ -89,27 +89,27 @@ async def test_model_for_foundry_builds_the_real_client_without_calling_azure():
 
 
 async def test_a_narration_survives_the_cache_document_round_trip(tools):
-    n = await Narrator(tools, StubModel()).narrate(NarrationRequest(insight_id="I_0020", lang="hi"))
+    n = await Narrator(tools, StubModel()).narrate(NarrationRequest(insight_id="I_0025", lang="hi"))
     back = from_doc(json.loads(json.dumps(to_doc(n))))
     assert back == n
 
 
 async def test_the_in_memory_cache_serves_repeats_without_the_core(tools, core):
     cache = InMemoryCache()
-    req = NarrationRequest(insight_id="I_0008", persona="analyst")
+    req = NarrationRequest(insight_id="I_0012", persona="analyst")
     first = await Narrator(tools, StubModel(), cache).narrate(req)
     calls = len(core.requests)
     again = await Narrator(tools, StubModel(), cache).narrate(req)  # another replica, same cache
     assert again is first and len(core.requests) == calls
-    assert await cache.get(NarrationRequest(insight_id="I_0008")) is None
+    assert await cache.get(NarrationRequest(insight_id="I_0012")) is None
 
 
 async def test_the_cosmos_cache_shares_lines_across_restarts(tools, core):
     container = FakeContainer()
-    req = NarrationRequest(insight_id="I_0019", persona="club_fan", favourite_team="T_HOM")
+    req = NarrationRequest(insight_id="I_0024", persona="club_fan", favourite_team="T_HOM")
     first = await Narrator(tools, StubModel(), CosmosCache(container)).narrate(req)
     [(partition, item)] = container.items
-    assert (partition, item) == ("I_0019", item_id(req)) and len(item) == 64
+    assert (partition, item) == ("I_0024", item_id(req)) and len(item) == 64
     calls = len(core.requests)
     again = await Narrator(tools, StubModel(), CosmosCache(container)).narrate(req)
     assert again == first and len(core.requests) == calls

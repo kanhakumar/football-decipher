@@ -24,6 +24,7 @@ SCHEMA_FOR_FILE = {
     "examples.ndjson": "canonical.schema.json",
     "insight.example.json": "insight.schema.json",
     "overlay.example.json": "overlay.schema.json",
+    "overlay-shape.example.json": "overlay.schema.json",
 }
 
 Doc = dict

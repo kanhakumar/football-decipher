@@ -52,6 +52,14 @@ def _support(insight: Insight, by_type: dict[str, int]) -> set[str]:
             tokens.add(key)
         elif isinstance(value, str):
             tokens.add(f"{key}={value}")
+    # The match context (ADR-017): the score and the players on the pitch at the moment.
+    state = facts.get("ctx_game_state")
+    if state in ("leading", "level", "trailing"):
+        tokens.add(
+            {"leading": "score=lead", "level": "score=level", "trailing": "score=trail"}[state]
+        )
+    if min(facts.get("ctx_players_for", 11), facts.get("ctx_players_against", 11)) < 11:
+        tokens.add("red_card")  # "ten men" is a claim the context supports
     if "team_goals" in facts and "opponent_goals" in facts:
         tg, og = facts["team_goals"], facts["opponent_goals"]
         tokens.add("score=lead" if tg > og else "score=level" if tg == og else "score=trail")

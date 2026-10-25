@@ -35,6 +35,8 @@
     { "name": "show overlay missing t_start_ms", "file": "overlay.example.json", "action": "drop", "path": ["t_start_ms"] },
     { "name": "show overlay missing content", "file": "overlay.example.json", "action": "drop", "path": ["content"] },
     { "name": "negative duration", "file": "overlay.example.json", "action": "set", "path": ["duration_ms"], "value": -1 },
-    { "name": "bad basis", "file": "overlay.example.json", "action": "set", "path": ["basis"], "value": "guess" }
+    { "name": "bad basis", "file": "overlay.example.json", "action": "set", "path": ["basis"], "value": "guess" },
+    { "name": "shape map with 12 positions", "file": "overlay-shape.example.json", "action": "set", "path": ["content", "positions"], "value": [{"player_id":"P_HOM_01","x":50,"y":34},{"player_id":"P_HOM_02","x":50,"y":34},{"player_id":"P_HOM_03","x":50,"y":34},{"player_id":"P_HOM_04","x":50,"y":34},{"player_id":"P_HOM_05","x":50,"y":34},{"player_id":"P_HOM_06","x":50,"y":34},{"player_id":"P_HOM_07","x":50,"y":34},{"player_id":"P_HOM_08","x":50,"y":34},{"player_id":"P_HOM_09","x":50,"y":34},{"player_id":"P_HOM_10","x":50,"y":34},{"player_id":"P_HOM_11","x":50,"y":34},{"player_id":"P_HOM_12","x":50,"y":34}] },
+    { "name": "shape map position off the pitch", "file": "overlay-shape.example.json", "action": "set", "path": ["content", "positions", 0, "x"], "value": 120 }
   ]
 }

@@ -29,6 +29,7 @@
         </g>
         <g id="players"></g>
         <g id="trail"></g>
+        <g id="shape" class="shape"></g>
         <circle id="ball" r="0.9" cx="52.5" cy="34" class="ball" visibility="hidden"/>
         <g id="player-tag" class="player-tag" visibility="hidden">
           <rect x="-0.2" y="-6.2" rx="1" ry="1" height="4.2"/>
@@ -65,7 +66,12 @@
         <span class="figures" id="momentum-figures">– | –</span>
       </footer>
 
+      <div class="shape-caption" id="shape-caption" hidden></div>
       <div class="ticker" id="ticker"></div>
+      <div class="banner" id="banner" hidden role="alert">
+        <span>Lost contact with the match service. Retrying every second…</span>
+        <button type="button" id="retry">Retry now</button>
+      </div>
     </section>
 
     <section class="panel" aria-label="Controls and settings">
@@ -74,12 +80,13 @@
         <form id="start-form" class="row">
           <label>Seed <input id="seed" type="number" value="154" min="0"></label>
           <label>Speed <input id="speed" type="number" value="10" min="0.25" max="600" step="0.25"></label>
-          <label title="Video seconds the viewer runs behind the live side. Fast replays need more, so narration has real time to arrive.">Delay s <input id="delay" type="number" value="30" min="0" max="60" step="1"></label>
+          <label title="Video seconds the viewer runs behind the live side. Fast replays need more, so narration has real time to arrive.">Delay s <input id="delay" type="number" value="120" min="0" max="600" step="1"></label>
           <label class="check"><input id="tracking" type="checkbox"> Tracking</label>
-          <button type="submit">Start</button>
+          <button type="submit" id="start">Start</button>
           <button type="button" id="pause">Pause</button>
         </form>
         <p class="status" id="status">Connecting…</p>
+        <div class="chips"><span class="chip" id="core-chip">Core: connecting…</span><span class="chip" id="agents-chip">Agents: connecting…</span></div>
       </details>
 
       <div class="box">
@@ -126,7 +133,8 @@
         <h3>Latency</h3>
         <dl class="stats latency">
           <dt>Viewer delay (video)</dt><dd id="lat-delay">–</dd>
-          <dt>Narration</dt><dd id="lat-narration">–</dd>
+          <dt>Quick line</dt><dd id="lat-quick">–</dd>
+          <dt>Model line</dt><dd id="lat-narration">–</dd>
           <dt>Ready ahead of moment</dt><dd id="lat-lead">–</dd>
           <dt>Last card on screen</dt><dd id="lat-ontime">–</dd>
         </dl>
@@ -134,10 +142,12 @@
 
       <div class="box moments-box">
         <h3>Moments <span class="count" id="moment-count"></span></h3>
+        <div class="filters" id="moment-filters" aria-label="Show moments"></div>
         <ol class="moments" id="moments"></ol>
       </div>
     </section>
   </main>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
   <script src="config.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>

@@ -49,9 +49,23 @@ class InsightSuite extends FunSuite:
       f"insights per match: mean $mean%.1f, min ${counts.min}, max ${counts.max}; by kind ${byKind.map((k, n) => s"${InsightKind.wire(k)} $n").mkString(", ")}"
     )
     assert(mean >= 15 && mean <= 80, s"mean $mean")
-    val expected =
-      InsightKind.values.toSet - InsightKind.PlayerSpotlight - InsightKind.TacticalShift
-    assertEquals(expected -- byKind.keySet, Set.empty[InsightKind])
+    assertEquals(InsightKind.values.toSet -- byKind.keySet, Set.empty[InsightKind])
+    // The newer moments must stay moments, not noise (ADR-017 bands).
+    def perMatch(k: InsightKind) = byKind.getOrElse(k, 0).toDouble / runs.size
+    assert(perMatch(InsightKind.PlayerSpotlight) >= 2 && perMatch(InsightKind.PlayerSpotlight) <= 6)
+    assert(perMatch(InsightKind.TacticalShift) >= 1 && perMatch(InsightKind.TacticalShift) <= 4)
+  }
+
+  test("every non-milestone insight carries its match context, consistent with the score") {
+    for (_, s) <- runs.take(20); i <- s.ranked if i.kind != InsightKind.Milestone do
+      def n(k: String) = i.facts(k).flatMap(_.asNumber).flatMap(_.toInt).get
+      val state = i.facts("ctx_game_state").flatMap(_.asString).get
+      val expected =
+        if n("ctx_score_for") > n("ctx_score_against") then "leading"
+        else if n("ctx_score_for") == n("ctx_score_against") then "level"
+        else "trailing"
+      assertEquals(state, expected, i.insightId.value)
+      assert(n("ctx_players_for") <= 11 && n("ctx_players_against") <= 11)
   }
 
   test("ranking puts goals and red cards above routine milestones") {

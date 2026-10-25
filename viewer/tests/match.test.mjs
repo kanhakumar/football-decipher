@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { InsightBook, displayClock, scoreAt, toScreen } from "../js/match.js";
+import { InsightBook, displayClock, groupOf, scoreAt, shapeDots, tierOf, toScreen } from "../js/match.js";
 
 test("away coordinates are turned into the home team's frame", () => {
   assert.deepEqual(toScreen("T_HOM", "T_HOM", 94.9, 38.3), { x: 94.9, y: 38.3 });
@@ -37,4 +37,20 @@ test("insight book: retractions and replacements withdraw the old version", () =
   assert.deepEqual(book.add({ insight_id: "I_0002", kind: "goal", supersedes: "I_0001" }), ["I_0001"]);
   assert.deepEqual(book.add({ insight_id: "I_0002", kind: "goal", status: "retracted" }), ["I_0002"]);
   assert.deepEqual(book.active(), []);
+});
+
+test("moment tiers: model from 0.5, template line from 0.35, ticker below", () => {
+  assert.equal(tierOf(0.93), "model");
+  assert.equal(tierOf(0.5), "model");
+  assert.equal(tierOf(0.45), "template");
+  assert.equal(tierOf(0.3), "ticker");
+  assert.equal(groupOf("tactical_shift"), "tactics");
+  assert.equal(groupOf("player_spotlight"), "players");
+  assert.equal(groupOf("goal"), "chances");
+});
+
+test("a shape map is drawn in the home team's frame", () => {
+  const overlay = { content: { team_id: "T_AWY", positions: [{ player_id: "P_AWY_09", x: 80, y: 10 }] } };
+  const [dot] = shapeDots(overlay, "T_HOM", { P_AWY_09: { shirt: 9 } });
+  assert.deepEqual(dot, { x: 25, y: 58, shirt: 9, home: false });
 });

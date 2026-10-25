@@ -23,8 +23,15 @@ class CorrectionSuite extends FunSuite:
     val s = Moments.run(feed :+ delete(goal.eventId))
     val original = base.ranked.find(_.kind == InsightKind.Goal).get
     assert(!kinds(s).contains(InsightKind.Goal))
-    assertEquals(s.out.last.insightId, original.insightId)
-    assertEquals(s.out.last.status, Some(InsightStatus.Retracted))
+    assert(
+      s.out.exists(i =>
+        i.insightId == original.insightId && i.status.contains(InsightStatus.Retracted)
+      )
+    )
+    // The key chance had the goal in its context (the score): it is re-issued with the new score.
+    val chanceNow = s.ranked.find(_.kind == InsightKind.KeyChance).get
+    assertEquals(chanceNow.facts("ctx_score_against").flatMap(_.asNumber).flatMap(_.toInt), Some(0))
+    assert(chanceNow.supersedes.isDefined)
   }
 
   test("changing an evidence event's outcome retracts and supersedes with new facts") {

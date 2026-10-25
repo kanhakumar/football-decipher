@@ -11,7 +11,7 @@
     "match_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
     "insight_id": { "type": "string", "pattern": "^I_[0-9]{1,6}$" },
     "op": { "enum": ["show", "retract"] },
-    "type": { "enum": ["player_tag", "speed_callout", "stat_card", "momentum_bar", "insight_card", "milestone_badge", "scoreline_update", "recap_card"] },
+    "type": { "enum": ["player_tag", "speed_callout", "stat_card", "momentum_bar", "insight_card", "milestone_badge", "scoreline_update", "recap_card", "shape_map"] },
     "t_start_ms": { "type": "integer", "minimum": 0 },
     "duration_ms": { "type": "integer", "minimum": 1000, "maximum": 30000 },
     "style": { "enum": ["lower_third", "corner_card", "full_width_banner", "pitch_overlay"] },
@@ -44,7 +44,23 @@
           }
         },
         "player_id": { "type": "string", "pattern": "^P_[A-Z0-9_]{1,24}$" },
-        "team_id": { "type": "string", "pattern": "^T_[A-Z0-9_]{1,16}$" }
+        "team_id": { "type": "string", "pattern": "^T_[A-Z0-9_]{1,16}$" },
+        "positions": {
+          "type": "array",
+          "description": "shape_map: each player's average position over the spell, in the team's own frame (attacking toward x = 105).",
+          "maxItems": 11,
+          "items": {
+            "type": "object",
+            "required": ["player_id", "x", "y"],
+            "additionalProperties": false,
+            "properties": {
+              "player_id": { "type": "string", "pattern": "^P_[A-Z0-9_]{1,24}$" },
+              "x": { "type": "number", "minimum": 0, "maximum": 105 },
+              "y": { "type": "number", "minimum": 0, "maximum": 68 }
+            }
+          }
+        },
+        "formation": { "type": "string", "pattern": "^[0-9](-[0-9]){2,4}$", "description": "shape_map: the team's lineup formation, when all 11 are on the pitch." }
       }
     },
     "evidence_event_ids": { "type": "array", "items": { "type": "string", "pattern": "^E_[0-9]{1,9}$" } },

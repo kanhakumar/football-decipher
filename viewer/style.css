@@ -191,3 +191,47 @@ button#pause { background: var(--panel-2); color: var(--text); border: 1px solid
   .grid { grid-template-columns: 1fr; }
   .lower-third p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 }
+
+/* Feedback: busy buttons, health chips, toasts, the connection banner, cards still on their way */
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+button.busy { opacity: 0.8; }
+button.busy::before {
+  content: ""; display: inline-block; width: 0.8em; height: 0.8em; margin-right: 0.45em; vertical-align: -0.1em;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { font-size: 11px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.chip.ok { color: var(--ok); border-color: #3ccf8e66; }
+.chip.bad { color: var(--bad); border-color: #ff546866; }
+.toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 10; max-width: min(360px, calc(100vw - 32px)); }
+.toast { background: var(--panel-2); border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 6px; padding: 8px 12px; font-size: 13px; animation: slide-in 0.25s ease-out; }
+.toast.ok { border-left-color: var(--ok); }
+.toast.warn { border-left-color: var(--warn); }
+.toast.bad { border-left-color: var(--bad); }
+.banner {
+  position: absolute; top: 12%; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center;
+  background: #2a1320ee; border: 1px solid var(--bad); border-radius: 8px; padding: 8px 14px; font-size: 13px;
+}
+.badge.quick { color: var(--accent); border-color: #f5c54266; }
+.lower-third.pending h2 { color: var(--muted); font-size: 1.2em; }
+.lower-third.pending .card-body { position: relative; overflow: hidden; }
+.lower-third.pending .card-body::after {
+  content: ""; position: absolute; inset: 0; animation: shimmer 1.2s linear infinite;
+  background: linear-gradient(90deg, transparent, #ffffff12, transparent);
+}
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.moments li.pending .head { color: var(--muted); font-style: italic; }
+
+/* Shape map, routine moments in the corner card, Moments filters */
+.shape circle { stroke: #fff; stroke-width: 0.3; opacity: 0.9; }
+.shape text { font-size: 2px; font-weight: 800; fill: #fff; text-anchor: middle; font-family: var(--font); }
+.shape-caption {
+  position: absolute; left: 3%; top: 13%; max-width: 55%; background: #0e1424dd; border-left: 3px solid var(--accent);
+  padding: 4px 8px; font-size: clamp(10px, 1.1cqi, 13px); border-radius: 0 4px 4px 0;
+}
+.corner-card b { display: block; font-size: 0.95em; }
+.corner-card .corner-body { display: block; font-size: 0.8em; color: #cdd6ea; margin-top: 2px; max-width: 30ch; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.filter { background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); padding: 3px 9px; font-size: 11px; font-weight: 600; border-radius: 99px; }
+.filter[aria-pressed="true"] { color: var(--text); border-color: var(--accent); }

@@ -4,6 +4,9 @@
 match:
   seed: 154            # the demo match (synthetic, deterministic)
   min_importance: 0.6  # moment-path insights (D4)
+  # Plus the top insight of each interpretive kind below the cut (ADR-017), so every kind the viewer
+  # narrates with the model is judged.
+  also_kinds: [pressure_shift, tactical_shift, player_spotlight]
 
 thresholds:
   number_match_rate: {min: 1.0}    # every number in every line is a tool answer (rule 3)

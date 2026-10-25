@@ -47,10 +47,13 @@ object Moments:
 
   // ---- facts and publishing ----
 
-  /** Window bounds first (in the detector's order), then everything `derive` computes. */
+  /** Window bounds first (in the detector's order), then everything `derive` computes, then the
+    * match context.
+    */
   def factsFor(d: Detector, h: Header, evidence: Vector[Event]): JsonObject =
     val windows = d.windowKeys.map(k => k -> Json.fromDoubleOrNull(h.windows(k)))
-    JsonObject.fromIterable(windows ++ d.derive(h, evidence).toList)
+    val context = if d.context then Context.facts(h, evidence).toList else Nil
+    JsonObject.fromIterable(windows ++ d.derive(h, evidence).toList ++ context)
 
   private def build(
       s: MomentState,

@@ -26,7 +26,9 @@ final case class MatchConfig(
 object MatchConfig:
   /** Up to 600x so tests and rehearsals can run a whole match in seconds. */
   val Speeds: (Double, Double) = (0.25, 600.0)
-  val Delays: (Double, Double) = (0.0, 60.0)
+
+  /** Up to 10 video minutes: fast replays need it so narration has real time (D5). */
+  val Delays: (Double, Double) = (0.0, 600.0)
 
   def validate(c: MatchConfig): Either[String, MatchConfig] =
     if c.speed < Speeds._1 || c.speed > Speeds._2 then
@@ -128,6 +130,10 @@ final case class Playback(
           Overlays.scoreline(i, recorded.overlays.size + 1, scoreAfter),
           Some(i.insightId)
         )
+      case (InsightKind.TacticalShift, false, None) =>
+        Overlays
+          .shape(i, recorded.overlays.size + 1, moments.engine)
+          .fold(recorded)(o => recorded.publish(o, Some(i.insightId)))
       case (_, true, Some(id)) => recorded.publish(Overlays.retract(id, i), None)
       case _                   => recorded
 
@@ -192,6 +198,12 @@ final class Hub(
               s"match ${next.generation} started: seed ${cfg.seed}, speed ${cfg.speed}x, " +
                 s"delay ${cfg.delayS} s, tracking ${cfg.tracking}, ${feed.size} envelopes" +
                 bus.fold("")(b => s" via the ${b.name} bus (run $runId)")
+            )
+            _ <- IO.whenA(cfg.delayS / cfg.speed < Hub.MinNarrationS)(
+              log.info(
+                f"warning: delay ${cfg.delayS} s at ${cfg.speed}x leaves narration " +
+                  f"${cfg.delayS / cfg.speed}%.1f s of real time; model lines will arrive late"
+              )
             )
           yield Right(next)
         }
@@ -323,6 +335,9 @@ final class Hub(
     write.handleErrorWith(e => log.error(s"saving to the ${store.name} store failed", e)).start.void
 
 object Hub:
+  /** Real seconds of viewer delay below which model narration usually misses its moment. */
+  val MinNarrationS = 8.0
+
   def resource(
       log: Log = Log.silent,
       bus: Option[MatchBus] = None,

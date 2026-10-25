@@ -18,7 +18,7 @@ async def test_follow_narrates_moments_and_retracts_withdrawn_ones(http, tools, 
     goal = next(
         json.loads(line[5:])
         for line in stream["body"].splitlines()
-        if line.startswith("data:") and '"I_0008"' in line
+        if line.startswith("data:") and '"I_0012"' in line
     )
     retraction = {**goal, "status": "retracted"}  # as if the goal were ruled out later
     stream["body"] += f"event: insight\nid: 99\ndata: {json.dumps(retraction)}\n\n"
@@ -41,11 +41,11 @@ async def test_follow_narrates_moments_and_retracts_withdrawn_ones(http, tools, 
     assert count == len(shows) == len(important) > 0
     assert all(o["verified"] for o in shows)
     assert [o["overlay_id"] for o in shows] == [f"O_{n:08d}" for n in range(1, count + 1)]
-    goal_overlay = next(o for o in shows if o["insight_id"] == "I_0008")
+    goal_overlay = next(o for o in shows if o["insight_id"] == "I_0012")
     assert posted[-1] == {
         **{k: posted[-1][k] for k in ("generated_at",)},
         "overlay_id": goal_overlay["overlay_id"],
         "match_id": "SYN-154",
-        "insight_id": "I_0008",
+        "insight_id": "I_0012",
         "op": "retract",
     }

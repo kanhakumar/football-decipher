@@ -21,18 +21,28 @@ object OverlayMetric:
     )
   }
 
+/** One player's average position on a shape map, in the team's own frame. */
+final case class OverlayPosition(playerId: PlayerId, x: Double, y: Double)
+object OverlayPosition:
+  given Codec.AsObject[OverlayPosition] = Wire.checked(Wire.codec[OverlayPosition]) { p =>
+    range("x", p.x, 0, 105) ++ range("y", p.y, 0, 68)
+  }
+
 final case class OverlayContent(
     headline: String,
     body: Option[String] = None,
     metrics: Option[List[OverlayMetric]] = None,
     playerId: Option[PlayerId] = None,
-    teamId: Option[TeamId] = None
+    teamId: Option[TeamId] = None,
+    positions: Option[List[OverlayPosition]] = None,
+    formation: Option[Formation] = None
 )
 object OverlayContent:
   given Codec.AsObject[OverlayContent] = Wire.checked(Wire.codec[OverlayContent]) { c =>
     range("headline.length", c.headline.length, 1, 120) ++
       opt(c.body)(b => range("body.length", b.length, 0, 400)) ++
-      opt(c.metrics)(m => size("metrics", m.size, 0, 4))
+      opt(c.metrics)(m => size("metrics", m.size, 0, 4)) ++
+      opt(c.positions)(p => size("positions", p.size, 0, 11))
   }
 
 /** Timed graphic scheduled on the viewer clock (video_ts_ms). `retract` removes an earlier one. */

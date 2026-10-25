@@ -22,7 +22,8 @@ object SchemaFiles:
   val schemaForExample: Map[String, String] = Map(
     "examples.ndjson" -> "canonical.schema.json",
     "insight.example.json" -> "insight.schema.json",
-    "overlay.example.json" -> "overlay.schema.json"
+    "overlay.example.json" -> "overlay.schema.json",
+    "overlay-shape.example.json" -> "overlay.schema.json"
   )
 
   def readString(rel: String): String = Files.readString(dir.resolve(rel))

@@ -92,6 +92,19 @@ class ApiSuite extends CatsEffectSuite:
         overlays.count(_._2.hcursor.get[String]("type").contains("scoreline_update")),
         goals
       )
+      // Every tactical shift brings a shape map of the team's average positions, valid per schema.
+      val shapes = overlays.map(_._2).filter(_.hcursor.get[String]("type").contains("shape_map"))
+      val shifts = expectedInsights.count(i =>
+        i.kind == InsightKind.TacticalShift && i.status.contains(InsightStatus.Active)
+      )
+      assert(shifts > 0)
+      assertEquals(shapes.size, shifts)
+      val overlaySchema = SchemaFiles.schema("overlay.schema.json")
+      shapes.foreach { s =>
+        assertEquals(SchemaFiles.errors(overlaySchema, s.noSpaces), Nil)
+        val n = s.hcursor.downField("content").downField("positions").values.map(_.size)
+        assert(n.exists(k => k >= 7 && k <= 11), s.noSpaces) // players with actions in the spell
+      }
       assertEquals(field(state, "status").asString, Some("finished"))
       assertEquals(field(state, "score"), Json.obj("T_HOM" -> 2.asJson, "T_AWY" -> 2.asJson))
   }

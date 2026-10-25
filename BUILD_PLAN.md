@@ -75,6 +75,11 @@ Demo seed: 154 (chosen in step 8, recorded in CLAUDE.md): away counter goal 33',
 Prompt: "Create Bicep and azd for Event Hubs, Cosmos DB (serverless), Container Apps (generator job, core, agents), Static Web Apps, Key Vault, Application Insights and managed identity, plus GitHub Actions. Move the stream to Event Hubs and persistence to Cosmos. Add OpenTelemetry tracing to Foundry. Add an eval gate: replay a recorded match, run the number-match check and Foundry evaluations, and fail the build on regression. Do not create resources until I approve the plan."
 Done when: one `azd up` brings up everything and the eval gate runs in CI.
 
+## Step 13b: Live fixes, interpreted moments, sign-in (plan, 1 day) [ ] IN PROGRESS
+From testing the deployed app: cards must always show (template line first, model line upgrades it), buttons give feedback, moments interpret the match (context facts, pressing, shape, key passes) and say why they matter, people sign in with Entra ID and servers use an API key. Then a React viewer, built separately with its own tests, replaces /viewer once its parity suite passes. Plan: phases A (cards, loaders), B (interpreted moments, ADR-017), C (sign-in and API keys), D (React viewer).
+Open for phase D: after Start the pitch stays blank for the viewer delay (delay_s / speed real seconds) and then starts at 0:00; show a kickoff countdown or pre-match screen instead.
+Done when: on Azure at 10x every moment of 0.5 or more shows a card on time, the press, shape and key-pass moments say why they matter, and the APIs refuse calls without a token or key.
+
 ## Step 14: Package (build, 4 hours)
 Prompt: "Write the README (problem, architecture diagram, the five stages, Azure services used, how to run, the adapter as path to production), an architecture doc, and a 2-minute demo script. Check the repo for any real names, logos or vendor material and remove them."
 Done when: a clean clone deploys from the README, and the demo video (under 2 minutes) is recorded and public.

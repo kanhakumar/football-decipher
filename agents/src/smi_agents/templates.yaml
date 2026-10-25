@@ -210,6 +210,152 @@ codes:
       headline: "{team} के {count:int} शॉट"
       body: "मिनट {minute} तक {team} ने {count:int} शॉट लगाए हैं।"
 
+  # ---- context: the score and the players on the pitch change what a moment means ----
+  ten_men_equalise:
+    en:
+      headline: "{player} levels it for {team}, down to ten men"
+      body: "With {ctx_players_for:int} players against {ctx_players_against:int}, {team} are level at {team_goals:int}-{opponent_goals:int} in minute {minute}. The extra man did not protect {opponent}."
+    es:
+      headline: "{player} empata para {team} con diez"
+      body: "Con {ctx_players_for:int} jugadores contra {ctx_players_against:int}, {team} iguala {team_goals:int}-{opponent_goals:int} en el minuto {minute}. Tener uno más no salvó a {opponent}."
+    hi:
+      headline: "{player} ने {team} को बराबरी दिलाई, दस खिलाड़ियों के साथ"
+      body: "{ctx_players_for:int} खिलाड़ियों के साथ, {ctx_players_against:int} के सामने, {team} ने मिनट {minute} में स्कोर {team_goals:int}-{opponent_goals:int} किया। {opponent} को एक खिलाड़ी ज़्यादा होने का फायदा नहीं मिला।"
+  late_equaliser:
+    en:
+      headline: "{player} levels it late for {team}"
+      body: "{team} are back on terms at {team_goals:int}-{opponent_goals:int} in minute {minute}, with little time left for {opponent} to answer."
+    es:
+      headline: "{player} empata al final para {team}"
+      body: "{team} iguala {team_goals:int}-{opponent_goals:int} en el minuto {minute}, con poco tiempo para que {opponent} responda."
+    hi:
+      headline: "{player} ने देर से {team} को बराबरी दिलाई"
+      body: "मिनट {minute} में {team} ने स्कोर {team_goals:int}-{opponent_goals:int} से बराबर किया, {opponent} के पास जवाब देने का कम समय है।"
+  late_lead:
+    en:
+      headline: "{player} puts {team} ahead late on"
+      body: "{team} lead {team_goals:int}-{opponent_goals:int} in minute {minute}. {opponent} now have very little time to come back."
+    es:
+      headline: "{player} adelanta a {team} al final"
+      body: "{team} gana {team_goals:int}-{opponent_goals:int} en el minuto {minute}. A {opponent} le queda muy poco tiempo."
+    hi:
+      headline: "{player} ने देर से {team} को बढ़त दिलाई"
+      body: "मिनट {minute} में {team} {team_goals:int}-{opponent_goals:int} से आगे है। {opponent} के पास वापसी का बहुत कम समय है।"
+  ten_men_take_control:
+    en:
+      headline: "{team} take over with ten men"
+      body: "With {ctx_players_for:int} against {ctx_players_against:int}, {team}'s share of attacking actions rose from {before_share:pct}% to {after_share:pct}%."
+    es:
+      headline: "{team} manda con diez"
+      body: "Con {ctx_players_for:int} contra {ctx_players_against:int}, la cuota de acciones de ataque de {team} pasó del {before_share:pct}% al {after_share:pct}%."
+    hi:
+      headline: "दस खिलाड़ियों के साथ {team} का दबदबा"
+      body: "{ctx_players_for:int} बनाम {ctx_players_against:int} खिलाड़ियों के साथ भी {team} के आक्रमण का हिस्सा {before_share:pct}% से बढ़कर {after_share:pct}% हो गया।"
+  pressure_without_reward:
+    en:
+      headline: "{team} dominate but cannot find a shot"
+      body: "{team}'s share of attacking actions rose from {before_share:pct}% to {after_share:pct}%, yet they took {after_shots:int} shots in the spell."
+    es:
+      headline: "{team} domina pero no remata"
+      body: "La cuota de acciones de ataque de {team} pasó del {before_share:pct}% al {after_share:pct}%, pero remató {after_shots:int} veces en la fase."
+    hi:
+      headline: "{team} हावी है, पर शॉट नहीं"
+      body: "{team} के आक्रमण का हिस्सा {before_share:pct}% से बढ़कर {after_share:pct}% हुआ, फिर भी इस दौर में {after_shots:int} शॉट लगे।"
+  press_while_chasing:
+    en:
+      headline: "{team} press harder to get back into it"
+      body: "At {ctx_score_for:int}-{ctx_score_against:int}, {team} pressed at {after_rate:2} per {opponent} pass from minute {before_to_minute:int} to {after_to_minute:int}, up from {before_rate:2}."
+    es:
+      headline: "{team} aprieta para volver al partido"
+      body: "Con {ctx_score_for:int}-{ctx_score_against:int}, {team} presionó {after_rate:2} veces por pase de {opponent} del minuto {before_to_minute:int} al {after_to_minute:int}, antes {before_rate:2}."
+    hi:
+      headline: "वापसी के लिए {team} ने दबाव बढ़ाया"
+      body: "स्कोर {ctx_score_for:int}-{ctx_score_against:int} पर, मिनट {before_to_minute:int} से {after_to_minute:int} तक {team} ने {opponent} के हर पास पर {after_rate:2} दबाव बनाया, पहले {before_rate:2}।"
+  leaders_keep_the_ball:
+    en:
+      headline: "{team} keep the ball to protect their lead"
+      body: "At {ctx_score_for:int}-{ctx_score_against:int}, {team}'s share of passes rose from {before_team_pass_share:pct}% to {after_team_pass_share:pct}%, so {opponent} see little of it."
+    es:
+      headline: "{team} guarda el balón para cuidar la ventaja"
+      body: "Con {ctx_score_for:int}-{ctx_score_against:int}, la cuota de pases de {team} pasó del {before_team_pass_share:pct}% al {after_team_pass_share:pct}%, y {opponent} apenas lo toca."
+    hi:
+      headline: "बढ़त बचाने के लिए {team} ने गेंद अपने पास रखी"
+      body: "स्कोर {ctx_score_for:int}-{ctx_score_against:int} पर {team} का पास हिस्सा {before_team_pass_share:pct}% से बढ़कर {after_team_pass_share:pct}% हुआ, {opponent} को गेंद कम मिल रही है।"
+
+  # ---- player_spotlight: the pass that opened them up ----
+  pass_creates_big_chance:
+    en:
+      headline: "{player}'s pass opens up {opponent}"
+      body: "{player} moved the ball {metres_gained:int} m closer to goal and {player2} got a shot worth {shot_xg:2} xG."
+    es:
+      headline: "El pase de {player} abre a {opponent}"
+      body: "{player} acercó el balón {metres_gained:int} m a la portería y {player2} remató con {shot_xg:2} xG."
+    hi:
+      headline: "{player} के पास ने {opponent} की रक्षा खोल दी"
+      body: "{player} ने गेंद गोल की ओर {metres_gained:int} मीटर आगे बढ़ाई और {player2} को {shot_xg:2} xG का शॉट मिला।"
+  creator_in_form:
+    en:
+      headline: "{player} keeps driving {team} forward"
+      body: "{player} has now made {passer_progressive_passes:int} passes that move {team} upfield. This one gained {metres_gained:int} m and set up a shot for {player2}."
+    es:
+      headline: "{player} sigue empujando a {team}"
+      body: "{player} ya suma {passer_progressive_passes:int} pases progresivos. Este ganó {metres_gained:int} m y dejó un remate a {player2}."
+    hi:
+      headline: "{player} लगातार {team} को आगे ले जा रहे हैं"
+      body: "{player} अब तक {passer_progressive_passes:int} आगे बढ़ाने वाले पास दे चुके हैं। इस पास से {metres_gained:int} मीटर मिले और {player2} को शॉट मिला।"
+  line_breaking_pass:
+    en:
+      headline: "{player} cuts through {opponent}"
+      body: "{player}'s pass gained {metres_gained:int} m, a pass of {pass_difficulty:pct}% difficulty, and {player2} had a shot."
+    es:
+      headline: "{player} rompe líneas de {opponent}"
+      body: "El pase de {player} ganó {metres_gained:int} m, con una dificultad del {pass_difficulty:pct}%, y {player2} pudo rematar."
+    hi:
+      headline: "{player} ने {opponent} की लाइन तोड़ी"
+      body: "{player} के पास से {metres_gained:int} मीटर मिले, कठिनाई {pass_difficulty:pct}%, और {player2} ने शॉट लगाया।"
+
+  # ---- tactical_shift: where a team defends (event-based estimate) ----
+  sits_deep_to_protect_lead:
+    en:
+      headline: "{team} drop deeper to protect their lead"
+      body: "At {ctx_score_for:int}-{ctx_score_against:int}, {team} now defend about {after_line_m:int} m up the pitch, down from {before_line_m:int} m."
+    es:
+      headline: "{team} se repliega para cuidar la ventaja"
+      body: "Con {ctx_score_for:int}-{ctx_score_against:int}, {team} defiende ahora a unos {after_line_m:int} m de su portería, antes {before_line_m:int} m."
+    hi:
+      headline: "बढ़त बचाने के लिए {team} पीछे हटी"
+      body: "स्कोर {ctx_score_for:int}-{ctx_score_against:int} पर {team} अब अपने छोर से लगभग {after_line_m:int} मीटर पर रक्षा कर रही है, पहले {before_line_m:int} मीटर।"
+  team_sits_deeper:
+    en:
+      headline: "{team} drop deeper"
+      body: "{team} now defend about {after_line_m:int} m up the pitch, down from {before_line_m:int} m, inviting {opponent} on."
+    es:
+      headline: "{team} se echa atrás"
+      body: "{team} defiende ahora a unos {after_line_m:int} m de su portería, antes {before_line_m:int} m, y cede terreno a {opponent}."
+    hi:
+      headline: "{team} पीछे हटी"
+      body: "{team} अब अपने छोर से लगभग {after_line_m:int} मीटर पर रक्षा कर रही है, पहले {before_line_m:int} मीटर, और {opponent} को आगे आने दे रही है।"
+  pushes_up_to_chase:
+    en:
+      headline: "{team} push up to chase the game"
+      body: "At {ctx_score_for:int}-{ctx_score_against:int}, {team} now defend about {after_line_m:int} m up the pitch, up from {before_line_m:int} m, risking space behind."
+    es:
+      headline: "{team} sube líneas para remontar"
+      body: "Con {ctx_score_for:int}-{ctx_score_against:int}, {team} defiende ahora a unos {after_line_m:int} m de su portería, antes {before_line_m:int} m, y deja espacio a la espalda."
+    hi:
+      headline: "मैच में वापसी के लिए {team} आगे बढ़ी"
+      body: "स्कोर {ctx_score_for:int}-{ctx_score_against:int} पर {team} अब अपने छोर से लगभग {after_line_m:int} मीटर पर रक्षा कर रही है, पहले {before_line_m:int} मीटर, लंबी गेंद के लिए जगह छोड़ते हुए।"
+  team_pushes_higher:
+    en:
+      headline: "{team} push their line up"
+      body: "{team} now defend about {after_line_m:int} m up the pitch, up from {before_line_m:int} m, squeezing {opponent} back."
+    es:
+      headline: "{team} sube su línea"
+      body: "{team} defiende ahora a unos {after_line_m:int} m de su portería, antes {before_line_m:int} m, y encierra a {opponent}."
+    hi:
+      headline: "{team} ने अपनी लाइन आगे की"
+      body: "{team} अब अपने छोर से लगभग {after_line_m:int} मीटर पर रक्षा कर रही है, पहले {before_line_m:int} मीटर, और {opponent} को उनके हाफ़ में दबा रही है।"
+
 # Whether the moment is good or bad news for the insight's subject team (its first team), for the
 # club fan's framing. Codes not listed are good news for the subject.
 polarity:
@@ -220,6 +366,11 @@ polarity:
   game_turns_chaotic: neutral
   tempo_rises: neutral
   tempo_drops: neutral
+  pressure_without_reward: neutral
+  team_sits_deeper: neutral
+  team_pushes_higher: neutral
+  sits_deep_to_protect_lead: neutral
+  pushes_up_to_chase: neutral
 
 # Persona framing around the code's line.
 personas:
@@ -269,3 +420,11 @@ labels:
   spell_possession_share: { en: "Possession", es: "Posesión", hi: "कब्ज़ा" }
   spell_pass_completion: { en: "Pass completion", es: "Pases completados", hi: "सफल पास" }
   spell_ppda: { en: "PPDA", es: "PPDA", hi: "PPDA" }
+  metres_gained: { en: "Metres gained", es: "Metros ganados", hi: "मीटर आगे" }
+  pass_difficulty: { en: "Pass difficulty", es: "Dificultad del pase", hi: "पास की कठिनाई" }
+  pass_length_m: { en: "Pass length (m)", es: "Longitud del pase (m)", hi: "पास की लंबाई (मी)" }
+  shot_xg: { en: "Shot xG", es: "xG del remate", hi: "शॉट xG" }
+  passer_progressive_passes: { en: "Progressive passes", es: "Pases progresivos", hi: "आगे बढ़ाने वाले पास" }
+  before_line_m: { en: "Line before (m)", es: "Línea antes (m)", hi: "पहले लाइन (मी)" }
+  after_line_m: { en: "Line now (m)", es: "Línea ahora (m)", hi: "अब लाइन (मी)" }
+  line_change_m: { en: "Line moved (m)", es: "Cambio de línea (m)", hi: "लाइन बदलाव (मी)" }

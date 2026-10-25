@@ -36,7 +36,7 @@ paths:
               properties:
                 seed: { type: integer, format: int64, default: 154 }
                 speed: { type: number, minimum: 0.25, maximum: 600, default: 1 }
-                delay_s: { type: number, minimum: 0, maximum: 60, default: 10 }
+                delay_s: { type: number, minimum: 0, maximum: 600, default: 10 }
                 tracking: { type: boolean, default: false, description: Add 5 Hz tracking frames (capability level 1) }
       responses:
         "200": { $ref: "#/components/responses/MatchState" }

@@ -139,7 +139,7 @@ object OverlayOp extends WireEnum[OverlayOp]("overlay.op"):
 
 enum OverlayType:
   case PlayerTag, SpeedCallout, StatCard, MomentumBar, InsightCard, MilestoneBadge,
-    ScorelineUpdate, RecapCard
+    ScorelineUpdate, RecapCard, ShapeMap
 object OverlayType extends WireEnum[OverlayType]("overlay.type"):
   def all = values
 

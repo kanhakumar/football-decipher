@@ -37,6 +37,9 @@ trait Detector:
   def kind: InsightKind
   def windowKeys: List[String] = Nil
 
+  /** Whether the insight carries the match context (score and players on the pitch, `Context`). */
+  def context: Boolean = true
+
   /** Event-triggered detection, run for each new event. */
   def onEvent(@unused state: EngineState, @unused e: Event): Option[Candidate] = None
 
@@ -94,5 +97,14 @@ object F:
   def isGoal(e: Event): Boolean = e.`type` == EventType.Shot && e.outcome.contains(Outcome.Goal)
 
   def card(e: Event): Option[Card] = e.details.collect { case f: FoulDetails => f.card }
+
+  def isRed(e: Event): Boolean = card(e).contains(Card.Red)
+
+  def inMatchOrder(es: Vector[Event]): Vector[Event] =
+    es.distinct.sortBy(x => (x.period, x.periodClockS, x.eventId.value))
+
+  /** Evidence plus the goals and red cards up to `at`, so the context can be re-derived. */
+  def withContext(state: EngineState, at: Event, evidence: Vector[Event]): Vector[Event] =
+    inMatchOrder(evidence ++ upTo(state, at).filter(x => isGoal(x) || isRed(x)))
 
   def opponentOf(state: EngineState, team: TeamId): TeamId = state.opponent(team).get

@@ -16,7 +16,8 @@ class ModelGoldenSuite extends FunSuite:
   private val modelForExample: Map[String, Model] = Map(
     "examples.ndjson" -> model[Envelope],
     "insight.example.json" -> model[Insight],
-    "overlay.example.json" -> model[Overlay]
+    "overlay.example.json" -> model[Overlay],
+    "overlay-shape.example.json" -> model[Overlay]
   )
 
   test("every file in /schema/examples has a model") {

@@ -72,7 +72,7 @@ def tools(mcp) -> McpTools:
 @pytest.fixture
 async def sheets(tools):
     """FactSheets for the demo match's key insights, by name."""
-    ids = {"goal": "I_0008", "equaliser": "I_0022", "red": "I_0020", "press": "I_0019"}
+    ids = {"goal": "I_0012", "equaliser": "I_0027", "red": "I_0025", "press": "I_0024"}
     return {name: await gather(tools, iid) for name, iid in ids.items()}
 
 

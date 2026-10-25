@@ -43,6 +43,7 @@ def _values(sheet: FactSheet, req: NarrationRequest | None, lang: Lang) -> dict[
         "team": names.get(sheet.subject_team, sheet.subject_team),
         "opponent": names.get(sheet.other_team or "", ""),
         "player": names.get(players[0], "") if players else "",
+        "player2": names.get(players[1], "") if len(players) > 1 else "",
         "minute": sheet.minute,
         "basis": table()["basis"][sheet.insight.basis.value][lang],
     }
@@ -78,7 +79,7 @@ def _metric(sheet: FactSheet, name: str, lang: Lang) -> LineMetric | None:
     unit = next((m.unit for m in sheet.metrics if f"spell_{m.name}" == name), None)
     if unit == "%":  # the core already reports it in percent
         return LineMetric(label=label, value=round(value, 1), unit="%")
-    if "share" in name and 0 <= value <= 1:  # a fraction from the insight's facts
+    if ("share" in name or name == "pass_difficulty") and 0 <= value <= 1:  # a fraction
         return LineMetric(label=label, value=round(value * 100, 1), unit="%")
     if name.endswith("xg") or "rate" in name:
         return LineMetric(label=label, value=round(value, 2))
@@ -89,8 +90,12 @@ def _metric(sheet: FactSheet, name: str, lang: Lang) -> LineMetric | None:
 
 def metrics(sheet: FactSheet, req: NarrationRequest, lang: Lang) -> list[LineMetric]:
     """Metric cards: the reason's params first, then other facts, then spell metrics."""
-    params = [k for k in sheet.insight.why_it_matters.params if k not in _NOT_METRICS]
-    others = [k for k in sheet.insight.facts if k not in _NOT_METRICS and k not in params]
+
+    def shown(k: str) -> bool:  # the match context (ctx_*) is said in words, not as a card
+        return k not in _NOT_METRICS and not k.startswith("ctx_")
+
+    params = [k for k in sheet.insight.why_it_matters.params if shown(k)]
+    others = [k for k in sheet.insight.facts if shown(k) and k not in params]
     spell = [k for k in sheet.numbers if k.startswith("spell_")]
     order = list(dict.fromkeys(params + others + spell))
     if req.metric_focus:

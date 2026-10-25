@@ -216,7 +216,7 @@ _CLAIMS: dict[str, tuple[dict[Lang, list[str]], set[str]]] = {
             "es": [r"\bparad[ao]\b", r"\batajad", r"\bportero\b"],
             "hi": [r"बचा", r"गोलकीपर"],
         },
-        {"outcome=saved", "big_chance_saved", "goalkeeper"},
+        {"outcome=saved", "shot_outcome=saved", "big_chance_saved", "goalkeeper"},
     ),
     "result": (
         {

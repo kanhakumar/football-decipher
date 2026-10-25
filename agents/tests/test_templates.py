@@ -15,6 +15,11 @@ REASON_CODES = {
     "momentum_swings_to_team", "high_press_spell", "pressing_raises_chance_quality",
     "game_turns_chaotic", "team_takes_control", "tempo_rises", "tempo_drops",
     "player_pass_milestone", "brace", "hat_trick", "team_shot_milestone",
+    # Context-aware codes and the newer detectors (ADR-017).
+    "ten_men_equalise", "late_equaliser", "late_lead", "ten_men_take_control",
+    "pressure_without_reward", "press_while_chasing", "leaders_keep_the_ball",
+    "pass_creates_big_chance", "creator_in_form", "line_breaking_pass",
+    "sits_deep_to_protect_lead", "team_sits_deeper", "pushes_up_to_chase", "team_pushes_higher",
 }  # fmt: skip
 
 PERSONAS = [

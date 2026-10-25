@@ -8,6 +8,38 @@ export function toScreen(teamId, homeId, x, y) {
   return teamId === homeId ? { x, y } : { x: PITCH.length - x, y: PITCH.width - y };
 }
 
+/** Moment tiers (ADR-017): the model narrates the big and the interpretive moments, the template
+ * line alone covers the routine ones as a corner card, and the rest only reach the ticker. */
+export const TIERS = { model: 0.5, template: 0.35 };
+
+export function tierOf(importance) {
+  if (importance >= TIERS.model) return "model";
+  if (importance >= TIERS.template) return "template";
+  return "ticker";
+}
+
+/** Filter groups for the Moments list. */
+export const GROUPS = {
+  chances: ["goal", "red_card", "key_chance"],
+  flow: ["pressure_shift", "momentum_swing", "control_vs_chaos", "rhythm_change"],
+  tactics: ["tactical_shift"],
+  players: ["player_spotlight", "milestone"],
+};
+
+export function groupOf(kind) {
+  return Object.keys(GROUPS).find((g) => GROUPS[g].includes(kind)) ?? "flow";
+}
+
+/** A shape map's average positions on screen (the home team's frame), with shirt numbers. */
+export function shapeDots(overlay, homeId, players) {
+  const team = overlay.content.team_id;
+  return (overlay.content.positions ?? []).map((p) => ({
+    ...toScreen(team, homeId, p.x, p.y),
+    shirt: players[p.player_id]?.shirt ?? "",
+    home: team === homeId,
+  }));
+}
+
 /** The score at video time `ts`: from the latest active goal insight at or before it. */
 export function scoreAt(goals, ts, teamIds) {
   const score = Object.fromEntries(teamIds.map((t) => [t, 0]));

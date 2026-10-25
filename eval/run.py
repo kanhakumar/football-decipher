@@ -56,6 +56,16 @@ class RecordingTools:
         return answer
 
 
+def select(insights: list[dict[str, Any]], match: dict[str, Any]) -> list[dict[str, Any]]:
+    """Moment-path insights, plus the most important insight of each kind in `also_kinds`."""
+    chosen = [i for i in insights if i["importance"] >= match["min_importance"]]
+    for kind in match.get("also_kinds", []):
+        of_kind = [i for i in insights if i["kind"] == kind]
+        if of_kind and not any(i["kind"] == kind for i in chosen):
+            chosen.append(max(of_kind, key=lambda i: i["importance"]))
+    return chosen
+
+
 def usable(name: str, answer: dict[str, Any]) -> list[Any]:
     """The parts of a tool answer a line may quote: insight facts, evidence count and minutes,
     and metric values. Not shirt numbers, pitch coordinates or seconds."""
@@ -173,7 +183,7 @@ async def run(args: argparse.Namespace, config: dict[str, Any]) -> dict[str, Any
         async with Client(build_server(http)) as client:
             tools = RecordingTools(McpTools(client))
             listed = await tools.call("list_insights", {"min_importance": 0.0})
-            moments = [i for i in listed["insights"] if i["importance"] >= match["min_importance"]]
+            moments = select(listed["insights"], match)
             narrator = Narrator(tools, model)
             number = 0
             for insight in moments:

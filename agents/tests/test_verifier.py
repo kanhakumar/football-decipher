@@ -115,14 +115,14 @@ async def test_length_limits(sheets):
 
 
 async def test_the_headline_must_name_the_moments_team(tools):
-    # Seen in the first online eval: Northgate's momentum swing (I_0007) credited to Eastmere.
+    # Seen in the first online eval: Northgate's momentum swing (I_0011) credited to Eastmere.
     from smi_agents.facts import gather
 
-    swing = await gather(tools, "I_0007")
+    swing = await gather(tools, "I_0011")
     wrong = Line(headline="Eastmere Rovers take 82% of the actions", body="")
     assert reasons(wrong, swing) == ["subject_not_in_headline"]
     right = Line(headline="Momentum swings to Northgate FC", body="82% of the actions now.")
     assert reasons(right, swing) == []
     # Neutral moments (a tempo change) need no team in the headline.
-    tempo = await gather(tools, "I_0003")
+    tempo = await gather(tools, "I_0007")
     assert reasons(Line(headline="The tempo picks up"), tempo) == []

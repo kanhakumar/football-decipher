@@ -38,8 +38,22 @@ export class ViewerClock {
   }
 }
 
+/** Real seconds the model gets per moment, and the smallest delay worth suggesting. */
+export const NARRATION_BUDGET_S = 12;
+export const MIN_DELAY_S = 30;
+export const MAX_DELAY_S = 600; // the core's limit
+
+/** The viewer delay (video seconds) that leaves the model NARRATION_BUDGET_S of real time. */
+export function suggestDelay(speed) {
+  return Math.min(MAX_DELAY_S, Math.max(MIN_DELAY_S, Math.ceil(speed * NARRATION_BUDGET_S)));
+}
+
+/** Screen slots: the lower third, the corner card and drawings on the pitch. */
+export const SLOTS = ["lower", "corner", "pitch"];
+
 /** Which screen slot an overlay occupies. */
 export function slotOf(overlay) {
+  if (overlay.style === "pitch_overlay") return "pitch";
   if (overlay.type === "scoreline_update" || overlay.style === "corner_card") return "corner";
   return "lower";
 }
@@ -104,6 +118,14 @@ export class OverlayQueue {
     return out;
   }
 
+  /** True if the moment's card never made it on screen because its slot had passed. */
+  missedInsight(insightId) {
+    for (const item of this.items.values()) {
+      if (item.overlay.insight_id === insightId && item.state === "missed") return true;
+    }
+    return false;
+  }
+
   showing(slot) {
     for (const item of this.items.values()) {
       if (item.slot === slot && item.state === "showing") return item;
@@ -114,7 +136,7 @@ export class OverlayQueue {
   /** Advances to video time `ts`; returns what changed. */
   tick(ts, wallMs) {
     const changes = [];
-    for (const slot of ["lower", "corner"]) {
+    for (const slot of SLOTS) {
       const current = this.showing(slot);
       if (current) {
         const o = current.overlay;

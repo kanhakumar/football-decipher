@@ -1,6 +1,7 @@
 """The agent service's HTTP API: on-demand narration for viewers (D3, D4).
 
   POST /api/narrate  NarrationRequest JSON -> {"overlay": ..., "narration": {...}}
+                     ("mode": "template" returns the verified template line at once, no model)
   GET  /health
 
 A viewer asks for each moment in its own persona and language; identical requests share one
@@ -53,12 +54,16 @@ def create_app(narrator: Narrator, origins: list[str] | None = None) -> Starlett
 
     async def narrate(request: Request) -> JSONResponse:
         try:
-            req = NarrationRequest.model_validate(await request.json())
+            raw = await request.json()
+            mode = raw.pop("mode", "model") if isinstance(raw, dict) else "model"
+            if mode not in ("model", "template"):
+                raise ValueError(f"mode must be model or template, not {mode!r}")
+            req = NarrationRequest.model_validate(raw)
         except (ValueError, ValidationError) as e:
             return JSONResponse({"error": f"invalid request: {e}"}, status_code=400)
         started = time.perf_counter()
         try:
-            n = await narrator.narrate(req)
+            n = await (narrator.quick(req) if mode == "template" else narrator.narrate(req))
         except Exception as e:  # tool failures may arrive wrapped in task-group exception groups
             error = _tool_error(e)
             if error is None:
@@ -69,11 +74,12 @@ def create_app(narrator: Narrator, origins: list[str] | None = None) -> Starlett
                 status = 404 if "answered 404" in str(error) else 502
             return JSONResponse({"error": str(error)}, status_code=status)
         latency_ms = round((time.perf_counter() - started) * 1000, 1)
-        key = tuple(req.model_dump().values())
+        key = tuple(req.model_dump().values())  # the quick and the model line share one overlay id
         oid = ids.setdefault(key, overlay.overlay_id(next(numbers)))
         body: dict[str, Any] = {
             "overlay": overlay.show(n, oid),
             "narration": {
+                "source": mode,
                 "verified": n.verified,
                 "template_fallback": n.template_fallback,
                 "model": n.model,

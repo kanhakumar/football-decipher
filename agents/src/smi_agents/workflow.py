@@ -47,6 +47,7 @@ class Attempt:
     attempt: int
     ok: bool
     reasons: list[str]
+    rejected: str | None = None  # the rejected line's words, for the eval report
 
 
 @dataclass
@@ -91,6 +92,10 @@ class Narration:
     model: str
 
 
+# Facts a plain persona's model is not shown, whatever their value.
+_TECHNICAL_FACT = re.compile(r"xg|ppda|rate|share|difficulty|height|tilt")
+
+
 def _parse_line(reply: str) -> Line:
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", reply.strip())
     return Line.model_validate(json.loads(text))
@@ -106,10 +111,37 @@ def _payload(job: Job, **extra: Any) -> dict[str, Any]:
             "opponent": sheet.roster.get(sheet.other_team or "", None),
             "players": players,
         },
-        "sheet": sheet.model_dump(mode="json"),
+        "sheet": _sheet_for(job),
         "request": job.request.model_dump(mode="json"),
         **extra,
     }
+
+
+def _sheet_for(job: Job) -> dict[str, Any]:
+    """The fact sheet as the model sees it. A plain persona's model (ADR-021) sees only whole,
+    non-technical numbers, so it cannot write xG or decimals; the Verifier still checks against
+    the full sheet."""
+    dumped = job.sheet.model_dump(mode="json")
+    if not templates.is_plain(job.request.persona):
+        return dumped
+
+    def simple(key: str, value: Any) -> bool:
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return True  # words (game state, how the ball was won) stay
+        return value == int(value) and not _TECHNICAL_FACT.search(key)
+
+    dumped["numbers"] = {k: v for k, v in dumped["numbers"].items() if simple(k, v)}
+    facts = dumped["insight"]["facts"]
+    dumped["insight"]["facts"] = {k: v for k, v in facts.items() if simple(k, v)}
+    dumped["metrics"] = []
+    return dumped
+
+
+def _plain_chips(line: Line | None, job: Job, lang: Lang) -> Line | None:
+    """A plain persona's chips are chosen by code: one simple count (templates.metrics)."""
+    if line is None or not templates.is_plain(job.request.persona):
+        return line
+    return line.model_copy(update={"metrics": templates.metrics(job.sheet, job.request, lang)})
 
 
 async def _ask(model: Model, task: Task, payload: dict[str, Any]) -> tuple[Line | None, str | None]:
@@ -186,7 +218,7 @@ class Narrate(Executor):
             job, explanation=job.explanation, brief=job.brief, feedback=feedback, lang="en"
         )
         line, error = await _ask(self.model, "narrate", payload)
-        return Draft(job, "narrate", attempt, line, error)
+        return Draft(job, "narrate", attempt, _plain_chips(line, job, "en"), error)
 
     @handler
     async def first(self, job: Job, ctx: WorkflowContext[Draft]) -> None:
@@ -215,6 +247,7 @@ class Localize(Executor):
         lang = job.request.lang
         payload = _payload(job, draft=job.english.model_dump(), lang=lang, feedback=feedback)
         line, error = await _ask(self.model, "localize", payload)
+        line = _plain_chips(line, job, lang)
         await ctx.send_message(Draft(job, "localize", attempt, line, error))
 
 
@@ -229,7 +262,11 @@ class Verify(Executor):
         else:
             plain = templates.is_plain(draft.job.request.persona)
             verdict = verify(draft.line, draft.job.sheet, draft.lang, plain)
-        draft.job.trail.append(Attempt(draft.stage, draft.attempt, verdict.ok, verdict.reasons))
+        words = None
+        if not verdict.ok and draft.line is not None:
+            words = " | ".join(t for t in (draft.line.headline, draft.line.body) if t)
+        trail = draft.job.trail
+        trail.append(Attempt(draft.stage, draft.attempt, verdict.ok, verdict.reasons, words))
         await ctx.send_message(Checked(draft, verdict))
 
 

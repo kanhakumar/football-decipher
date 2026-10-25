@@ -144,9 +144,10 @@ def render(sheet: FactSheet, req: NarrationRequest, lang: Lang) -> Line:
     if entry is None:
         raise TemplateError(f"{sheet.code}/{lang}")
     values = _values(sheet, req, lang)
-    body = fill(entry["body"], values)
     if is_plain(req.persona) and "ctx_game_state" in sheet.insight.facts:
         body = situation(sheet, lang, values)  # the match situation instead of the statistics
+    else:
+        body = fill(entry["body"], values)
     return Line(
         headline=fill(entry["headline"], values),
         body=frame(body, sheet, req, lang),

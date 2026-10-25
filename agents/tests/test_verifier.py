@@ -172,6 +172,24 @@ async def test_level_games_chase_phrasing_and_hindi_defending(sheets, tools, cor
     assert "unsupported_claim:equaliser" not in reasons(line, level)
 
 
+async def test_wanting_a_goal_is_the_situation_not_a_goal(sheets):
+    press, red = sheets["press"], sheets["red"]  # Northgate trail 1-2
+    for body in (
+        "Northgate FC push up in search of a goal.",
+        "They need a leveller with time running out.",
+        "Plenty of pressure, but still without a goal to show for it.",
+        "Northgate FC are yet to score since the break.",
+    ):
+        assert reasons(Line(headline="Northgate FC push on", body=body), press) == [], body
+    es = Line(headline="Northgate FC empuja", body="Northgate FC sube líneas en busca del gol.")
+    assert reasons(es, press, "es") == []
+    hi = Line(headline="Northgate FC का दबाव", body="Northgate FC को गोल की तलाश है।")
+    assert reasons(hi, press, "hi") == []
+    # Scoring is still an event the evidence must hold.
+    for headline in ("Northgate FC score a goal", "Northgate FC find the equaliser"):
+        assert reasons(Line(headline=headline), red), headline
+
+
 async def test_plain_personas_get_no_technical_terms(sheets):
     goal = sheets["goal"]
     technical = Line(

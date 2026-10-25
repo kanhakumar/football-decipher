@@ -42,7 +42,9 @@ async def test_the_stub_gives_verified_lines_in_three_languages(tools, insight):
 
 async def test_a_rejected_line_is_retried_with_the_reasons(tools):
     model = ScriptedModel({"narrate": [WRONG_NUMBER, INVENTED_CLAIM, CORRECT]})
-    n = await Narrator(tools, model).narrate(NarrationRequest(insight_id="I_0012"))
+    n = await Narrator(tools, model).narrate(
+        NarrationRequest(insight_id="I_0012", persona="analyst")
+    )
     assert (n.verified, n.template_fallback, n.line) == (True, False, CORRECT)
     assert [(a.attempt, a.reasons) for a in n.trail] == [
         (1, ["unsupported_number:7"]),
@@ -126,3 +128,29 @@ async def test_agents_reach_the_core_only_through_small_tool_calls(tools, core):
     await Narrator(tools, StubModel()).narrate(NarrationRequest(insight_id="I_0024", lang="es"))
     assert [name for name, _ in tools.calls] == ["get_insight", "match_info", "team_stats"]
     assert all(r.startswith("GET /api/tools/") for r in core.requests)
+
+
+async def test_a_plain_persona_model_sees_only_whole_simple_numbers(tools):
+    """ADR-021: the casual fan's model is not shown xG, rates or decimals, so it cannot write
+    them; the analyst's model sees the full sheet."""
+    model = ScriptedModel({})
+    await Narrator(tools, model).narrate(NarrationRequest(insight_id="I_0027"))
+    sheet = next(p["sheet"] for task, p in model.calls if task == "narrate")
+    shown = {**sheet["numbers"], **sheet["insight"]["facts"]}
+    assert "xg" not in shown and sheet["metrics"] == []
+    assert all(v == int(v) for v in shown.values() if isinstance(v, float)), shown
+    assert shown["ctx_minutes_left"] == 9 and shown["ctx_game_state"] == "level"
+
+    model = ScriptedModel({})
+    await Narrator(tools, model).narrate(NarrationRequest(insight_id="I_0027", persona="analyst"))
+    sheet = next(p["sheet"] for task, p in model.calls if task == "narrate")
+    assert sheet["numbers"]["xg"] == 0.172
+
+
+async def test_a_plain_persona_gets_code_chosen_chips(tools):
+    """Whatever chips the model writes for a casual fan, code sets one simple count."""
+    chips = CORRECT.model_copy(update={"metrics": [{"label": "xG", "value": 0.31}]})
+    model = ScriptedModel({"narrate": [chips]})
+    n = await Narrator(tools, model).narrate(NarrationRequest(insight_id="I_0012"))
+    assert n.verified and [a.ok for a in n.trail] == [True]
+    assert [(m.label, m.value) for m in n.line.metrics] == [("Passes in the move", 4)]

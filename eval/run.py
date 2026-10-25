@@ -221,7 +221,12 @@ async def run(args: argparse.Namespace, config: dict[str, Any]) -> dict[str, Any
                                     "supports": sorted(n.sheet.support),
                                 },
                                 "attempts": [
-                                    {"stage": a.stage, "ok": a.ok, "reasons": a.reasons}
+                                    {
+                                        "stage": a.stage,
+                                        "ok": a.ok,
+                                        "reasons": a.reasons,
+                                        "rejected": a.rejected,
+                                    }
                                     for a in n.trail
                                 ],
                             }

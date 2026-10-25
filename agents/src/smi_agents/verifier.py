@@ -240,16 +240,27 @@ _CONTEXT_PHRASES: dict[Lang, list[str]] = {
         r" (?:an|the) equali[sz]er\b",
         r"\bgoal difference\b",
         r"\b(?:get|getting|got|draw|drawing|pull|pulling) (?:back )?level\b",
+        # Wanting or lacking a goal is the situation, not an event: "in search of a goal",
+        # "need a leveller", "without a goal to show for it", "yet to score".
+        r"\b(?:chas\w*|need\w*|push\w*(?: on| forward| hard)? for|search\w* for|in search of"
+        r"|hunt\w*(?: for)?|look\w* for|go\w* for|seek\w*|want\w*|without|no)"
+        r"(?: (?:an?|the|that|another|their))? (?:goals?|equali[sz]er|leveller)\b",
+        r"\b(?:yet to|fail\w* to|unable to|could not|couldn't|without) scor\w*\b",
     ],
     "es": [
         r"\b(?:un|dos|tres|\d) gol(?:es)? "
         r"(?:abajo|arriba|por debajo|por encima|de desventaja|de ventaja)\b",
         r"\bel marcador\b",
         r"\b(?:busca\w*|necesita\w*|persigue\w*|en busca de|a por|ir a por) (?:el|un) empate\b",
+        r"\b(?:busca\w*|necesita\w*|persigue\w*|en busca de?l?|a por|ir a por|sin)"
+        r"(?: (?:el|un|otro|su))? (?:gol(?:es)?|empate)\b",
+        r"\bsin (?:poder )?marcar\b",
     ],
     "hi": [
         r"(?:एक|दो|तीन|\d) गोल (?:से )?(?:पीछे|आगे)",
         r"बराबरी (?:की तलाश|के लिए|का गोल ढूंढ|करने की कोशिश|की कोशिश)",
+        r"गोल (?:की तलाश|की ज़रूरत|की जरूरत|के लिए|ढूंढ|चाहिए|नहीं)",
+        r"(?:बिना|बगैर) गोल",
     ],
 }
 

@@ -42,6 +42,11 @@ button, input, select { font: inherit; color: inherit; }
     repeating-linear-gradient(90deg, var(--grass-1) 0 9.09%, var(--grass-2) 9.09% 18.18%);
   box-shadow: 0 20px 60px rgb(0 0 0 / 0.45), inset 0 0 0 1px rgb(255 255 255 / 0.05);
   container-type: inline-size;
+  /* The broadcast stays in view while the panels scroll (moments, latency, player). */
+  position: sticky;
+  top: 16px;
+  align-self: start;
+  z-index: 2;
 }
 .pitch { position: absolute; inset: 6% 3% 12% 3%; width: 94%; height: 82%; }
 .pitch .lines * { fill: none; stroke: rgb(255 255 255 / 0.55); stroke-width: 0.3; }
@@ -173,7 +178,10 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
 /* ---------- phone ---------- */
 @media (max-width: 980px) {
   .app { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 12px; }
-  .stage { aspect-ratio: 4 / 3; }
+  /* Stacked: the stage sticks to the top, at most 60% of the window, and the panels scroll
+     under it. */
+  .stage { aspect-ratio: auto; width: 100%; height: min(calc((100vw - 32px) * 0.75), 60vh); top: 0; }
+  .app { padding-top: 0; }
   .pitch { inset: 14% 2% 18% 2%; width: 96%; height: 68%; }
   .lower-third { left: 2%; right: 2%; bottom: 13%; }
   .lower-third .card-body { font-size: clamp(11px, 3.1cqi, 16px); padding: 0.6em 0.8em; }

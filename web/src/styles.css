@@ -150,7 +150,7 @@ button {
   background: var(--accent); color: #111; border: 0; border-radius: 6px; padding: 8px 14px;
   font-weight: 700; cursor: pointer;
 }
-button#pause { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
 .status, .note { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
 .stats { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; font-size: 13px; }
 .stats dt { color: var(--muted); }
@@ -244,3 +244,27 @@ button.link { background: none; color: var(--accent); border: 0; padding: 0; fon
   background: #0b1020d9; text-align: center; padding: 16px;
 }
 .signin-gate p { max-width: 36ch; margin: 0; }
+
+/* Before kickoff reaches the viewer (ADR-020): who is playing, and when the broadcast starts */
+.prematch {
+  position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 1em;
+  background: radial-gradient(circle at 50% 40%, #0e1424e6, #0b1020f5); padding: 4% 5%;
+  font-size: clamp(10px, 1.4cqi, 16px); animation: slide-in 0.4s ease-out;
+}
+.prematch-teams { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.5em; align-items: start; }
+.kickoff { text-align: center; align-self: center; }
+.kickoff small { display: block; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.8em; }
+.kickoff strong { font-size: 3em; font-variant-numeric: tabular-nums; color: var(--accent); }
+.team-sheet h3 { margin: 0; font-size: 1.3em; }
+.team-sheet .formation { color: var(--muted); font-size: 0.85em; margin: 0.2em 0 0.5em; }
+.team-sheet ol { list-style: none; margin: 0; padding: 0; columns: 2; font-size: 0.85em; color: #cdd6ea; }
+.team-sheet li { padding: 0.1em 0; break-inside: avoid; }
+.team-sheet li b { display: inline-block; min-width: 1.6em; color: var(--text); }
+.team-sheet.home { border-left: 4px solid var(--home); padding-left: 0.8em; }
+.team-sheet.away { border-right: 4px solid var(--away); padding-right: 0.8em; text-align: right; }
+.prematch-note { margin: 0; text-align: center; color: var(--muted); font-size: 0.85em; }
+@media (max-width: 980px) {
+  .prematch-teams { grid-template-columns: 1fr 1fr; }
+  .kickoff { grid-column: 1 / -1; grid-row: 1; }
+  .team-sheet ol { columns: 1; }
+}

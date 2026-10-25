@@ -24,10 +24,11 @@ services:
       path: Dockerfile
       remoteBuild: false
   viewer:
-    project: ./viewer
+    # The React viewer (ADR-020): built by the Deploy workflow (npm run build), served from dist.
+    project: ./web
     host: staticwebapp
     language: js
-    dist: .
+    dist: dist
 hooks:
   preprovision:
     shell: sh

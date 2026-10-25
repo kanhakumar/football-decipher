@@ -2,22 +2,36 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "viewer",
-      "runtimeExecutable": "agents/.venv/Scripts/python",
-      "runtimeArgs": ["-m", "http.server", "5500", "--bind", "127.0.0.1", "--directory", "viewer"],
-      "port": 5500
-    },
-    {
       "name": "core",
       "runtimeExecutable": "java",
-      "runtimeArgs": ["-jar", "core/target/scala-3.9.0/app.jar"],
+      "runtimeArgs": [
+        "-jar",
+        "core/target/scala-3.9.0/app.jar"
+      ],
       "port": 8080
     },
     {
       "name": "agents",
       "runtimeExecutable": "agents/.venv/Scripts/python",
-      "runtimeArgs": ["-m", "smi_agents", "serve", "--port", "8090"],
+      "runtimeArgs": [
+        "-m",
+        "smi_agents",
+        "serve",
+        "--port",
+        "8090"
+      ],
       "port": 8090
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "web",
+        "run",
+        "dev"
+      ],
+      "port": 5600
     }
   ]
 }

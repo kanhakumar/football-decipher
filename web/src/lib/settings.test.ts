@@ -1,8 +1,8 @@
-import assert from "node:assert/strict";
-import { test } from "node:test";
-import { tierOf } from "../js/match.js";
-import { DEFAULTS, viewSettings } from "../js/settings.js";
-import { suggestDelay } from "../js/timeline.js";
+// @ts-nocheck -- ported from viewer/tests with partial fixtures; the behaviour pinned is unchanged
+import { assert, test } from "vitest";
+import { tierOf } from "./match";
+import { DEFAULTS, viewSettings } from "./settings";
+import { suggestDelay } from "./timeline";
 
 test("the viewer takes the core's settings, keeping defaults for missing or mistyped values", () => {
   assert.deepEqual(viewSettings(null), DEFAULTS);

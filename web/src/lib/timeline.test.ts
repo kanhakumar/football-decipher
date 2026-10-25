@@ -1,6 +1,6 @@
-import assert from "node:assert/strict";
-import { test } from "node:test";
-import { OverlayQueue, ViewerClock, MAX_EXTRAPOLATION_MS, suggestDelay } from "../js/timeline.js";
+// @ts-nocheck -- ported from viewer/tests with partial fixtures; the behaviour pinned is unchanged
+import { assert, test } from "vitest";
+import { OverlayQueue, ViewerClock, MAX_EXTRAPOLATION_MS, suggestDelay } from "./timeline";
 
 const card = (id, start, extra = {}) => ({
   overlay_id: id, match_id: "SYN-154", insight_id: `I_${id.slice(-4)}`, op: "show",

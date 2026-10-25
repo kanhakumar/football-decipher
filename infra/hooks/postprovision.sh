@@ -1,11 +1,11 @@
 #!/bin/sh
-# Writes viewer/config.js with the deployed core and agents URLs (azd sets them from the Bicep
+# Writes web/public/config.js (copied into the build) with the deployed core and agents URLs (azd sets them from the Bicep
 # outputs) and, when the app registrations exist (infra/scripts/entra-apps.sh), the sign-in
 # settings. Client ids and scopes are public by design; the API key is never written here.
 # Query parameters in the viewer still override the URLs.
 set -eu
 here=$(dirname "$0")
-target="${1:-$here/../../viewer/config.js}"
+target="${1:-$here/../../web/public/config.js}"
 if [ -z "${CORE_URL:-}" ] || [ -z "${AGENTS_URL:-}" ]; then
   echo "CORE_URL and AGENTS_URL must be set (run through azd)" >&2
   exit 1

@@ -1,6 +1,6 @@
-import assert from "node:assert/strict";
-import { test } from "node:test";
-import { SseParser } from "../js/sse.js";
+// @ts-nocheck -- ported from viewer/tests with partial fixtures; the behaviour pinned is unchanged
+import { assert, test } from "vitest";
+import { SseParser } from "./sse";
 
 test("events are parsed across chunk boundaries, with types, ids and multi-line data", () => {
   const p = new SseParser();

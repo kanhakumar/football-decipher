@@ -45,4 +45,3 @@ docs/*.json
 eval/out/
 
 # Written by npm during azd packaging (the viewer has no dependencies)
-viewer/package-lock.json

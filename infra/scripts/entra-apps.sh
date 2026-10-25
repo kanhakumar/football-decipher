@@ -65,7 +65,7 @@ cat > "$work/viewer.json" <<EOF
   "displayName": "fd-viewer",
   "signInAudience": "AzureADandPersonalMicrosoftAccount",
   "api": { "requestedAccessTokenVersion": 2 },
-  "spa": { "redirectUris": ["$viewer_url/", "http://localhost:5500/", "http://127.0.0.1:5500/"] },
+  "spa": { "redirectUris": ["$viewer_url/", "http://localhost:5600/", "http://127.0.0.1:5600/"] },
   "requiredResourceAccess": [{
     "resourceAppId": "$api_id",
     "resourceAccess": [{ "id": "$scope_id", "type": "Scope" }]

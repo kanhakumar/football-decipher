@@ -1,6 +1,6 @@
-import assert from "node:assert/strict";
-import { test } from "node:test";
-import { InsightBook, displayClock, groupOf, scoreAt, shapeDots, tierOf, toScreen } from "../js/match.js";
+// @ts-nocheck -- ported from viewer/tests with partial fixtures; the behaviour pinned is unchanged
+import { assert, test } from "vitest";
+import { InsightBook, displayClock, groupOf, scoreAt, shapeDots, tierOf, toScreen } from "./match";
 
 test("away coordinates are turned into the home team's frame", () => {
   assert.deepEqual(toScreen("T_HOM", "T_HOM", 94.9, 38.3), { x: 94.9, y: 38.3 });

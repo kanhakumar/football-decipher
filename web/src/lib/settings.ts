@@ -1,8 +1,26 @@
 // Settings the viewer follows (ADR-019), from the core's GET /api/config: config/app.yaml with any
-// Azure App Configuration values over it. Pure: the fetch happens in app.js. The defaults match
-// config/app.yaml, for a core that does not answer.
+// Azure App Configuration values over it. Pure: the fetch happens in the controller. The defaults
+// match config/app.yaml, for a core that does not answer.
 
-export const DEFAULTS = {
+import type { Lang, Persona } from "./types";
+
+export interface ViewSettings {
+  seed: number;
+  speed: number;
+  tracking: boolean;
+  narrationBudgetS: number;
+  minDelayS: number;
+  maxDelayS: number;
+  modelMin: number;
+  templateMin: number;
+  cardMinShowMs: number;
+  modelSlots: number;
+  defaultPersona: Persona;
+  defaultLang: Lang;
+  signInRequired: boolean;
+}
+
+export const DEFAULTS: ViewSettings = {
   seed: 154,
   speed: 10,
   tracking: false,
@@ -18,7 +36,7 @@ export const DEFAULTS = {
   signInRequired: true,
 };
 
-const KEYS = {
+const KEYS: Record<keyof ViewSettings, string> = {
   seed: "match:seed",
   speed: "match:speed",
   tracking: "match:tracking",
@@ -35,12 +53,12 @@ const KEYS = {
 };
 
 /** The viewer's settings from a /api/config answer; a missing or mistyped value keeps its default. */
-export function viewSettings(answer) {
+export function viewSettings(answer: { settings?: Record<string, unknown> } | null): ViewSettings {
   const s = answer?.settings ?? {};
-  return Object.fromEntries(
-    Object.entries(KEYS).map(([name, key]) => {
-      const value = s[key];
-      return [name, typeof value === typeof DEFAULTS[name] ? value : DEFAULTS[name]];
-    }),
-  );
+  const out = { ...DEFAULTS } as Record<string, unknown>;
+  for (const [name, key] of Object.entries(KEYS)) {
+    const value = s[key];
+    if (typeof value === typeof DEFAULTS[name as keyof ViewSettings]) out[name] = value;
+  }
+  return out as unknown as ViewSettings;
 }

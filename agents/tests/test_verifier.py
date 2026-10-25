@@ -126,3 +126,23 @@ async def test_the_headline_must_name_the_moments_team(tools):
     # Neutral moments (a tempo change) need no team in the headline.
     tempo = await gather(tools, "I_0007")
     assert reasons(Line(headline="The tempo picks up"), tempo) == []
+
+
+async def test_the_match_situation_may_be_described_but_not_new_events(sheets):
+    press, red = sheets["press"], sheets["red"]  # Northgate trail 1-2 in both
+    ok = Line(
+        headline="Northgate FC press to get back into it",
+        body="A goal down at 1-2, Northgate FC are chasing an equaliser and the score could turn.",
+    )
+    assert reasons(ok, press) == []
+    es = Line(
+        headline="Northgate FC aprieta", body="Con un gol abajo, Northgate FC busca el empate."
+    )
+    assert reasons(es, press, "es") == []
+    hi = Line(headline="Northgate FC का दबाव", body="एक गोल से पीछे Northgate FC बराबरी की तलाश में है।")
+    assert reasons(hi, press, "hi") == []
+    # Event claims still need the evidence: no goal was scored at the red card.
+    assert reasons(Line(headline="Northgate FC score from the restart"), red) == [
+        "unsupported_claim:goal"
+    ]
+    assert reasons(Line(headline="Northgate FC equalise"), press) == ["unsupported_claim:equaliser"]

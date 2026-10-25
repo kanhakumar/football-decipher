@@ -229,6 +229,30 @@ _CLAIMS: dict[str, tuple[dict[Lang, list[str]], set[str]]] = {
 }
 
 
+# Phrases about the match situation, not about an event in this moment ("a goal down", "the
+# score", "chasing an equaliser"). With the match context in the facts (ADR-017) they are
+# removed before the event claims are checked, so "Northgate score" still needs a goal.
+_CONTEXT_PHRASES: dict[Lang, list[str]] = {
+    "en": [
+        r"\b(?:a|one|two|three|\d) goals? (?:down|behind|up|ahead|clear|to the good)\b",
+        r"\bthe score(?:line)?\b",
+        r"\b(?:chas\w*|need\w*|push\w* for|search\w* for|hunt\w* for|look\w* for|go\w* for)"
+        r" (?:an|the) equali[sz]er\b",
+        r"\bgoal difference\b",
+    ],
+    "es": [
+        r"\b(?:un|dos|tres|\d) gol(?:es)? "
+        r"(?:abajo|arriba|por debajo|por encima|de desventaja|de ventaja)\b",
+        r"\bel marcador\b",
+        r"\b(?:busca\w*|necesita\w*|persigue\w*|en busca de|a por) (?:el|un) empate\b",
+    ],
+    "hi": [
+        r"(?:एक|दो|तीन|\d) गोल (?:से )?(?:पीछे|आगे)",
+        r"बराबरी (?:की तलाश|के लिए|का गोल ढूंढ)",
+    ],
+}
+
+
 def _texts(line: Line) -> list[str]:
     return [line.headline, line.body, *(f"{m.label} {m.value}" for m in line.metrics)]
 
@@ -343,6 +367,9 @@ def verify(line: Line, sheet: FactSheet, lang: Lang) -> Verdict:
             reasons.append("subject_not_in_headline")
 
     joined = " ".join(_texts(line))
+    if "match_context" in sheet.support:
+        for phrase in _CONTEXT_PHRASES.get(lang, []):
+            joined = re.sub(phrase, " ", joined, flags=re.IGNORECASE)
     for tag, (patterns, needs) in _CLAIMS.items():
         if needs & sheet.support:
             continue

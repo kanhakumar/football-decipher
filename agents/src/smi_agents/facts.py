@@ -60,6 +60,11 @@ def _support(insight: Insight, by_type: dict[str, int]) -> set[str]:
         )
     if min(facts.get("ctx_players_for", 11), facts.get("ctx_players_against", 11)) < 11:
         tokens.add("red_card")  # "ten men" is a claim the context supports
+    scored, conceded = facts.get("ctx_score_for", 0), facts.get("ctx_score_against", 0)
+    if scored != conceded:
+        tokens |= {"score=lead", "score=trail"}  # one side leads, the other trails
+    if "ctx_score_for" in facts:
+        tokens.add("match_context")  # allows the score phrases in verifier._CONTEXT_PHRASES
     if "team_goals" in facts and "opponent_goals" in facts:
         tg, og = facts["team_goals"], facts["opponent_goals"]
         tokens.add("score=lead" if tg > og else "score=level" if tg == og else "score=trail")

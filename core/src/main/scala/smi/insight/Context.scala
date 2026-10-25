@@ -16,7 +16,8 @@ object Context:
     "ctx_score_against",
     "ctx_game_state",
     "ctx_players_for",
-    "ctx_players_against"
+    "ctx_players_against",
+    "ctx_minutes_left"
   )
 
   def facts(h: Header, evidence: Vector[Event]): JsonObject =
@@ -30,7 +31,12 @@ object Context:
       "ctx_score_against" -> int(conceded),
       "ctx_game_state" -> str(state),
       "ctx_players_for" -> int(11 - reds.count(_.teamId == h.team)),
-      "ctx_players_against" -> int(11 - reds.count(_.teamId != h.team))
+      "ctx_players_against" -> int(11 - reds.count(_.teamId != h.team)),
+      // Regulation minutes left after the latest evidence event (0 in stoppage and extra time),
+      // so "with 14 minutes left" is a fact rather than the model's arithmetic.
+      "ctx_minutes_left" -> int(
+        evidence.lastOption.filter(_.period <= 2).fold(0)(e => math.max(0, 90 - minute(e)))
+      )
     )
 
   def trailing(f: JsonObject): Boolean = strOf(f, "ctx_game_state") == "trailing"

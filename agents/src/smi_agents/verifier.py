@@ -246,11 +246,26 @@ _CONTEXT_PHRASES: dict[Lang, list[str]] = {
         r"|hunt\w*(?: for)?|look\w* for|go\w* for|seek\w*|want\w*|without|no)"
         r"(?: (?:an?|the|that|another|their))? (?:goals?|equali[sz]er|leveller)\b",
         r"\b(?:yet to|fail\w* to|unable to|could not|couldn't|without) scor\w*\b",
+        # From the online eval's rejected drafts (ADR-021): the chase and the stakes in words.
+        r"\b(?:try\w*|trie\w*|push\w*|press\w*|forc\w*|chas\w*|bid|attempt\w*)"
+        r" (?:for |to (?:force |find )?)?(?:an? |the )?equali[sz](?:e|er)\b",
+        r"\b(?:an?|the) equali[sz]er (?:much |far |even )?(?:harder|less likely|more difficult)\b",
+        r"\b(?:a|the) \d+[–-]\d+ score(?:line)?\b",
+        r"\bscoring (?:chances?|threat|opportunit\w*)\b",
+        r"\b(?:one|two|a|\d)-goal (?:deficit|lead|cushion|advantage|margin|gap)\b",
+        r"\b(?:fail\w* to|can't|cannot|could not|couldn't|unable to|without)"
+        r" (?:threaten|test|trouble|work|worry)(?: the)? (?:goal|keeper|goalkeeper)\b",
+        r"\b(?:chance|opportunity|bid|hopes?|risk) (?:to|of) "
+        r"(?:take the lead|win the (?:game|match)|winning|defeat)\b",
+        r"\bgo-ahead chance\b",
     ],
     "es": [
         r"\b(?:un|dos|tres|\d) gol(?:es)? "
         r"(?:abajo|arriba|por debajo|por encima|de desventaja|de ventaja)\b",
-        r"\bel marcador\b",
+        r"\b(?:el|al|del) marcador\b",
+        r"\ba un gol\b",
+        r"\b(?:traduc|convert)\w* (?:\w+ ){0,3}en gol\b",
+        r"\bigualados? en (?:jugadores|número|efectivos)\b",
         r"\b(?:busca\w*|necesita\w*|persigue\w*|en busca de|a por|ir a por) (?:el|un) empate\b",
         r"\b(?:busca\w*|necesita\w*|persigue\w*|en busca de?l?|a por|ir a por|sin)"
         r"(?: (?:el|un|otro|su))? (?:gol(?:es)?|empate)\b",
@@ -261,6 +276,11 @@ _CONTEXT_PHRASES: dict[Lang, list[str]] = {
         r"बराबरी (?:की तलाश|के लिए|का गोल ढूंढ|करने की कोशिश|की कोशिश)",
         r"गोल (?:की तलाश|की ज़रूरत|की जरूरत|के लिए|ढूंढ|चाहिए|नहीं)",
         r"(?:बिना|बगैर) गोल",
+        r"बराबरी से (?:आगे|बढ़त|लीड)",  # from level to ahead: the goal's own evidence
+        r"बराबरी (?:पर (?:है|हैं|था|थे|रहने|रहते|लाने)|का पीछा|बनाने)",
+        r"(?:टैकल|tackle|गेंद|दबदबा|duel|डुएल) जीत",  # won a tackle, not a match
+        r"जीत (?:का|की) (?:मौका|संभावना|अवसर)",
+        r"बढ़त (?:लेने|की कोशिश|के लिए)",
     ],
 }
 

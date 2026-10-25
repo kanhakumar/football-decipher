@@ -190,6 +190,39 @@ async def test_wanting_a_goal_is_the_situation_not_a_goal(sheets):
         assert reasons(Line(headline=headline), red), headline
 
 
+async def test_stakes_phrasing_from_the_online_eval_is_the_situation(sheets):
+    """Rejected drafts from the online eval (ADR-021) that describe the chase, not an event."""
+    press, red = sheets["press"], sheets["red"]  # Northgate trail 1-2
+    for body in (
+        "Down to 10 with 14 minutes left, making an equaliser much harder now.",
+        "This forces Northgate to chase for an equaliser.",
+        "They are pushing higher to try to force an equaliser.",
+        "They chase a 1-2 score with 14 minutes left.",
+        "The press is meant to create scoring chances.",
+        "It raises the difficulty of overturning the one-goal deficit.",
+        "Lots of the ball, but they fail to test the keeper.",
+        "It sharply increases the risk of defeat.",
+    ):
+        assert reasons(Line(headline="Northgate FC push on", body=body), red) == [], body
+    es = Line(
+        headline="Northgate FC aprieta",
+        body="Northgate FC sigue a un gol en su intento por darle la vuelta al marcador.",
+    )
+    assert reasons(es, press, "es") == []
+    hi = Line(
+        headline="Northgate FC का दबाव",
+        body="Northgate FC ने टैकल जीत कर दबाव बनाया; अब बराबरी का पीछा है।",
+    )
+    assert reasons(hi, press, "hi") == []
+    # Still claims: an equaliser, a save and a win need the evidence.
+    for headline in (
+        "Northgate FC equalise",
+        "The keeper saves from Kofi Mensah",
+        "Northgate FC win the game",
+    ):
+        assert reasons(Line(headline=headline), red), headline
+
+
 async def test_plain_personas_get_no_technical_terms(sheets):
     goal = sheets["goal"]
     technical = Line(

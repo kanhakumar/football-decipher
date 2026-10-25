@@ -114,7 +114,7 @@ function Scorebug({ s }: { s: Snapshot }) {
   return (
     <header className="scorebug" aria-label="Score">
       <span className="brand">
-        DECIPHER<b>LIVE</b>
+        FOOTBALL DECIPHER<b>LIVE</b>
       </span>
       <span className="team home">
         <i className="kit" />

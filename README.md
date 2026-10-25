@@ -1,4 +1,4 @@
-# Decipher Live: a synthetic match intelligence engine
+# Football Decipher Live: a synthetic match intelligence engine
 
 An AI pipeline that turns a live stream of football events into match intelligence you can check: overlays on the broadcast and short narratives that say why a moment matters. Each viewer gets their own version by persona, favourite club or player, metric and language (English, Hindi, Spanish).
 

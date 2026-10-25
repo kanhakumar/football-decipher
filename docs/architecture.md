@@ -1,6 +1,6 @@
 # Architecture
 
-Decipher Live turns a stream of synthetic football events into verified, personalised match intelligence. This page covers the components, the contracts between them, how one moment travels from an event to a card on screen, and how it runs on Azure. The reasons behind each choice are in [decisions.md](decisions.md).
+Football Decipher Live turns a stream of synthetic football events into verified, personalised match intelligence. This page covers the components, the contracts between them, how one moment travels from an event to a card on screen, and how it runs on Azure. The reasons behind each choice are in [decisions.md](decisions.md).
 
 ## Principles
 

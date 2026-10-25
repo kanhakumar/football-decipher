@@ -107,7 +107,12 @@ export function MatchControls({ s, b }: { s: Snapshot; b: Broadcast }) {
       <p className="status">{statusText}</p>
       <div className="chips">
         <span className={`chip ${s.coreOk ? "ok" : "bad"}`}>{s.coreOk ? "Core: connected" : "Core: unreachable"}</span>
-        <span className={`chip ${s.agentsOk ? "ok" : "bad"}`}>{s.agentsOk ? `Agents: ${s.agentModel}` : "Agents: unreachable"}</span>
+        {/* Behind the sign-in gate the agents are not checked yet: not a fault. */}
+        {s.gate && !s.agentsOk ? (
+          <span className="chip">Agents: sign in to connect</span>
+        ) : (
+          <span className={`chip ${s.agentsOk ? "ok" : "bad"}`}>{s.agentsOk ? `Agents: ${s.agentModel}` : "Agents: unreachable"}</span>
+        )}
       </div>
     </details>
   );

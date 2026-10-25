@@ -77,3 +77,13 @@ test("view settings and moment filters go to the controller", () => {
   assert.deepEqual(f.replay.mock.calls[0], ["I_0002"]);
   screen.getByText("(1)");
 });
+
+test("before sign-in the agents chip asks to sign in instead of reporting a fault", () => {
+  const f = fakeBroadcast();
+  render(<MatchControls s={{ ...base, gate: true, agentsOk: false }} b={f.b} />);
+  assert.isOk(screen.getByText("Agents: sign in to connect"));
+  assert.isNull(screen.queryByText("Agents: unreachable"));
+  cleanup();
+  render(<MatchControls s={{ ...base, agentsOk: false }} b={f.b} />);
+  assert.isOk(screen.getByText("Agents: unreachable"), "signed in and down is a fault");
+});

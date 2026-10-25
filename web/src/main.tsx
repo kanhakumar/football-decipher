@@ -1,4 +1,4 @@
-// Decipher Live: the broadcast-style viewer (ADR-020). Endpoints and sign-in come from config.js
+// Football Decipher Live: the broadcast-style viewer (ADR-020). Endpoints and sign-in come from config.js
 // (written at deploy, ADR-018); query parameters override the endpoints.
 
 import { StrictMode } from "react";

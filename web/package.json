@@ -2,7 +2,7 @@
   "name": "decipher-live",
   "private": true,
   "type": "module",
-  "description": "Decipher Live: the broadcast-style viewer in React and TypeScript (ADR-020)",
+  "description": "Football Decipher Live: the broadcast-style viewer in React and TypeScript (ADR-020)",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

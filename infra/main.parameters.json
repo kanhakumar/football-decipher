@@ -7,6 +7,8 @@
     "modelCapacity": { "value": "${SMI_MODEL_CAPACITY=100}" },
     "coreImageName": { "value": "${SERVICE_CORE_IMAGE_NAME=}" },
     "agentsImageName": { "value": "${SERVICE_AGENTS_IMAGE_NAME=}" },
-    "deployerPrincipalId": { "value": "${AZURE_PRINCIPAL_ID=}" }
+    "deployerPrincipalId": { "value": "${AZURE_PRINCIPAL_ID=}" },
+    "apiKey": { "value": "${SMI_API_KEY=}" },
+    "authApiClientId": { "value": "${AUTH_API_CLIENT_ID=}" }
   }
 }

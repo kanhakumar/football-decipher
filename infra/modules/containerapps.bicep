@@ -15,6 +15,11 @@ param eventHubsNamespace string
 param cosmosEndpoint string
 param projectEndpoint string
 param modelDeployment string
+@secure()
+@description('Service API key; empty keeps the apps open (no key to send or check).')
+param apiKey string = ''
+@description('fd-api client id: tokens for it are accepted. Sign-in is on only with both.')
+param authApiClientId string = ''
 
 var coreName = 'ca-core-${token}'
 var identity = {
@@ -22,7 +27,17 @@ var identity = {
   userAssignedIdentities: { '${identityId}': {} }
 }
 var registries = [{ server: registryServer, identity: identityId }]
-var secrets = [{ name: 'appinsights-connection-string', keyVaultUrl: appInsightsSecretUri, identity: identityId }]
+var secrets = concat(
+  [{ name: 'appinsights-connection-string', keyVaultUrl: appInsightsSecretUri, identity: identityId }],
+  // A plain app secret (not a Key Vault reference) so core and agents change key in one revision.
+  empty(apiKey) ? [] : [{ name: 'api-key', value: apiKey }]
+)
+// Sign-in (ADR-018): every route but /health needs a user token or the key once both exist.
+var authEnv = concat(
+  [{ name: 'SMI_AUTH', value: (empty(apiKey) || empty(authApiClientId)) ? 'off' : 'on' }],
+  empty(apiKey) ? [] : [{ name: 'SMI_API_KEY', secretRef: 'api-key' }],
+  empty(authApiClientId) ? [] : [{ name: 'SMI_AUTH_AUDIENCE', value: authApiClientId }]
+)
 var commonEnv = [
   { name: 'AZURE_CLIENT_ID', value: identityClientId }
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'appinsights-connection-string' }
@@ -78,7 +93,7 @@ resource core 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'core'
           image: coreImage
           resources: resources
-          env: concat(commonEnv, feedEnv, javaEnv, [
+          env: concat(commonEnv, feedEnv, javaEnv, authEnv, [
             { name: 'SMI_HOST', value: '0.0.0.0' }
             { name: 'SMI_COSMOS_ENDPOINT', value: cosmosEndpoint }
             { name: 'SMI_CORS_ORIGINS', value: corsOrigin }
@@ -112,7 +127,7 @@ resource agents 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'agents'
           image: agentsImage
           resources: resources
-          env: concat(commonEnv, [
+          env: concat(commonEnv, authEnv, [
             { name: 'SMI_CORE_URL', value: 'http://${coreName}' }
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: projectEndpoint }
             { name: 'SMI_MODEL_DEPLOYMENT', value: modelDeployment }

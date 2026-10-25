@@ -3,6 +3,7 @@
   POST /api/narrate  NarrationRequest JSON -> {"overlay": ..., "narration": {...}}
                      ("mode": "template" returns the verified template line at once, no model)
   GET  /health
+  GET  /api/me/preferences, PUT /api/me/preferences  the signed-in user's view (ADR-018)
 
 A viewer asks for each moment in its own persona and language; identical requests share one
 workflow run and the cache. The service reaches the core only through its MCP server, here in
@@ -26,7 +27,9 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from smi_agents import overlay
+from smi_agents.auth import AuthMiddleware, Gate
 from smi_agents.facts import StaleRequest, ToolError
+from smi_agents.preferences import InMemoryPreferences, Preferences, PreferenceStore
 from smi_agents.types import NarrationRequest
 from smi_agents.workflow import Narrator
 
@@ -45,7 +48,14 @@ def cors_origins(env: Mapping[str, str] = os.environ) -> list[str]:
     return [o.strip() for o in raw.split(",") if o.strip()] or ["*"]
 
 
-def create_app(narrator: Narrator, origins: list[str] | None = None) -> Starlette:
+def create_app(
+    narrator: Narrator,
+    origins: list[str] | None = None,
+    gate: Gate | None = None,
+    preferences: PreferenceStore | None = None,
+) -> Starlette:
+    """`gate` None: no sign-in (local); every caller is the user `local`."""
+    store = preferences or InMemoryPreferences()
     numbers = itertools.count(1)
     ids: dict[tuple, str] = {}  # one overlay id per distinct narration
 
@@ -92,8 +102,28 @@ def create_app(narrator: Narrator, origins: list[str] | None = None) -> Starlett
         }
         return JSONResponse(body)
 
+    async def get_preferences(request: Request) -> JSONResponse:
+        prefs = await store.get(request.state.user)
+        body = (prefs or Preferences()).model_dump()
+        return JSONResponse({**body, "saved": prefs is not None})
+
+    async def put_preferences(request: Request) -> JSONResponse:
+        if request.state.user == "service":
+            return JSONResponse({"error": "preferences belong to a signed-in user"}, 403)
+        try:
+            prefs = Preferences.model_validate(await request.json())
+        except (ValueError, ValidationError) as e:
+            return JSONResponse({"error": f"invalid preferences: {e}"}, status_code=400)
+        await store.put(request.state.user, prefs)
+        return JSONResponse({**prefs.model_dump(), "saved": True})
+
     return Starlette(
-        routes=[Route("/health", health), Route("/api/narrate", narrate, methods=["POST"])],
+        routes=[
+            Route("/health", health),
+            Route("/api/narrate", narrate, methods=["POST"]),
+            Route("/api/me/preferences", get_preferences, methods=["GET"]),
+            Route("/api/me/preferences", put_preferences, methods=["PUT"]),
+        ],
         # The viewer is a static page on another origin.
         middleware=[
             Middleware(
@@ -101,6 +131,7 @@ def create_app(narrator: Narrator, origins: list[str] | None = None) -> Starlett
                 allow_origins=cors_origins() if origins is None else origins,
                 allow_methods=["*"],
                 allow_headers=["*"],
-            )
+            ),
+            Middleware(AuthMiddleware, gate=gate),  # inside CORS: refusals carry its headers
         ],
     )

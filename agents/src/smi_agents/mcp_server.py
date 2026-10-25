@@ -19,6 +19,8 @@ from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
+from smi_agents.auth import core_headers
+
 CORE_URL = os.environ.get("SMI_CORE_URL", "http://127.0.0.1:8080")
 
 Json = dict[str, Any]
@@ -162,7 +164,7 @@ def build_server(http: httpx.AsyncClient) -> MCPServer:
 
 
 async def serve(http_port: int | None) -> None:
-    async with httpx.AsyncClient(base_url=CORE_URL, timeout=10) as http:
+    async with httpx.AsyncClient(base_url=CORE_URL, timeout=10, headers=core_headers()) as http:
         server = build_server(http)
         if http_port is None:
             await server.run_stdio_async()

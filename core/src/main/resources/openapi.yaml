@@ -7,6 +7,8 @@ info:
     time. The live side (engine, detectors, tools) runs at the generator's position; the event
     stream for viewers runs `delay_s` of match time behind it (default 10 s). All data is
     synthetic. Payload shapes follow the JSON Schemas in /schema (canonical, insight, overlay).
+    When the service runs with SMI_AUTH=on (ADR-018), every path but /health and /openapi.yaml
+    needs `Authorization: Bearer <Entra ID access token>` or `X-API-Key: <service key>`, else 401.
 servers:
   - url: http://127.0.0.1:8080
 paths:

@@ -68,6 +68,10 @@
 
       <div class="shape-caption" id="shape-caption" hidden></div>
       <div class="ticker" id="ticker"></div>
+      <div class="signin-gate" id="signin-gate" hidden>
+        <p>Sign in with a Microsoft account (work, school or personal) to watch and keep your view on any device.</p>
+        <button type="button" id="signin">Sign in</button>
+      </div>
       <div class="banner" id="banner" hidden role="alert">
         <span>Lost contact with the match service. Retrying every second…</span>
         <button type="button" id="retry">Retry now</button>
@@ -91,6 +95,7 @@
 
       <div class="box">
         <h3>Your view</h3>
+        <div class="account" id="account" hidden></div>
         <div class="grid">
           <label>Persona
             <select id="persona">

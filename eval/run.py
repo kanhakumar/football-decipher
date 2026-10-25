@@ -33,6 +33,7 @@ sys.path.insert(0, str(HERE))
 from number_match import check  # noqa: E402
 
 from smi_agents import overlay  # noqa: E402
+from smi_agents.auth import core_headers  # noqa: E402
 from smi_agents.facts import McpTools  # noqa: E402
 from smi_agents.mcp_server import build_server  # noqa: E402
 from smi_agents.model import Model, StubModel  # noqa: E402
@@ -170,7 +171,7 @@ async def run(args: argparse.Namespace, config: dict[str, Any]) -> dict[str, Any
         from smi_agents.model import FoundryModel
 
         model: Model = FoundryModel.from_env()
-        http = httpx.AsyncClient(base_url=args.core, timeout=60)
+        http = httpx.AsyncClient(base_url=args.core, timeout=60, headers=core_headers())
     else:
         model = StubModel()
         http = httpx.AsyncClient(base_url="http://recorded.core", transport=recorded_core())

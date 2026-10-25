@@ -1,5 +1,6 @@
-// RBAC-mode vault holding the Application Insights connection string; the apps read it
-// through the managed identity (Key Vault Secrets User).
+// RBAC-mode vault holding the Application Insights connection string and the service API key;
+// the apps read through the managed identity (Key Vault Secrets User), and so may the deployer
+// (the preprovision hook keeps the key; the eval gate uses it).
 param location string
 param tags object
 param token string
@@ -7,6 +8,9 @@ param appInsightsName string
 param principalId string
 @description('Resource ID of the identity; names the role assignments so what-if can show them.')
 param identityId string
+@secure()
+param apiKey string = ''
+param deployerPrincipalId string = ''
 
 var secretsUser = '4633458b-17de-408a-b874-0445c86b69e6'
 
@@ -39,6 +43,21 @@ resource readSecrets 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   properties: {
     principalId: principalId
     principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', secretsUser)
+  }
+}
+
+resource apiKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!empty(apiKey)) {
+  parent: vault
+  name: 'api-key'
+  properties: { value: apiKey }
+}
+
+resource deployerReadsSecrets 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(deployerPrincipalId)) {
+  scope: vault
+  name: guid(vault.id, deployerPrincipalId, secretsUser)
+  properties: {
+    principalId: deployerPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', secretsUser)
   }
 }

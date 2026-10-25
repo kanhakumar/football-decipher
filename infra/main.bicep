@@ -24,6 +24,13 @@ param agentsImageName string = ''
 @description('Who runs azd (you locally, the pipeline in CI): may call the model for smoke tests and the online eval gate.')
 param deployerPrincipalId string = ''
 
+@secure()
+@description('The service API key (ADR-018), kept by the preprovision hook; stored in Key Vault, given to the apps as a secret.')
+param apiKey string = ''
+
+@description('Client id of the fd-api app registration (infra/scripts/entra-apps.sh). With the API key it turns sign-in on.')
+param authApiClientId string = ''
+
 var tags = { 'azd-env-name': environmentName }
 var token = toLower(uniqueString(subscription().id, environmentName, location))
 // Known before deployment, so role assignment names derived from it show in what-if.
@@ -55,6 +62,8 @@ module keyVault 'modules/keyvault.bicep' = {
     appInsightsName: monitoring.outputs.appInsightsName
     principalId: identity.outputs.principalId
     identityId: identityResourceId
+    apiKey: apiKey
+    deployerPrincipalId: deployerPrincipalId
   }
 }
 
@@ -111,6 +120,8 @@ module apps 'modules/containerapps.bicep' = {
     cosmosEndpoint: cosmos.outputs.endpoint
     projectEndpoint: foundry.outputs.projectEndpoint
     modelDeployment: foundry.outputs.deploymentName
+    apiKey: apiKey
+    authApiClientId: authApiClientId
   }
   // Using the registry and Key Vault outputs makes the apps wait for those modules,
   // AcrPull and Key Vault Secrets User included.

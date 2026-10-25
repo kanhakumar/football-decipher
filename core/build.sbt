@@ -30,6 +30,8 @@ lazy val root = (project in file("."))
       "com.azure" % "azure-messaging-eventhubs" % "5.21.7",
       "com.azure" % "azure-cosmos" % "4.83.0",
       "com.azure" % "azure-identity" % azureIdentityVersion,
+      // Sign-in (ADR-018): Entra ID access tokens checked against the identity platform's keys.
+      "com.nimbusds" % "nimbus-jose-jwt" % "10.10",
       // Warnings and errors from http4s and the Azure SDK reach stderr (simplelogger.properties).
       "org.slf4j" % "slf4j-simple" % "2.0.20",
       "org.scalameta" %% "munit" % "1.3.6" % Test,

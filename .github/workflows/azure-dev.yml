@@ -24,6 +24,9 @@ env:
   AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
   AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
   AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+  # Sign-in (ADR-018): the app registrations from infra/scripts/entra-apps.sh; empty keeps it off.
+  AUTH_API_CLIENT_ID: ${{ vars.AUTH_API_CLIENT_ID }}
+  AUTH_VIEWER_CLIENT_ID: ${{ vars.AUTH_VIEWER_CLIENT_ID }}
 
 jobs:
   deploy:
@@ -56,6 +59,8 @@ jobs:
 
       - name: Provision
         run: azd provision --no-prompt
+      - name: Mask the API key in the logs
+        run: echo "::add-mask::$(azd env get-value SMI_API_KEY)"
       - name: Build the core jar (the core image copies it)
         working-directory: core
         run: sbt assembly

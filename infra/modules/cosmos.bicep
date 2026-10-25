@@ -10,6 +10,7 @@ var containers = [
   { name: 'insights', key: '/match_id' }
   { name: 'overlays', key: '/match_id' }
   { name: 'narrations', key: '/insight_id' }
+  { name: 'preferences', key: '/user_id' }
 ]
 
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {

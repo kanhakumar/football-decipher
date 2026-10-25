@@ -22,3 +22,11 @@ object Config:
     }
 
   def cosmosEndpoint: Option[String] = env("SMI_COSMOS_ENDPOINT")
+
+  /** Sign-in and keys (ADR-018): `SMI_AUTH=on` requires a token or the API key on every route but
+    * /health and /openapi.yaml. `SMI_AUTH_AUDIENCE` is the API app's client id (Entra ID tokens are
+    * accepted only with it); `SMI_API_KEY` is the service key (from Key Vault in Azure).
+    */
+  def authOn: Boolean = env("SMI_AUTH").contains("on")
+  def authAudience: Option[String] = env("SMI_AUTH_AUDIENCE")
+  def apiKey: Option[String] = env("SMI_API_KEY")

@@ -25,10 +25,12 @@ import httpx
 from mcp import Client, StdioServerParameters
 
 from smi_agents import overlay, tracing
+from smi_agents.auth import Gate, core_headers
 from smi_agents.cache import open_cache
 from smi_agents.facts import McpTools, ToolError
 from smi_agents.follow import follow, insight_stream
 from smi_agents.model import FoundryModel, Model, StubModel
+from smi_agents.preferences import open_preferences
 from smi_agents.types import LANGS, NarrationRequest
 from smi_agents.workflow import Narration, Narrator, warm_up
 
@@ -85,7 +87,7 @@ async def narrate_cmd(args: argparse.Namespace) -> None:
 
 async def follow_cmd(args: argparse.Namespace) -> None:
     async with (
-        httpx.AsyncClient(base_url=args.core, timeout=30) as http,
+        httpx.AsyncClient(base_url=args.core, timeout=30, headers=core_headers()) as http,
         mcp_client(args.core, args.mcp_url) as client,
         open_cache() as cache,
     ):
@@ -114,10 +116,21 @@ async def serve_cmd(args: argparse.Namespace) -> None:
 
     from smi_agents.service import create_app
 
-    async with mcp_client(args.core, args.mcp_url) as client, open_cache() as cache:
+    try:
+        gate = Gate.from_env()
+    except ValueError as e:
+        raise SystemExit(f"error: {e}") from None
+    async with (
+        mcp_client(args.core, args.mcp_url) as client,
+        open_cache() as cache,
+        open_preferences() as preferences,
+    ):
         tools = McpTools(client)
         await warm_up(tools)
-        app = create_app(Narrator(tools, args.narration_model, cache))
+        app = create_app(
+            Narrator(tools, args.narration_model, cache), gate=gate, preferences=preferences
+        )
+        log.info("sign-in: %s", "off" if gate is None else "on")
         config = uvicorn.Config(app, host=args.host, port=args.port, log_level="warning")
         log.info("agent service on http://%s:%d (core %s)", args.host, args.port, args.core)
         await uvicorn.Server(config).serve()

@@ -5,11 +5,14 @@
 
 import { GROUPS, InsightBook, displayClock, groupOf, scoreAt, shapeDots, tierOf, toScreen } from "./match.js";
 import { OverlayQueue, ViewerClock, suggestDelay } from "./timeline.js";
+import { createAuth } from "./auth.js";
+import { followStream } from "./sse.js";
 
 const params = new URLSearchParams(location.search);
 const deployed = window.SMI_CONFIG ?? {}; // config.js: written by azd at deploy, local defaults here
 const CORE = params.get("core") ?? deployed.core ?? "http://127.0.0.1:8080";
 const AGENTS = params.get("agents") ?? deployed.agents ?? "http://127.0.0.1:8090";
+const auth = createAuth(deployed.auth); // Entra ID sign-in when config.js names an app (ADR-018)
 const SVG = "http://www.w3.org/2000/svg";
 const $ = (id) => document.getElementById(id);
 
@@ -84,6 +87,63 @@ function saveSettings() {
   } catch {
     /* private mode: settings last for this page only */
   }
+  savePreferences();
+}
+
+// ---------------------------------------------------------------- sign-in and preferences
+
+const PREFERENCE_KEYS = ["persona", "lang", "team", "player", "metric", "groups"];
+let preferenceTimer = null;
+
+/** A signed-in viewer's settings follow them to any device (the agent service keeps them). */
+async function loadPreferences() {
+  if (!auth.account) return;
+  try {
+    const p = await agents("/api/me/preferences");
+    if (!p.saved) return savePreferences(); // first visit: keep what this browser had
+    for (const k of PREFERENCE_KEYS) state.settings[k] = p[k];
+    try {
+      localStorage.setItem("decipher.settings", JSON.stringify(state.settings));
+    } catch {
+      /* private mode */
+    }
+    syncSettingControls();
+  } catch (e) {
+    toast(`Could not load your preferences: ${e.message}`, "warn");
+  }
+}
+
+function savePreferences() {
+  if (!auth.account) return;
+  clearTimeout(preferenceTimer);
+  const body = Object.fromEntries(PREFERENCE_KEYS.map((k) => [k, state.settings[k]]));
+  preferenceTimer = setTimeout(() => {
+    agents("/api/me/preferences", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch((e) => toast(`Could not save your preferences: ${e.message}`, "warn"));
+  }, 500);
+}
+
+function renderAccount() {
+  const box = $("account");
+  box.hidden = !auth.enabled;
+  if (!auth.enabled) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "link";
+  if (auth.account) {
+    const who = document.createElement("span");
+    who.textContent = `Signed in as ${auth.account.name ?? auth.account.username}`;
+    button.textContent = "Sign out";
+    button.addEventListener("click", () => auth.signOut());
+    box.replaceChildren(who, button);
+  } else {
+    button.textContent = "Sign in";
+    button.addEventListener("click", () => auth.signIn());
+    box.replaceChildren(button);
+  }
 }
 
 function bindFilters() {
@@ -109,9 +169,19 @@ function bindFilters() {
   );
 }
 
+const SETTING_FIELDS = { persona: "persona", lang: "lang", team: "fav-team", player: "fav-player", metric: "metric" };
+
+/** Puts the settings into the controls (after loading a signed-in user's preferences). */
+function syncSettingControls() {
+  for (const [key, id] of Object.entries(SETTING_FIELDS)) $(id).value = state.settings[key];
+  document.documentElement.lang = state.settings.lang;
+  bindFilters();
+  state.settingsVersion += 1;
+  renarrateAll();
+}
+
 function bindSettings() {
-  const fields = { persona: "persona", lang: "lang", team: "fav-team", player: "fav-player", metric: "metric" };
-  for (const [key, id] of Object.entries(fields)) {
+  for (const [key, id] of Object.entries(SETTING_FIELDS)) {
     const el = $(id);
     el.value = state.settings[key];
     el.addEventListener("change", () => {
@@ -128,8 +198,13 @@ function bindSettings() {
 
 // ---------------------------------------------------------------- core and agents
 
-async function core(path, init) {
-  const res = await fetch(CORE + path, init);
+/** Fetch with the signed-in user's token (none when sign-in is off). */
+async function authFetch(url, init = {}) {
+  return fetch(url, { ...init, headers: { ...(init.headers ?? {}), ...(await auth.headers()) } });
+}
+
+async function agents(path, init) {
+  const res = await authFetch(AGENTS + path, init);
   if (!res.ok) {
     const detail = await res.json().then((b) => b.error).catch(() => null);
     throw new Error(detail ?? `${path}: ${res.status}`);
@@ -137,18 +212,44 @@ async function core(path, init) {
   return res.json();
 }
 
+async function core(path, init) {
+  const res = await authFetch(CORE + path, init);
+  if (!res.ok) {
+    const detail = await res.json().then((b) => b.error).catch(() => null);
+    throw new Error(detail ?? `${path}: ${res.status}`);
+  }
+  return res.json();
+}
+
+/** Follows one core stream with the user's token, resuming after the last event on a dropped
+ * connection, until the match is over or the stream is aborted (a new run). */
 function openStream(path, types, handler) {
-  const es = new EventSource(CORE + path);
-  for (const t of types) es.addEventListener(t, (e) => handler(JSON.parse(e.data), t));
-  es.onerror = () => {
-    // The core ends every stream when the match is over; do not keep reconnecting to it.
-    if (!state.playback || ["finished", "idle"].includes(state.playback.status)) es.close();
-  };
-  return es;
+  const control = new AbortController();
+  let lastId = null;
+  (async () => {
+    while (!control.signal.aborted) {
+      try {
+        await followStream(CORE + path, {
+          signal: control.signal,
+          headers: async () => ({ ...(await auth.headers()), ...(lastId === null ? {} : { "Last-Event-ID": lastId }) }),
+          onEvent: (type, data, id) => {
+            if (id !== null) lastId = id;
+            if (types.includes(type)) handler(JSON.parse(data), type);
+          },
+        });
+      } catch {
+        if (control.signal.aborted) return;
+      }
+      // The core ends every stream when the match is over; do not keep reconnecting to it.
+      if (!state.playback || ["finished", "idle"].includes(state.playback.status)) return;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  })();
+  return control;
 }
 
 function connect() {
-  for (const es of state.streams) es.close();
+  for (const stream of state.streams) stream.abort();
   state.streams = [
     openStream("/api/stream/events", ["match_meta", "lineup", "event", "tracking_frame"], onEnvelope),
     openStream("/api/stream/insights", ["insight"], onInsight),
@@ -384,7 +485,7 @@ async function requestLine(insightId, mode) {
   const s = state.settings;
   const version = state.settingsVersion;
   const started = performance.now();
-  const res = await fetch(`${AGENTS}/api/narrate`, {
+  const res = await authFetch(`${AGENTS}/api/narrate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -878,16 +979,29 @@ function bindControls() {
 
 // ---------------------------------------------------------------- start
 
+try {
+  await auth.init();
+} catch (e) {
+  toast(`Sign-in could not load: ${e.message}`, "bad");
+}
+renderAccount();
 bindSettings();
 bindFilters();
 bindControls();
-await checkAgents();
-await pollState();
-setInterval(pollState, 1000);
-setInterval(checkAgents, 10_000);
-setInterval(refreshMomentum, 3000);
-setInterval(refreshPlayerPanel, 5000);
-setInterval(renderMoments, 2000);
+$("signin").addEventListener("click", () => auth.signIn());
+if (auth.enabled && !auth.account) {
+  $("signin-gate").hidden = false; // everything behind the gate needs a signed-in user
+  $("status").textContent = "Sign in to watch.";
+} else {
+  await loadPreferences();
+  await checkAgents();
+  await pollState();
+  setInterval(pollState, 1000);
+  setInterval(checkAgents, 10_000);
+  setInterval(refreshMomentum, 3000);
+  setInterval(refreshPlayerPanel, 5000);
+  setInterval(renderMoments, 2000);
+}
 (function loop() {
   frame();
   requestAnimationFrame(loop);

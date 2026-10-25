@@ -76,7 +76,7 @@ Prompt: "Create Bicep and azd for Event Hubs, Cosmos DB (serverless), Container 
 Done when: one `azd up` brings up everything and the eval gate runs in CI.
 
 ## Step 13b: Live fixes, interpreted moments, sign-in (plan, 1 day) [ ] IN PROGRESS
-From testing the deployed app: cards must always show (template line first, model line upgrades it), buttons give feedback, moments interpret the match (context facts, pressing, shape, key passes) and say why they matter, people sign in with Entra ID and servers use an API key. Then a React viewer, built separately with its own tests, replaces /viewer once its parity suite passes. Plan: phases A (cards, loaders), B (interpreted moments, ADR-017), C (sign-in and API keys), D (React viewer).
+From testing the deployed app: cards must always show (template line first, model line upgrades it), buttons give feedback, moments interpret the match (context facts, pressing, shape, key passes) and say why they matter, people sign in with Entra ID and servers use an API key. Then a React viewer, built separately with its own tests, replaces /viewer once its parity suite passes. Plan: phases A (cards, loaders) and B (interpreted moments, ADR-017) done; C (sign-in and API keys, ADR-018) built, live once the app registrations exist; D (React viewer).
 Open for phase D: after Start the pitch stays blank for the viewer delay (delay_s / speed real seconds) and then starts at 0:00; show a kickoff countdown or pre-match screen instead.
 Done when: on Azure at 10x every moment of 0.5 or more shows a card on time, the press, shape and key-pass moments say why they matter, and the APIs refuse calls without a token or key.
 

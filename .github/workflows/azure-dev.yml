@@ -73,7 +73,7 @@ jobs:
       - name: Build the core jar (the core image copies it)
         working-directory: core
         run: sbt assembly
-      - name: Build the viewer (after provision: it includes the config.js the hook wrote)
+      - name: Build the viewer after provisioning, so it includes the config.js the hook wrote
         working-directory: web
         run: |
           npm ci

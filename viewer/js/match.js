@@ -12,9 +12,9 @@ export function toScreen(teamId, homeId, x, y) {
  * line alone covers the routine ones as a corner card, and the rest only reach the ticker. */
 export const TIERS = { model: 0.5, template: 0.35 };
 
-export function tierOf(importance) {
-  if (importance >= TIERS.model) return "model";
-  if (importance >= TIERS.template) return "template";
+export function tierOf(importance, cuts = { modelMin: TIERS.model, templateMin: TIERS.template }) {
+  if (importance >= cuts.modelMin) return "model";
+  if (importance >= cuts.templateMin) return "template";
   return "ticker";
 }
 

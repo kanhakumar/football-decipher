@@ -31,6 +31,7 @@ from smi_agents.facts import McpTools, ToolError
 from smi_agents.follow import follow, insight_stream
 from smi_agents.model import FoundryModel, Model, StubModel
 from smi_agents.preferences import open_preferences
+from smi_agents.settings import follow_settings
 from smi_agents.types import LANGS, NarrationRequest
 from smi_agents.workflow import Narration, Narrator, warm_up
 
@@ -133,7 +134,14 @@ async def serve_cmd(args: argparse.Namespace) -> None:
         log.info("sign-in: %s", "off" if gate is None else "on")
         config = uvicorn.Config(app, host=args.host, port=args.port, log_level="warning")
         log.info("agent service on http://%s:%d (core %s)", args.host, args.port, args.core)
-        await uvicorn.Server(config).serve()
+        # Settings from the core's /api/config every 30 s (ADR-019), beside the server.
+        async with (
+            httpx.AsyncClient(base_url=args.core, headers=core_headers()) as http,
+            anyio.create_task_group() as tg,
+        ):
+            tg.start_soon(follow_settings, http)
+            await uvicorn.Server(config).serve()
+            tg.cancel_scope.cancel()
 
 
 COMMANDS = {"narrate": narrate_cmd, "follow": follow_cmd, "serve": serve_cmd}

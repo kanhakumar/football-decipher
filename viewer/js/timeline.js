@@ -44,8 +44,11 @@ export const MIN_DELAY_S = 30;
 export const MAX_DELAY_S = 600; // the core's limit
 
 /** The viewer delay (video seconds) that leaves the model NARRATION_BUDGET_S of real time. */
-export function suggestDelay(speed) {
-  return Math.min(MAX_DELAY_S, Math.max(MIN_DELAY_S, Math.ceil(speed * NARRATION_BUDGET_S)));
+export function suggestDelay(
+  speed,
+  { narrationBudgetS = NARRATION_BUDGET_S, minDelayS = MIN_DELAY_S, maxDelayS = MAX_DELAY_S } = {},
+) {
+  return Math.min(maxDelayS, Math.max(minDelayS, Math.ceil(speed * narrationBudgetS)));
 }
 
 /** Screen slots: the lower third, the corner card and drawings on the pitch. */

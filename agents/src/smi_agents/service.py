@@ -26,8 +26,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-from smi_agents import overlay
-from smi_agents.auth import AuthMiddleware, Gate
+from smi_agents import overlay, settings
+from smi_agents.auth import ANONYMOUS, AuthMiddleware, Gate
 from smi_agents.facts import StaleRequest, ToolError
 from smi_agents.preferences import InMemoryPreferences, Preferences, PreferenceStore
 from smi_agents.types import NarrationRequest
@@ -46,6 +46,24 @@ def cors_origins(env: Mapping[str, str] = os.environ) -> list[str]:
     """SMI_CORS_ORIGINS, comma-separated: `*` locally, the viewer's origin when deployed."""
     raw = env.get("SMI_CORS_ORIGINS", "*")
     return [o.strip() for o in raw.split(",") if o.strip()] or ["*"]
+
+
+class SettingsCORS:
+    """CORS whose allowed origins follow the settings (access:cors_origins, ADR-019), or a
+    fixed list (tests). One CORSMiddleware per distinct list."""
+
+    def __init__(self, app: Any, fixed: list[str] | None = None) -> None:
+        self.app = app
+        self.fixed = fixed
+        self.by_origins: dict[tuple[str, ...], CORSMiddleware] = {}
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        origins = tuple(self.fixed if self.fixed is not None else settings.current.cors_origins)
+        if origins not in self.by_origins:
+            self.by_origins[origins] = CORSMiddleware(
+                self.app, allow_origins=list(origins), allow_methods=["*"], allow_headers=["*"]
+            )
+        await self.by_origins[origins](scope, receive, send)
 
 
 def create_app(
@@ -108,7 +126,7 @@ def create_app(
         return JSONResponse({**body, "saved": prefs is not None})
 
     async def put_preferences(request: Request) -> JSONResponse:
-        if request.state.user == "service":
+        if request.state.user in ("service", ANONYMOUS):
             return JSONResponse({"error": "preferences belong to a signed-in user"}, 403)
         try:
             prefs = Preferences.model_validate(await request.json())
@@ -126,12 +144,7 @@ def create_app(
         ],
         # The viewer is a static page on another origin.
         middleware=[
-            Middleware(
-                CORSMiddleware,
-                allow_origins=cors_origins() if origins is None else origins,
-                allow_methods=["*"],
-                allow_headers=["*"],
-            ),
+            Middleware(SettingsCORS, fixed=origins),
             Middleware(AuthMiddleware, gate=gate),  # inside CORS: refusals carry its headers
         ],
     )

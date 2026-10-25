@@ -14,7 +14,7 @@ from functools import cache
 from importlib.resources import files
 from typing import Any, Literal, Protocol
 
-from smi_agents import templates
+from smi_agents import settings, templates
 from smi_agents.types import FactSheet, Line, NarrationRequest
 
 Task = Literal["explain", "narrate", "localize"]
@@ -104,16 +104,33 @@ class FoundryModel(ChatClientModel):
     signed in with `DefaultAzureCredential` (managed identity in Azure, `az login` locally)."""
 
     def __init__(self, endpoint: str, deployment: str = DEFAULT_DEPLOYMENT, client: Any = None):
-        if client is None:
-            from agent_framework_foundry import FoundryChatClient
-            from azure.identity.aio import DefaultAzureCredential
-
-            client = FoundryChatClient(
-                project_endpoint=endpoint, model=deployment, credential=DefaultAzureCredential()
-            )
-        super().__init__(client, name=f"foundry:{deployment}", options=FOUNDRY_OPTIONS)
+        own = client is None
+        super().__init__(
+            client or self._client(endpoint, deployment), name="", options=FOUNDRY_OPTIONS
+        )
         self.endpoint = endpoint
         self.deployment = deployment
+        self.name = f"foundry:{deployment}"
+        self.own_client = own
+
+    @staticmethod
+    def _client(endpoint: str, deployment: str) -> Any:
+        from agent_framework_foundry import FoundryChatClient
+        from azure.identity.aio import DefaultAzureCredential
+
+        return FoundryChatClient(
+            project_endpoint=endpoint, model=deployment, credential=DefaultAzureCredential()
+        )
+
+    async def complete(self, task: Task, system: str, payload: dict[str, Any]) -> str:
+        # The deployment and reasoning effort follow the settings (ADR-019), per call.
+        s = settings.current
+        if s.model_deployment != self.deployment and self.own_client:
+            self.client = self._client(self.endpoint, s.model_deployment)
+            self.deployment = s.model_deployment
+            self.name = f"foundry:{s.model_deployment}"
+        self.options = {**FOUNDRY_OPTIONS, "reasoning": {"effort": s.reasoning_effort}}
+        return await super().complete(task, system, payload)
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] = os.environ, client: Any = None) -> "FoundryModel":

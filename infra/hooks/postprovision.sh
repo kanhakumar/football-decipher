@@ -16,3 +16,9 @@ if [ -n "${AUTH_VIEWER_CLIENT_ID:-}" ] && [ -n "${AUTH_API_CLIENT_ID:-}" ]; then
 fi
 printf "window.SMI_CONFIG = { core: '%s', agents: '%s'%s };\n" "$CORE_URL" "$AGENTS_URL" "$auth" > "$target"
 echo "Wrote $target (core $CORE_URL, agents $AGENTS_URL, sign-in $([ -n "$auth" ] && echo on || echo off))"
+
+# Settings (ADR-019): add the config/app.yaml keys the store does not have yet; values edited
+# in the portal are kept.
+if [ -n "${SMI_APPCONFIG_NAME:-}" ]; then
+  python "$here/seed_settings.py" "$SMI_APPCONFIG_NAME" "$here/../../config/app.yaml" "${VIEWER_URL:-}"
+fi

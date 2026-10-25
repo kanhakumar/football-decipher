@@ -19,6 +19,8 @@ object Routes:
   val paths: List[String] = List(
     "/health",
     "/openapi.yaml",
+    "/api/config",
+    "/api/config/reload",
     "/api/match/start",
     "/api/match/pause",
     "/api/match/resume",
@@ -75,7 +77,7 @@ object Routes:
       .orElse(req.headers.get[headers.`Last-Event-Id`].flatMap(_.id.value.toIntOption).map(_ + 1))
       .getOrElse(0)
 
-  def apply(hub: Hub): HttpRoutes[IO] =
+  def apply(hub: Hub, settings: SettingsHub = SettingsHub.static): HttpRoutes[IO] =
     def window(
         period: Option[Int],
         from: Option[Double],
@@ -89,6 +91,10 @@ object Routes:
         Ok(openApi).map(
           _.withContentType(`Content-Type`(MediaType.unsafeParse("application/yaml")))
         )
+
+      // ---- settings (ADR-019) ----
+      case GET -> Root / "api" / "config"             => settings.get.flatMap(s => Ok(s.asJson))
+      case POST -> Root / "api" / "config" / "reload" => settings.reload.flatMap(s => Ok(s.asJson))
 
       // ---- match control ----
       case req @ POST -> Root / "api" / "match" / "start" :? Seed(seed) =>
@@ -111,7 +117,15 @@ object Routes:
                 r.delayS.getOrElse(d.delayS),
                 r.tracking.getOrElse(d.tracking)
               )
-              hub.start(cfg).flatMap(res => answer(res.map(Tools.state)))
+              settings.get.flatMap { s =>
+                if cfg.delayS > s.maxDelayS then
+                  BadRequest(
+                    ErrorView(
+                      s"delay_s ${cfg.delayS} is above match:max_delay_s ${s.maxDelayS}"
+                    ).asJson
+                  )
+                else hub.start(cfg).flatMap(res => answer(res.map(Tools.state)))
+              }
         }
       case POST -> Root / "api" / "match" / "pause" => hub.pause.flatMap(p => json(Tools.state(p)))
       case POST -> Root / "api" / "match" / "resume" =>

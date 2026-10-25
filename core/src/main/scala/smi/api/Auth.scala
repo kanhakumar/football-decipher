@@ -72,7 +72,7 @@ object EntraTokens:
   * `X-API-Key: <key>`. CORS preflights are answered before this runs (Main wraps it in CORS).
   */
 object Auth:
-  val Public: Set[String] = Set("/health", "/openapi.yaml")
+  val Public: Set[String] = Set("/health", "/openapi.yaml", "/api/config")
   val KeyHeader: CIString = ci"X-API-Key"
 
   def sameKey(sent: String, expected: String): Boolean =
@@ -94,17 +94,28 @@ object Auth:
         tokens.toRight("sign-in is not configured").flatMap(_.verify(t)).map(Caller.User(_))
       case _ => Left("sign in, or send an API key")
 
-  def apply(apiKey: Option[String], tokens: Option[EntraTokens])(app: HttpApp[IO]): HttpApp[IO] =
+  /** `required` is read per request: with `access:sign_in_required` false (ADR-019) anyone gets in,
+    * and a token or key, when sent, is simply not needed.
+    */
+  def apply(
+      apiKey: Option[String],
+      tokens: Option[EntraTokens],
+      required: IO[Boolean] = IO.pure(true)
+  )(app: HttpApp[IO]): HttpApp[IO] =
     Kleisli { req =>
       if Public(req.uri.path.renderString) || req.method == Method.OPTIONS then app(req)
       else
-        IO.blocking(caller(req, apiKey, tokens)).flatMap {
-          case Right(_) => app(req)
-          case Left(why) =>
-            IO.pure(
-              Response[IO](Status.Unauthorized)
-                .withEntity(ErrorView(why).asJson)
-                .putHeaders(Header.Raw(ci"WWW-Authenticate", "Bearer"))
-            )
-        }
+        required
+          .flatMap(r =>
+            if r then IO.blocking(caller(req, apiKey, tokens)) else IO.pure(Right(Caller.Service))
+          )
+          .flatMap {
+            case Right(_) => app(req)
+            case Left(why) =>
+              IO.pure(
+                Response[IO](Status.Unauthorized)
+                  .withEntity(ErrorView(why).asJson)
+                  .putHeaders(Header.Raw(ci"WWW-Authenticate", "Bearer"))
+              )
+          }
     }

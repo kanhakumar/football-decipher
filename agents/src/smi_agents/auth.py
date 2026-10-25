@@ -17,10 +17,13 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from smi_agents import settings
+
 SCOPE = "access_as_user"
 KEYS_URL = "https://login.microsoftonline.com/common/discovery/v2.0/keys"
 PUBLIC = {"/health"}
 LOCAL_USER = "local"
+ANONYMOUS = "anonymous"  # sign-in not required (access:sign_in_required false, ADR-019)
 
 
 class AuthError(Exception):
@@ -115,6 +118,10 @@ class AuthMiddleware:
         try:
             scope["state"]["user"] = self.gate.caller(request.headers)
         except AuthError as e:
+            if not settings.current.sign_in_required:
+                scope["state"]["user"] = ANONYMOUS
+                await self.app(scope, receive, send)
+                return
             response = JSONResponse(
                 {"error": str(e)}, status_code=401, headers={"WWW-Authenticate": "Bearer"}
             )

@@ -1,0 +1,52 @@
+# Settings you can change while the demo runs (ADR-019). These are the defaults. In Azure the same
+# keys live in App Configuration (portal: App Configuration > Configuration explorer), written as
+# group:name, for example match:speed. A value set there wins over the one here.
+# The core reads the store every 2 minutes; the agent service and the viewer take the settings from
+# the core (GET /api/config), so a change reaches everything within about 2.5 minutes, with no
+# restart. A value that does not parse or is out of range is ignored and listed in /api/config.
+# Endpoints, identities, keys and app registrations are infrastructure (Bicep), not settings.
+
+match:
+  # Seed the Start form offers. 154 is the demo match (2-2, red card at 76').
+  seed: 154
+  # Playback speed the Start form offers (0.25 to 600).
+  speed: 10
+  # Whether the Start form ticks Tracking (5 Hz player positions; larger feed).
+  tracking: false
+  # Real seconds of head start the model gets per moment: the viewer suggests a delay of
+  # speed x this, at least min_delay_s and at most max_delay_s (video seconds). 4 to 60.
+  narration_budget_s: 12
+  # Smallest viewer delay the Start form suggests, in video seconds (0 to 600).
+  min_delay_s: 30
+  # Largest viewer delay the core accepts and the form suggests, in video seconds (30 to 600).
+  max_delay_s: 600
+
+moments:
+  # Moments at or above this importance get a model line (0 to 1).
+  model_min_importance: 0.5
+  # Moments at or above this, and below the model cut, get a template corner card; below it the
+  # ticker only (0 to 1, not above model_min_importance).
+  template_min_importance: 0.35
+  # Least wall time a card stays on screen, so it can be read at fast playback (1000 to 15000 ms).
+  card_min_show_ms: 4500
+  # Model narrations a viewer runs at once (1 to 4).
+  model_slots: 2
+
+narration:
+  # Foundry model deployment the agent service calls. It must exist in the Foundry project.
+  model_deployment: gpt-5-mini
+  # Reasoning effort for the model: minimal, low or medium (higher is slower).
+  reasoning_effort: minimal
+  # Model attempts per stage before the template line is used (1 to 5).
+  max_attempts: 3
+  # Persona and language a first-time viewer starts with.
+  default_persona: casual
+  default_lang: en
+
+access:
+  # Whether viewers must sign in. false opens the demo to anyone (sign-in stays available to keep
+  # preferences); services still send the API key.
+  sign_in_required: true
+  # Browser origins allowed to call the APIs, comma separated; * for any. Deploys seed it with the
+  # viewer's address.
+  cors_origins: "*"

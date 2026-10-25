@@ -20,14 +20,14 @@ from typing import Any, Literal, Never
 from agent_framework import Executor, Workflow, WorkflowBuilder, WorkflowContext, handler
 from pydantic import ValidationError
 
-from smi_agents import templates
+from smi_agents import settings, templates
 from smi_agents.cache import InMemoryCache, NarrationCache
 from smi_agents.facts import StaleRequest, Tools, gather
 from smi_agents.model import Model, Task, system_prompt
 from smi_agents.types import FactSheet, Lang, Line, NarrationRequest, Verdict
 from smi_agents.verifier import verify
 
-MAX_ATTEMPTS = 3
+MAX_ATTEMPTS = 3  # the default; narration:max_attempts in the settings (ADR-019) applies
 # Publish and Template are terminal by design; the framework warns about them on every build.
 logging.getLogger("agent_framework._workflows._validation").setLevel(logging.ERROR)
 Stage = Literal["narrate", "localize"]
@@ -270,15 +270,19 @@ def _done(c: Checked) -> bool:
 def _to_localize(c: Checked) -> bool:
     if c.verdict.ok:
         return c.draft.stage == "narrate" and c.draft.job.request.lang != "en"
-    return c.draft.stage == "localize" and c.draft.attempt < MAX_ATTEMPTS
+    return c.draft.stage == "localize" and c.draft.attempt < settings.current.max_attempts
 
 
 def _retry_narrate(c: Checked) -> bool:
-    return not c.verdict.ok and c.draft.stage == "narrate" and c.draft.attempt < MAX_ATTEMPTS
+    return (
+        not c.verdict.ok
+        and c.draft.stage == "narrate"
+        and c.draft.attempt < settings.current.max_attempts
+    )
 
 
 def _give_up(c: Checked) -> bool:
-    return not c.verdict.ok and c.draft.attempt >= MAX_ATTEMPTS
+    return not c.verdict.ok and c.draft.attempt >= settings.current.max_attempts
 
 
 def build(tools: Tools, model: Model) -> Workflow:

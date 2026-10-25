@@ -9,6 +9,7 @@
     "agentsImageName": { "value": "${SERVICE_AGENTS_IMAGE_NAME=}" },
     "deployerPrincipalId": { "value": "${AZURE_PRINCIPAL_ID=}" },
     "apiKey": { "value": "${SMI_API_KEY=}" },
-    "authApiClientId": { "value": "${AUTH_API_CLIENT_ID=}" }
+    "authApiClientId": { "value": "${AUTH_API_CLIENT_ID=}" },
+    "configEditorPrincipalId": { "value": "${CONFIG_EDITOR_PRINCIPAL_ID=}" }
   }
 }

@@ -20,6 +20,8 @@ param modelDeployment string
 param apiKey string = ''
 @description('fd-api client id: tokens for it are accepted. Sign-in is on only with both.')
 param authApiClientId string = ''
+@description('App Configuration endpoint the core reads the settings from (ADR-019).')
+param appConfigEndpoint string = ''
 
 var coreName = 'ca-core-${token}'
 var identity = {
@@ -97,6 +99,7 @@ resource core 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'SMI_HOST', value: '0.0.0.0' }
             { name: 'SMI_COSMOS_ENDPOINT', value: cosmosEndpoint }
             { name: 'SMI_CORS_ORIGINS', value: corsOrigin }
+            { name: 'SMI_APPCONFIG_ENDPOINT', value: appConfigEndpoint }
           ])
         }
       ]

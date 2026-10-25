@@ -30,3 +30,7 @@ object Config:
   def authOn: Boolean = env("SMI_AUTH").contains("on")
   def authAudience: Option[String] = env("SMI_AUTH_AUDIENCE")
   def apiKey: Option[String] = env("SMI_API_KEY")
+
+  /** Azure App Configuration endpoint for the settings (ADR-019); none locally (config/app.yaml).
+    */
+  def appConfigEndpoint: Option[String] = env("SMI_APPCONFIG_ENDPOINT")

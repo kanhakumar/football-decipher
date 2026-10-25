@@ -22,6 +22,28 @@ paths:
       summary: This document
       responses:
         "200": { description: OpenAPI document, content: { application/yaml: { schema: { type: string } } } }
+  /api/config:
+    get:
+      summary: The settings in effect (ADR-019), public
+      description: |
+        Every adjustable setting (config/app.yaml keys as group:name) with its value, where it came
+        from (default or app_configuration) and any store value that was ignored, and why.
+      responses:
+        "200":
+          description: settings, sources, problems
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings: { type: object, additionalProperties: true }
+                  sources: { type: object, additionalProperties: { type: string, enum: [default, app_configuration] } }
+                  problems: { type: array, items: { type: string } }
+  /api/config/reload:
+    post:
+      summary: Read App Configuration now instead of at the next 2-minute refresh
+      responses:
+        "200": { description: the settings in effect, same shape as GET /api/config }
   /api/match/start:
     post:
       summary: Start (or restart) a replayed match

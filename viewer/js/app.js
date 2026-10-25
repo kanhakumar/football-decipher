@@ -7,6 +7,7 @@ import { GROUPS, InsightBook, displayClock, groupOf, scoreAt, shapeDots, tierOf,
 import { OverlayQueue, ViewerClock, suggestDelay } from "./timeline.js";
 import { createAuth } from "./auth.js";
 import { followStream } from "./sse.js";
+import { viewSettings } from "./settings.js";
 
 const params = new URLSearchParams(location.search);
 const deployed = window.SMI_CONFIG ?? {}; // config.js: written by azd at deploy, local defaults here
@@ -43,7 +44,7 @@ const BASIS_SHORT = { event_data: "events", tracking: "tracking", event_estimate
 
 const clock = new ViewerClock();
 const queue = new OverlayQueue({ minShowMs: 4500 });
-const MODEL_SLOTS = 2; // model narrations in flight at once
+let view = viewSettings(null); // the core's settings (ADR-019), refreshed every 60 s
 const book = new InsightBook();
 
 const state = {
@@ -73,7 +74,8 @@ const state = {
 // ---------------------------------------------------------------- settings
 
 function loadSettings() {
-  const fallback = { persona: "casual", lang: "en", team: "", player: "", metric: "", groups: Object.keys(GROUPS) };
+  // A first-time viewer's persona and language come from the settings once they load.
+  const fallback = { persona: "", lang: "", team: "", player: "", metric: "", groups: Object.keys(GROUPS) };
   try {
     return { ...fallback, ...JSON.parse(localStorage.getItem("decipher.settings") ?? "{}") };
   } catch {
@@ -431,7 +433,7 @@ function drawFrame(f) {
 
 function onInsight(insight) {
   for (const id of book.add(insight)) withdraw(id);
-  const tier = tierOf(insight.importance);
+  const tier = tierOf(insight.importance, view);
   if (insight.status === "retracted" || tier === "ticker") return;
   state.moments.set(insight.insight_id, { insight, tier });
   enqueueNarration(insight.insight_id);
@@ -447,7 +449,7 @@ function withdraw(insightId) {
 }
 
 // Every moment gets the template line at once (D4: a card is on the timeline before its moment),
-// then the model line, which replaces it in place. Model requests run MODEL_SLOTS at a time,
+// then the model line, which replaces it in place. Model requests run view.modelSlots at a time,
 // the moment the viewer reaches first going first.
 const waiting = new Set();
 let inFlight = 0;
@@ -460,7 +462,7 @@ function enqueueNarration(insightId) {
 }
 
 function pumpModel() {
-  while (inFlight < MODEL_SLOTS && waiting.size) {
+  while (inFlight < view.modelSlots && waiting.size) {
     const next = [...waiting].sort(
       (a, b) => (state.moments.get(a)?.insight.video_ts_ms ?? 0) - (state.moments.get(b)?.insight.video_ts_ms ?? 0),
     )[0];
@@ -917,6 +919,17 @@ async function refreshPlayerPanel() {
 
 // ---------------------------------------------------------------- controls
 
+/** The core's settings (public, no sign-in needed); the defaults stay if it does not answer. */
+async function loadView() {
+  try {
+    const res = await fetch(`${CORE}/api/config`);
+    if (res.ok) view = viewSettings(await res.json());
+  } catch {
+    /* keep what we have */
+  }
+  queue.minShowMs = view.cardMinShowMs;
+}
+
 function toast(message, kind = "") {
   const t = document.createElement("div");
   t.className = `toast ${kind}`;
@@ -942,7 +955,7 @@ async function busy(button, action) {
 function bindControls() {
   $("speed").addEventListener("input", () => {
     const speed = Number($("speed").value);
-    if (speed > 0) $("delay").value = suggestDelay(speed);
+    if (speed > 0) $("delay").value = suggestDelay(speed, view);
   });
   $("start-form").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -984,12 +997,21 @@ try {
 } catch (e) {
   toast(`Sign-in could not load: ${e.message}`, "bad");
 }
+await loadView();
+// The Start form offers the configured match; a first-time viewer gets the default view.
+$("seed").value = view.seed;
+$("speed").value = view.speed;
+$("tracking").checked = view.tracking;
+$("delay").value = suggestDelay(view.speed, view);
+state.settings.persona ||= view.defaultPersona;
+state.settings.lang ||= view.defaultLang;
 renderAccount();
 bindSettings();
 bindFilters();
 bindControls();
 $("signin").addEventListener("click", () => auth.signIn());
-if (auth.enabled && !auth.account) {
+setInterval(loadView, 60_000);
+if (auth.enabled && !auth.account && view.signInRequired) {
   $("signin-gate").hidden = false; // everything behind the gate needs a signed-in user
   $("status").textContent = "Sign in to watch.";
 } else {

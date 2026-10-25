@@ -31,6 +31,9 @@ param apiKey string = ''
 @description('Client id of the fd-api app registration (infra/scripts/entra-apps.sh). With the API key it turns sign-in on.')
 param authApiClientId string = ''
 
+@description('Object id of the person who edits the settings in the portal (App Configuration Data Owner).')
+param configEditorPrincipalId string = ''
+
 var tags = { 'azd-env-name': environmentName }
 var token = toLower(uniqueString(subscription().id, environmentName, location))
 // Known before deployment, so role assignment names derived from it show in what-if.
@@ -97,6 +100,18 @@ module foundry 'modules/foundry.bicep' = {
   }
 }
 
+module settings 'modules/appconfig.bicep' = {
+  scope: rg
+  params: {
+    location: location
+    tags: tags
+    token: token
+    principalId: identity.outputs.principalId
+    identityId: identityResourceId
+    editorPrincipalIds: filter([deployerPrincipalId, configEditorPrincipalId], id => !empty(id))
+  }
+}
+
 module viewer 'modules/staticwebapp.bicep' = {
   scope: rg
   params: { location: location, tags: tags, token: token }
@@ -122,6 +137,7 @@ module apps 'modules/containerapps.bicep' = {
     modelDeployment: foundry.outputs.deploymentName
     apiKey: apiKey
     authApiClientId: authApiClientId
+    appConfigEndpoint: settings.outputs.endpoint
   }
   // Using the registry and Key Vault outputs makes the apps wait for those modules,
   // AcrPull and Key Vault Secrets User included.
@@ -146,3 +162,5 @@ output AZURE_OPENAI_ENDPOINT string = foundry.outputs.accountEndpoint
 output SMI_MODEL_DEPLOYMENT string = foundry.outputs.deploymentName
 output SMI_COSMOS_ENDPOINT string = cosmos.outputs.endpoint
 output SMI_EVENTHUBS_NAMESPACE string = eventHubs.outputs.namespaceFqdn
+output SMI_APPCONFIG_ENDPOINT string = settings.outputs.endpoint
+output SMI_APPCONFIG_NAME string = settings.outputs.name

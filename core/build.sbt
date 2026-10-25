@@ -14,6 +14,8 @@ lazy val root = (project in file("."))
     scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked", "-Wunused:all"),
     Compile / run / fork := true,
     Compile / run / mainClass := Some("smi.Main"),
+    // The adjustable settings' defaults (ADR-019) ship in the jar as /app.yaml.
+    Compile / unmanagedResourceDirectories += baseDirectory.value / ".." / "config",
     // Scala 3 lazy vals still use sun.misc.Unsafe; JDK 25 warns on every forked run.
     Compile / run / javaOptions += "--sun-misc-unsafe-memory-access=allow",
     libraryDependencies ++= Seq(
@@ -32,6 +34,8 @@ lazy val root = (project in file("."))
       "com.azure" % "azure-identity" % azureIdentityVersion,
       // Sign-in (ADR-018): Entra ID access tokens checked against the identity platform's keys.
       "com.nimbusds" % "nimbus-jose-jwt" % "10.10",
+      // Settings changed in Azure while the demo runs (ADR-019).
+      "com.azure" % "azure-data-appconfiguration" % "1.10.2",
       // Warnings and errors from http4s and the Azure SDK reach stderr (simplelogger.properties).
       "org.slf4j" % "slf4j-simple" % "2.0.20",
       "org.scalameta" %% "munit" % "1.3.6" % Test,

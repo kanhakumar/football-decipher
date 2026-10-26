@@ -1,0 +1,31 @@
+# Pull requests go from feature branches into master only (ADR-022). release is never a pull
+# request target: the Promote workflow moves it to master. A required check on master.
+name: PR policy
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  policy:
+    name: PR policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Feature branch into master
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          if [ "$BASE" != "master" ]; then
+            echo "::error::Pull requests target master only, not '$BASE'. release is promoted from master by the Promote workflow."
+            exit 1
+          fi
+          case "$HEAD" in
+            feature/*) echo "ok: $HEAD -> master" ;;
+            *)
+              echo "::error::Open pull requests from a feature/... branch (this one is '$HEAD')."
+              exit 1
+              ;;
+          esac

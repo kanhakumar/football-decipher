@@ -1,0 +1,54 @@
+# Promote: moves release to the latest master (fast-forward only) and starts the Deploy workflow
+# there (ADR-022). Only the repository owner may run it. A push made with the workflow token does
+# not start other workflows, so this one starts Deploy itself.
+name: Promote master to release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to bump when the deploy's eval gate passes
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: write # push release
+  actions: write # start the Deploy workflow
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+      - name: Fast-forward release to master
+        id: ff
+        run: |
+          git fetch --quiet origin release
+          master=$(git rev-parse origin/master)
+          if [ "$(git rev-parse origin/release)" = "$master" ]; then
+            echo "release is already at master ($master); nothing to deploy." >> "$GITHUB_STEP_SUMMARY"
+            echo "moved=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git merge-base --is-ancestor origin/release origin/master; then
+            echo "::error::release has commits that are not on master. Promote only fast-forwards; it never rewrites release."
+            exit 1
+          fi
+          git push origin "$master:refs/heads/release"
+          echo "release moved to $master" >> "$GITHUB_STEP_SUMMARY"
+          echo "moved=true" >> "$GITHUB_OUTPUT"
+      - name: Start the deploy on release
+        if: steps.ff.outputs.moved == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ inputs.bump }}
+        run: gh workflow run Deploy --ref release -f bump="$BUMP"

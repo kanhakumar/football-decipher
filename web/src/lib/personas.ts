@@ -4,8 +4,9 @@
 
 import type { Insight, Persona } from "./types";
 
-const STORY = new Set(["goal", "red_card", "key_chance", "player_spotlight", "momentum_swing"]);
-const EVERYONE = new Set(["goal", "red_card"]);
+const STORY = new Set(["goal", "red_card", "key_chance", "player_spotlight", "momentum_swing", "full_time"]);
+// Goals, red cards and the full-time recap (ADR-023) reach every persona.
+const EVERYONE = new Set(["goal", "red_card", "full_time"]);
 
 /** Which facts make a moment about a metric (metric focus). */
 const METRIC_FACTS: Record<string, (key: string) => boolean> = {

@@ -57,11 +57,12 @@ export function suggestDelay(
   return Math.min(maxDelayS, Math.max(minDelayS, Math.ceil(speed * narrationBudgetS)));
 }
 
-/** Screen slots: the lower third, the corner card and drawings on the pitch. */
-export type Slot = "lower" | "corner" | "pitch";
-export const SLOTS: Slot[] = ["lower", "corner", "pitch"];
+/** Screen slots: the lower third, the corner card, drawings on the pitch and the full-time recap. */
+export type Slot = "lower" | "corner" | "pitch" | "recap";
+export const SLOTS: Slot[] = ["lower", "corner", "pitch", "recap"];
 
 export function slotOf(overlay: Overlay): Slot {
+  if (overlay.type === "recap_card") return "recap";
   if (overlay.style === "pitch_overlay") return "pitch";
   if (overlay.type === "scoreline_update" || overlay.style === "corner_card") return "corner";
   return "lower";

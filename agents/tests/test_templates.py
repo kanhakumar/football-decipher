@@ -2,7 +2,7 @@ import pytest
 
 from conftest import all_insight_ids
 from smi_agents import templates
-from smi_agents.facts import gather
+from smi_agents.facts import _numbers, _support, gather
 from smi_agents.types import LANGS, NarrationRequest
 from smi_agents.verifier import verify
 
@@ -20,6 +20,8 @@ REASON_CODES = {
     "pressure_without_reward", "press_while_chasing", "leaders_keep_the_ball",
     "pass_creates_big_chance", "creator_in_form", "line_breaking_pass",
     "sits_deep_to_protect_lead", "team_sits_deeper", "pushes_up_to_chase", "team_pushes_higher",
+    "full_time_win", "win_against_the_run_of_play", "full_time_draw", "late_equaliser_draw",
+    "ten_men_take_a_point",
 }  # fmt: skip
 
 PERSONAS = [
@@ -80,3 +82,46 @@ async def test_plain_personas_get_the_situation_not_the_statistics(sheets):
     red = sheets["red"]  # Northgate down to ten, 1-2
     es = templates.render(red, NarrationRequest(insight_id="I_1", persona="casual"), "es")
     assert es.body == "Northgate FC pierde 1-2 a falta de 14 minutos, y con uno menos."
+
+
+def _recap(sheet, code, **facts):
+    """The demo match's full-time recap with other final facts and reason code."""
+    f = {k: v for k, v in sheet.insight.facts.items() if not k.startswith("last_goal")} | facts
+    why = sheet.insight.why_it_matters.model_copy(update={"code": code})
+    insight = sheet.insight.model_copy(update={"facts": f, "why_it_matters": why})
+    return sheet.model_copy(
+        update={
+            "insight": insight,
+            "numbers": {"evidence_count": sheet.numbers["evidence_count"]} | _numbers(f),
+            "support": _support(insight, {}),
+        }
+    )
+
+
+async def test_every_recap_code_reads_right_in_every_language_and_persona(tools, core):
+    demo = await gather(tools, next(i for i in all_insight_ids(core) if i == "I_0035"))
+    assert (demo.insight.kind.value, demo.code) == ("full_time", "ten_men_take_a_point")
+    even = {"ctx_players_for": 11, "ctx_players_against": 11}
+    cases = [
+        demo,
+        _recap(demo, "full_time_win", team_goals=2, opponent_goals=1, ctx_score_for=2,
+               ctx_score_against=1, ctx_game_state="leading", team_xg=1.6, **even),
+        _recap(demo, "win_against_the_run_of_play", team_goals=1, opponent_goals=0,
+               ctx_score_for=1, ctx_score_against=0, ctx_game_state="leading", **even),
+        _recap(demo, "full_time_draw", team_goals=0, opponent_goals=0, ctx_score_for=0,
+               ctx_score_against=0, **even),
+        _recap(demo, "late_equaliser_draw", team_goals=1, opponent_goals=1, ctx_score_for=1,
+               ctx_score_against=1, last_goal_minute=88, last_goal_by_team=True, **even),
+        _recap(demo, "ten_men_take_a_point", team_goals=0, opponent_goals=0, ctx_score_for=0,
+               ctx_score_against=0),
+    ]  # fmt: skip
+    failures = []
+    for sheet in cases:
+        for req in PERSONAS:
+            for lang in LANGS:
+                line = templates.render(sheet, req, lang)
+                plain = templates.is_plain(req.persona)
+                verdict = verify(line, sheet, lang, plain)
+                if not verdict.ok:
+                    failures.append((sheet.code, lang, req.persona, verdict.reasons, line.body))
+    assert failures == []

@@ -43,7 +43,8 @@ object Moments:
         eventDetectors(minutesCompleted(next, BucketKey.of(e)), e)
       case Payload.Ev(e)     => eventDetectors(corrections(next, e.eventId, env.emittedAt), e)
       case Payload.Delete(d) => corrections(next, d.eventId, env.emittedAt)
-      case _                 => next
+      case Payload.Meta(m) if m.status == MatchStatus.FullTime => fullTimeFromStatus(next)
+      case _                                                   => next
 
   // ---- facts and publishing ----
 
@@ -105,10 +106,23 @@ object Moments:
   private def triggeredBy(s: MomentState, d: Detector, e: Event): Boolean =
     s.active.exists(p => p.detector == d && p.candidate.trigger.eventId == e.eventId)
 
+  private def done(s: MomentState, d: Detector): Boolean =
+    d.once && s.active.exists(_.detector == d)
+
+  /** A feed whose status turns full_time before (or without) the second half's period_end gets its
+    * recap from the last event (ADR-023); whichever comes first wins.
+    */
+  private def fullTimeFromStatus(s: MomentState): MomentState =
+    val d = Detectors.FullTime
+    F.events(s.engine).lastOption match
+      case Some(last) if !done(s, d) =>
+        publish(s, d, d.candidate(s.engine, last), last.wallclockUtc)
+      case _ => s
+
   private def eventDetectors(s: MomentState, e: Event): MomentState =
     s.engine.events.get(e.eventId).fold(s) { stored =>
       Detectors.all.foldLeft(s) { (acc, d) =>
-        if triggeredBy(acc, d, stored.event) then acc
+        if triggeredBy(acc, d, stored.event) || done(acc, d) then acc
         else
           d.onEvent(acc.engine, stored.event)
             .fold(acc)(c => publish(acc, d, c, stored.event.wallclockUtc))

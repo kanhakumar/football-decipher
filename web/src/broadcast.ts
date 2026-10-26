@@ -120,6 +120,8 @@ export interface Snapshot {
   tag: { x: number; y: number; label: string } | null;
   ticker: string;
   card: CardView | null;
+  /** The full-time recap (ADR-023), in the centre of the pitch until the next match. */
+  recap: CardView | null;
   corner: CornerView | null;
   shape: ShapeView | null;
   momentum: { home: number; label: string; figures: string } | null;
@@ -835,6 +837,7 @@ export class Broadcast {
       tag: this.tagView(wall),
       ticker: this.ticker,
       card: this.cardView(ts, wall),
+      recap: this.recapView(),
       corner: this.cornerView(),
       shape: this.shapeView(),
       momentum: this.momentum,
@@ -894,6 +897,11 @@ export class Broadcast {
     return pending ? this.pendingCard(pending) : null;
   }
 
+  private recapView(): CardView | null {
+    const item = this.queue.showing("recap");
+    return item ? this.card(item.overlay, false) : null;
+  }
+
   private card(o: ShownOverlay, retracted: boolean): CardView {
     const m = this.moments.get(o.insight_id ?? "");
     const lang = o.lang ?? "en";
@@ -926,7 +934,8 @@ export class Broadcast {
     if (ts === null) return null;
     for (const m of this.moments.values()) {
       const t = m.insight.video_ts_ms;
-      if (m.tier === "model" && !m.overlay && !m.retracted && this.visible(m) && t <= ts && ts < t + 8000) return m;
+      const lower = m.insight.kind !== "full_time"; // the recap waits in its own slot
+      if (lower && m.tier === "model" && !m.overlay && !m.retracted && this.visible(m) && t <= ts && ts < t + 8000) return m;
     }
     return null;
   }

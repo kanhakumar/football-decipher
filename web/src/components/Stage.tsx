@@ -24,6 +24,7 @@ export function Stage({ s, b }: { s: Snapshot; b: Broadcast }) {
       )}
       {s.shape && <div className="shape-caption">{s.shape.caption}</div>}
       {s.card && <LowerThird card={s.card} />}
+      {s.recap && <LowerThird card={s.recap} recap />}
       {s.momentum && (
         <footer className="momentum" aria-label="Momentum">
           <span className="label">{s.momentum.label}</span>
@@ -144,15 +145,16 @@ function LiveChip({ s }: { s: Snapshot }) {
   return <div className={`live-chip ${s.coreOk ? status ?? "" : ""}`}>{text}</div>;
 }
 
-export function LowerThird({ card }: { card: CardView }) {
+/** A narrated card: the lower third, or (`recap`) the full-time recap in the centre (ADR-023). */
+export function LowerThird({ card, recap = false }: { card: CardView; recap?: boolean }) {
   // Keyed by overlay: a model line that replaces the quick one swaps text without a new slide-in.
   return (
     <div
       key={card.pending ? card.key : `${card.overlayId}|${card.retracted}`}
-      className={`lower-third${card.retracted ? " retracted" : ""}${card.pending ? " pending" : ""}`}
+      className={`${recap ? "recap-card" : "lower-third"}${card.retracted ? " retracted" : ""}${card.pending ? " pending" : ""}`}
       aria-live="polite"
       lang={card.lang}
-      data-testid="lower-third"
+      data-testid={recap ? "recap-card" : "lower-third"}
     >
       <div className="stripe" style={{ background: card.away ? "var(--away)" : "var(--home)" }} />
       <div className="card-body">

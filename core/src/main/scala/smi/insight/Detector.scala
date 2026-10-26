@@ -40,6 +40,9 @@ trait Detector:
   /** Whether the insight carries the match context (score and players on the pitch, `Context`). */
   def context: Boolean = true
 
+  /** At most one active insight per match (the full-time recap). */
+  def once: Boolean = false
+
   /** Event-triggered detection, run for each new event. */
   def onEvent(@unused state: EngineState, @unused e: Event): Option[Candidate] = None
 

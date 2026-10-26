@@ -7,17 +7,17 @@ export const KIND: Record<Lang, Record<string, string>> = {
   en: {
     goal: "Goal", red_card: "Red card", key_chance: "Big chance", momentum_swing: "Momentum",
     pressure_shift: "Pressing", control_vs_chaos: "Control", rhythm_change: "Tempo",
-    milestone: "Milestone", player_spotlight: "Key pass", tactical_shift: "Tactics",
+    milestone: "Milestone", player_spotlight: "Key pass", tactical_shift: "Tactics", full_time: "Full time",
   },
   es: {
     goal: "Gol", red_card: "Tarjeta roja", key_chance: "Ocasión", momentum_swing: "Impulso",
     pressure_shift: "Presión", control_vs_chaos: "Control", rhythm_change: "Ritmo",
-    milestone: "Hito", player_spotlight: "Pase clave", tactical_shift: "Táctica",
+    milestone: "Hito", player_spotlight: "Pase clave", tactical_shift: "Táctica", full_time: "Final",
   },
   hi: {
     goal: "गोल", red_card: "लाल कार्ड", key_chance: "बड़ा मौका", momentum_swing: "रुख",
     pressure_shift: "दबाव", control_vs_chaos: "नियंत्रण", rhythm_change: "रफ़्तार",
-    milestone: "उपलब्धि", player_spotlight: "अहम पास", tactical_shift: "रणनीति",
+    milestone: "उपलब्धि", player_spotlight: "अहम पास", tactical_shift: "रणनीति", full_time: "फुल टाइम",
   },
 };
 

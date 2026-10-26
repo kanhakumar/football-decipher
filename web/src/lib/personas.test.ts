@@ -39,3 +39,11 @@ test("player and metric focus follow their choice, plus goals and cards", () => 
   const ppda: Focus = { ...none, metric: "ppda" };
   assert.isTrue(visibleTo("metric_focus", ppda, moment("pressure_shift", { facts: { after_rate: 0.4 } })));
 });
+
+test("every persona gets the full-time recap, whoever it is about", () => {
+  const recap = moment("full_time", { teams: ["T_AWY", "T_HOM"], players: ["P_AWY_09"] });
+  const focused: Focus = { team: "T_HOM", player: "P_HOM_09", metric: "ppda" };
+  for (const persona of ["casual", "analyst", "club_fan", "player_focus", "metric_focus"] as const) {
+    assert.isTrue(visibleTo(persona, focused, recap), persona);
+  }
+});

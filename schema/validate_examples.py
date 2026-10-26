@@ -25,6 +25,8 @@ SCHEMA_FOR_FILE = {
     "insight.example.json": "insight.schema.json",
     "overlay.example.json": "overlay.schema.json",
     "overlay-shape.example.json": "overlay.schema.json",
+    "insight-full-time.example.json": "insight.schema.json",
+    "overlay-recap.example.json": "overlay.schema.json",
 }
 
 Doc = dict

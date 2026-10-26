@@ -1,0 +1,56 @@
+{
+  "overlay_id": "O_00000035",
+  "match_id": "SYN-154",
+  "insight_id": "I_0035",
+  "op": "show",
+  "type": "recap_card",
+  "t_start_ms": 6814500,
+  "duration_ms": 30000,
+  "style": "full_width_banner",
+  "lang": "en",
+  "persona": "casual",
+  "focus": {
+    "team_id": "T_HOM"
+  },
+  "content": {
+    "headline": "Full time: ten-man Northgate FC take a point from Eastmere Rovers",
+    "body": "Down to ten men, Northgate FC still finish 2-2 and take a point.",
+    "metrics": [
+      {
+        "label": "Shots",
+        "value": 9
+      }
+    ],
+    "team_id": "T_HOM"
+  },
+  "evidence_event_ids": [
+    "E_000067",
+    "E_000120",
+    "E_000146",
+    "E_000202",
+    "E_000218",
+    "E_000309",
+    "E_000365",
+    "E_000538",
+    "E_000541",
+    "E_000563",
+    "E_000581",
+    "E_000595",
+    "E_000687",
+    "E_000805",
+    "E_000878",
+    "E_001105",
+    "E_001187",
+    "E_001282",
+    "E_001345",
+    "E_001388",
+    "E_001419",
+    "E_001656",
+    "E_001664"
+  ],
+  "basis": "event_data",
+  "importance": 0.9,
+  "verified": true,
+  "template_fallback": false,
+  "generated_at": "2026-10-18T16:53:30.000Z"
+}

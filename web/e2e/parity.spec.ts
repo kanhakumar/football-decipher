@@ -84,4 +84,12 @@ test("the demo match plays with every viewer behaviour", async ({ page }) => {
     await expect(page.getByTestId("score")).not.toHaveText("0–0", { timeout: 30_000 });
     await expect(moments(page)).toContainText("Liam Carver", { timeout: 30_000 });
   });
+
+  await test.step("at the final whistle every viewer gets the full-time recap, in the centre (ADR-023)", async () => {
+    const recap = page.getByTestId("recap-card");
+    await expect(recap).toBeVisible({ timeout: 200_000 });
+    await expect(recap).toContainText("Northgate FC");
+    await expect(page.getByTestId("score")).toHaveText("2–2");
+    await expect(lowerThird(page)).toBeHidden();
+  });
 });

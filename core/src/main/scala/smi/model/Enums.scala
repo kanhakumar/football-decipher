@@ -118,7 +118,7 @@ object OfficialRole extends WireEnum[OfficialRole]("official.role"):
 
 enum InsightKind:
   case Goal, RedCard, KeyChance, MomentumSwing, PressureShift, ControlVsChaos, RhythmChange,
-    Milestone, PlayerSpotlight, TacticalShift
+    Milestone, PlayerSpotlight, TacticalShift, FullTime
 object InsightKind extends WireEnum[InsightKind]("kind"):
   def all = values
 

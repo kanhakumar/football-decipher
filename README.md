@@ -1,6 +1,6 @@
 # Football Decipher Live: a synthetic match intelligence engine
 
-An AI pipeline that turns a live stream of football events into match intelligence you can check: overlays on the broadcast and short narratives that say why a moment matters. Each viewer gets their own version by persona, favourite club or player, metric and language (English, Hindi, Spanish).
+An AI pipeline that turns a live stream of football events into match intelligence you can check: overlays on the broadcast, short narratives that say why a moment matters, and a full-time recap. Each viewer gets their own version by persona, favourite club or player, metric and language (English, Hindi, Spanish).
 
 All data is synthetic. All clubs and players are fictional.
 
@@ -44,7 +44,7 @@ The five stages:
 1. **Ingest.** A seeded generator plays a 90-minute match from a scenario script (team styles, a high-press spell, soft story beats such as a counter-attack goal). A feed emulator turns it into a messy provider-style raw feed, with latency, out-of-order delivery, corrections, phantom events and a dropout. An adapter turns that back into the canonical schema and reports every repair. The same seed always gives byte-identical output.
 2. **Interpret.** A pure Scala stats engine enriches events (xG from distance and angle, expected pass completion, progressive passes, zones) and keeps per-minute aggregates that corrections update. Moment detectors (goals, red cards, key chances, momentum swings, pressing, control against chaos, tempo, key passes, changes of team shape) emit **Insight** objects. Each one carries facts, the evidence event IDs, a reason code and an importance score, with no prose. Every fact can be re-derived from its evidence events, and a test proves it.
 3. **Explain.** A Microsoft Agent Framework workflow reaches the data only through a thin MCP server over the core's tool endpoints. It builds a fact sheet, writes the line and verifies it. Localization to Hindi and Spanish is verified again. A rejected line goes back with the reasons, and after three failures a template line is used instead.
-4. **Render.** Overlays are timed JSON (`t_start_ms`, `duration_ms`). The viewer runs 10 s or more behind the live feed, so the narration is ready before the moment reaches the screen. A quick verified template card shows first, and the model's line replaces it in place. Corrections retract cards on screen.
+4. **Render.** Overlays are timed JSON (`t_start_ms`, `duration_ms`). The viewer runs 10 s or more behind the live feed, so the narration is ready before the moment reaches the screen. A quick verified template card shows first, and the model's line replaces it in place. Corrections retract cards on screen. At the final whistle a recap card sums up the match: the result and what decided it, from the engine's own count of the match's events.
 5. **Personalize.** One language-neutral insight is narrated per persona and language on demand, then cached. Casual fans, club fans and player-focus viewers get plain words and the story moments. Analysts and metric-focus viewers get the technical lines and shape maps. Signed-in users keep their preferences.
 
 See [docs/architecture.md](docs/architecture.md) for the components and data flow, and [docs/decisions.md](docs/decisions.md) for the decision records (ADR-001 to ADR-021).

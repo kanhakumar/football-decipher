@@ -19,7 +19,8 @@ object Detectors:
       Rhythm,
       Milestone,
       Spotlight,
-      Shape
+      Shape,
+      FullTime
     )
   val byKind: Map[InsightKind, Detector] = all.map(d => d.kind -> d).toMap
 
@@ -731,3 +732,96 @@ object Detectors:
 
     def importance(f: JsonObject): Double =
       round(math.min(0.6, 0.42 + 0.01 * math.abs(double(f, "line_change_m"))), 3)
+
+  // ---------------------------------------------------------------------------------------------
+
+  /** The full-time recap (ADR-023): the match's shots and red cards, from the engine's own events.
+    * Fires once, on the second half's period_end, or (`Moments`) when the match status turns
+    * full_time first. The subject is the winner; in a draw the side with fewer players, else the
+    * side that scored last, else the home side.
+    */
+  object FullTime extends Detector:
+    val kind = InsightKind.FullTime
+    override def once: Boolean = true
+
+    override def onEvent(state: EngineState, e: Event): Option[Candidate] =
+      Option.when(e.`type` == EventType.PeriodEnd && e.period == 2)(candidate(state, e))
+
+    /** The recap at `end`: every shot and red card up to it, then `end` itself. */
+    def candidate(state: EngineState, end: Event): Candidate =
+      val played = upTo(state, end)
+      val evidence =
+        inMatchOrder(played.filter(x => x.`type` == EventType.Shot || isRed(x)) :+ end)
+      val home = state.teams.headOption.getOrElse(end.teamId)
+      val subject = subjectOf(evidence, home, opponentOf(state, home))
+      val scorers = evidence.filter(x => isGoal(x) && x.teamId == subject).flatMap(_.playerId)
+      Candidate(
+        Header(
+          kind,
+          end.period,
+          List(subject, opponentOf(state, subject)),
+          scorers.distinct.toList
+        ),
+        evidence.map(_.eventId),
+        end,
+        s => s.events.get(end.eventId).map(x => candidate(s, x.event))
+      )
+
+    private def subjectOf(evidence: Vector[Event], home: TeamId, away: TeamId): TeamId =
+      val goals = evidence.filter(isGoal)
+      def scored(t: TeamId) = goals.count(_.teamId == t)
+      def reds(t: TeamId) = evidence.count(x => isRed(x) && x.teamId == t)
+      if scored(home) != scored(away) then if scored(home) > scored(away) then home else away
+      else if reds(home) != reds(away) then if reds(home) > reds(away) then home else away
+      else goals.lastOption.map(_.teamId).getOrElse(home)
+
+    def derive(h: Header, evidence: Vector[Event]): JsonObject =
+      val end = evidence.last
+      val shots = evidence.filter(_.`type` == EventType.Shot)
+      val (mine, theirs) = shots.partition(_.teamId == h.team)
+      def onTarget(v: Vector[Event]) =
+        v.count(_.outcome.exists(o => o == Outcome.Goal || o == Outcome.Saved))
+      def xg(v: Vector[Event]) = v.map(Enrich(_).xg.getOrElse(0.0)).sum
+      val lastGoal = shots.filter(isGoal).lastOption.toList
+      val last = lastGoal.flatMap(g =>
+        List(
+          "last_goal_minute" -> int(minute(g)),
+          "last_goal_by_team" -> bool(g.teamId == h.team)
+        )
+      )
+      obj(
+        (List(
+          "minute" -> int(minute(end)),
+          "team_goals" -> int(mine.count(isGoal)),
+          "opponent_goals" -> int(theirs.count(isGoal)),
+          "team_shots" -> int(mine.size),
+          "opponent_shots" -> int(theirs.size),
+          "team_shots_on_target" -> int(onTarget(mine)),
+          "opponent_shots_on_target" -> int(onTarget(theirs)),
+          "team_xg" -> num(xg(mine), 2),
+          "opponent_xg" -> num(xg(theirs), 2)
+        ) ++ last)*
+      )
+
+    def why(f: JsonObject): WhyItMatters =
+      val (tg, og) = (intOf(f, "team_goals"), intOf(f, "opponent_goals"))
+      val lateLeveller = boolOf(f, "last_goal_by_team") &&
+        f("last_goal_minute").exists(_ => intOf(f, "last_goal_minute") >= LateMinute)
+      val code =
+        if tg > og && double(f, "team_xg") < double(f, "opponent_xg") then
+          "win_against_the_run_of_play"
+        else if tg > og then "full_time_win"
+        else if Context.shortHanded(f) then "ten_men_take_a_point"
+        else if lateLeveller then "late_equaliser_draw"
+        else "full_time_draw"
+      val extra = code match
+        case "win_against_the_run_of_play" => Seq("team_xg", "opponent_xg")
+        case "ten_men_take_a_point"        => Seq("ctx_players_for", "ctx_players_against")
+        case "late_equaliser_draw"         => Seq("last_goal_minute")
+        case _                             => Seq("team_shots", "opponent_shots")
+      WhyItMatters(
+        ReasonCode.unsafe(code),
+        params(f, (Seq("team_goals", "opponent_goals") ++ extra)*)
+      )
+
+    def importance(f: JsonObject): Double = 0.9

@@ -20,6 +20,7 @@ class Kind(Enum):
     milestone = "milestone"
     player_spotlight = "player_spotlight"
     tactical_shift = "tactical_shift"
+    full_time = "full_time"
 
 
 class Team(RootModel[str]):

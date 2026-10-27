@@ -225,3 +225,9 @@ The pipeline must show a path to real provider data without using any. "synthfee
 - The full-time recap stays centred on the pitch: play has stopped.
 - Replay from the Moments list now redraws the moment's shape map with its card. Before, a tactics moment whose map had passed (for example while watching as a casual fan) could never show its map again.
 
+## ADR-025: The viewer's stats follow the viewer's minute (accepted, 2026-10-27)
+- Why: the possession bar and the player panel asked the core for "the last 5 minutes" and "the match so far". The core answers those from the live engine, which runs a full viewer delay ahead of the screen. So the bar moved during the pre-match countdown and showed the future during the match: 2 minutes ahead with a 120 s delay, 10 minutes with 600 s.
+- The viewer now asks for explicit windows that end at its own minute, the last event that reached it, using the period and from/to minutes the stats tools already accept. Possession covers the last 5 minutes of the viewer's period. The player panel covers the match so far, with the period named in the first half so that stoppage time is not mixed with the start of the second half.
+- Before the first event reaches the viewer there is no possession bar, and the player panel says the stats start at kickoff. A new match resets both.
+- Agents and moments keep using the live side on purpose: that is how narration is ready before the viewer reaches a moment (D5).
+

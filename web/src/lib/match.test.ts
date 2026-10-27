@@ -1,6 +1,6 @@
 // @ts-nocheck -- ported from viewer/tests with partial fixtures; the behaviour pinned is unchanged
 import { assert, test } from "vitest";
-import { InsightBook, displayClock, groupOf, scoreAt, shapeDots, tierOf, toScreen } from "./match";
+import { InsightBook, displayClock, groupOf, matchMinute, scoreAt, shapeDots, tierOf, toScreen, viewerWindows } from "./match";
 
 test("away coordinates are turned into the home team's frame", () => {
   assert.deepEqual(toScreen("T_HOM", "T_HOM", 94.9, 38.3), { x: 94.9, y: 38.3 });
@@ -53,4 +53,19 @@ test("a shape map is drawn in the home team's frame", () => {
   const overlay = { content: { team_id: "T_AWY", positions: [{ player_id: "P_AWY_09", x: 80, y: 10 }] } };
   const [dot] = shapeDots(overlay, "T_HOM", { P_AWY_09: { shirt: 9 } });
   assert.deepEqual(dot, { x: 25, y: 58, shirt: 9, home: false });
+});
+
+test("stats windows end at the viewer's minute, and first-half stoppage stays in the first half", () => {
+  assert.equal(matchMinute(2, 30), 45.5);
+  assert.deepEqual(viewerWindows(1, 12.4), {
+    lastFive: "period=1&from_minute=8&to_minute=13",
+    soFar: "period=1&from_minute=0&to_minute=13",
+  });
+  // 45+2 in the first half: the second half's minutes 45-47 are not mixed in.
+  assert.equal(viewerWindows(1, 46.2).soFar, "period=1&from_minute=0&to_minute=47");
+  // Just after the restart: the last five minutes start at the second half's first minute.
+  assert.deepEqual(viewerWindows(2, 45.5), {
+    lastFive: "period=2&from_minute=45&to_minute=46",
+    soFar: "from_minute=0&to_minute=46",
+  });
 });

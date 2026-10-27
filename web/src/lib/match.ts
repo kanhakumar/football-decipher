@@ -69,8 +69,30 @@ export function scoreAt(goals: Insight[], ts: number, teamIds: string[]): Record
 }
 
 /** "45+2'" style display minute from an event's period and period clock. */
+const BASE_MINUTE: Record<number, number> = { 1: 0, 2: 45, 3: 90, 4: 105, 5: 120 };
+
+/** The match minute of an event (45.5 is half a minute into the second half), as the core counts. */
+export function matchMinute(period: number, periodClockS: number): number {
+  return (BASE_MINUTE[period] ?? 0) + periodClockS / 60;
+}
+
+/**
+ * Stats windows that end where the viewer is, not where the live engine is (it runs the viewer
+ * delay ahead): the last 5 minutes of the viewer's period for the possession bar, and the match so
+ * far for the player panel. In the first half the period is named, so stoppage time is not mixed
+ * with the start of the second half.
+ */
+export function viewerWindows(period: number, minute: number): { lastFive: string; soFar: string } {
+  const to = Math.floor(minute) + 1;
+  const from = Math.max(BASE_MINUTE[period] ?? 0, Math.floor(minute - 5 + 1));
+  return {
+    lastFive: `period=${period}&from_minute=${from}&to_minute=${to}`,
+    soFar: period === 1 ? `period=1&from_minute=0&to_minute=${to}` : `from_minute=0&to_minute=${to}`,
+  };
+}
+
 export function displayClock(period: number, periodClockS: number): string {
-  const base = ({ 1: 0, 2: 45, 3: 90, 4: 105, 5: 120 } as Record<number, number>)[period] ?? 0;
+  const base = BASE_MINUTE[period] ?? 0;
   const length = ({ 1: 45, 2: 45, 3: 15, 4: 15, 5: 0 } as Record<number, number>)[period] ?? 45;
   const whole = Math.floor(periodClockS);
   const minute = Math.floor(whole / 60);

@@ -125,3 +125,19 @@ async def test_every_recap_code_reads_right_in_every_language_and_persona(tools,
                 if not verdict.ok:
                     failures.append((sheet.code, lang, req.persona, verdict.reasons, line.body))
     assert failures == []
+
+
+async def test_a_recap_may_talk_about_the_goals_and_saves_it_holds(tools, core):
+    """ADR-023: the recap's evidence is every shot, so goals and saves are claims it supports; a
+    goalless recap still may not claim one."""
+    from smi_agents.types import Line
+
+    demo = await gather(tools, "I_0035")
+    line = Line(
+        headline="Northgate FC salvage a 2-2 draw with ten men",
+        body="Kofi Mensah scored twice for Northgate FC, and their keeper made saves to hold on.",
+    )
+    assert verify(line, demo, "en").ok, verify(line, demo, "en").reasons
+    goalless = _recap(demo, "ten_men_take_a_point", team_goals=0, opponent_goals=0,
+                      ctx_score_for=0, ctx_score_against=0)  # fmt: skip
+    assert "unsupported_claim:goal" in verify(line, goalless, "en").reasons

@@ -215,6 +215,7 @@ The pipeline must show a path to real provider data without using any. "synthfee
   - Every persona sees it. It is listed with goals and chances.
   - The parity suite plays the demo match to full time and expects it.
 - Eval: the recap counts like any moment of 0.6 and up. The gate now narrates 12 insights in 180 lines.
+- First online run (Deploy 40455081748): every number matched and every line verified, but p95 latency was 15.8 s, over the 15 s bound. The recap averaged 3 attempts: the Verifier rejected its talk of goals and saves, because claims were supported by the insight kind, not by what the recap's evidence holds. The recap now supports `goal` when its facts have goals and `outcome=saved` when shots on target exceed goals, so a goalless recap still may not claim a goal. Its body is asked to stay under 300 characters. Replayed on that run, 22 of the 29 rejected recap drafts pass.
 
 ## ADR-024: Cards live in a band under the pitch (accepted, 2026-10-27)
 - Why: the lower third and the corner card were drawn over the pitch and covered the play: the tracking dots, the ball and the shape maps.

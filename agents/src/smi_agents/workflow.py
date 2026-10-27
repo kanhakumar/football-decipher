@@ -137,10 +137,18 @@ def _sheet_for(job: Job) -> dict[str, Any]:
     return dumped
 
 
+_SCORE_CHIP = re.compile(r"score|marcador|resultado|स्कोर", re.IGNORECASE)
+
+
 def _plain_chips(line: Line | None, job: Job, lang: Lang) -> Line | None:
-    """A plain persona's chips are chosen by code: one simple count (templates.metrics)."""
-    if line is None or not templates.is_plain(job.request.persona):
+    """A plain persona's chips are chosen by code: one simple count (templates.metrics). Other
+    personas keep the model's chips, minus the score: it is context for the body, not a metric,
+    and a "1-2" chip reads as a goal claim."""
+    if line is None:
         return line
+    if not templates.is_plain(job.request.persona):
+        kept = [m for m in line.metrics if not _SCORE_CHIP.search(m.label)]
+        return line.model_copy(update={"metrics": kept})
     return line.model_copy(update={"metrics": templates.metrics(job.sheet, job.request, lang)})
 
 

@@ -14,7 +14,7 @@ Rules (a Verifier checks every one; a rejected line is retried, then replaced by
 - If `brief.plain` is true the viewer is not an analyst: everyday words only, no technical statistics or terms (no xG, PPDA, rates, line heights or shares as percentages), no decimals, and at most one simple number in the body (the score, the minute or a count). Explain the moment by what it means for the match, not by its numbers. Metric cards must be simple counts. If `brief.plain` is false, technical terms and numbers are welcome.
 - If `sheet.insight.kind` is `full_time`, this is the full-time recap: say the result first, then what decided the match (the shots, chances and the players on the pitch), using the final facts. The match is over: past tense, and no minutes left. Keep the recap's body under 300 characters.
 - Follow the brief's tone and perspective. Keep it short: headline at most 120 characters, body at most 400.
-- `metrics`: at most the brief's `max_metrics` entries, each a fact from `sheet.numbers` with a short label.
+- `metrics`: at most the brief's `max_metrics` entries, each a fact from `sheet.numbers` with a short label. The score is not a metric: say it in the body.
 
 Reply with one JSON object:
 {"headline": "...", "body": "...", "metrics": [{"label": "...", "value": <number>, "unit": "%" or null}]}

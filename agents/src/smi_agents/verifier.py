@@ -258,18 +258,29 @@ _CONTEXT_PHRASES: dict[Lang, list[str]] = {
         r"\b(?:chance|opportunity|bid|hopes?|risk) (?:to|of) "
         r"(?:take the lead|win the (?:game|match)|winning|defeat)\b",
         r"\bgo-ahead chance\b",
+        # From the recap release's eval: finding a goal and wanting the win are the chase too.
+        r"\b(?:to find|press\w* for)(?: (?:an?|the|that|another))? (?:goal|equali[sz]er)\b",
+        r"\b(?:push|shove|bid|try\w*|trie\w*|attempt\w*|press\w*|go\w*|chance)(?: \w+){0,2}"
+        r" to win the (?:match|game)\b",
     ],
     "es": [
         r"\b(?:un|dos|tres|\d) gol(?:es)? "
         r"(?:abajo|arriba|por debajo|por encima|de desventaja|de ventaja)\b",
-        r"\b(?:el|al|del) marcador\b",
+        r"\b(?:el|al|del|un) marcador\b",
         r"\ba un gol\b",
         r"\b(?:traduc|convert)\w* (?:\w+ ){0,3}en gol\b",
         r"\bigualados? en (?:jugadores|número|efectivos)\b",
+        r"\b(?:busca\w*|en busca de|a por|ir a por|persigue\w*) el gol de la victoria\b",
         r"\b(?:busca\w*|necesita\w*|persigue\w*|en busca de|a por|ir a por) (?:el|un) empate\b",
         r"\b(?:busca\w*|necesita\w*|persigue\w*|en busca de?l?|a por|ir a por|sin)"
         r"(?: (?:el|un|otro|su))? (?:gol(?:es)?|empate)\b",
         r"\bsin (?:poder )?marcar\b",
+        r"\bdel? empate a (?:liderar|ganar|la ventaja|ventaja|ponerse por delante)\b",
+        r"\b(?:sin|no) (?:\w+ ){0,3}al portero\b",
+        r"\b(?:anul|borr|elimin|neutraliz)\w* la ventaja\b",
+        r"\bno (?:encuentra\w*|logra\w*|llega\w* a) (?:marcar|el gol)\b",
+        r"\bocasi[óo]n (?:clara )?de gol\b",
+        r"\b(?:para|de|por) (?:intentar |tratar de |forzar el )?(?:igualar|empatar|el empate)\b",
     ],
     "hi": [
         r"(?:एक|दो|तीन|\d) गोल (?:से )?(?:पीछे|आगे)",
@@ -280,7 +291,15 @@ _CONTEXT_PHRASES: dict[Lang, list[str]] = {
         r"बराबरी (?:पर (?:है|हैं|था|थे|रहने|रहते|लाने)|का पीछा|बनाने)",
         r"(?:टैकल|tackle|गेंद|दबदबा|duel|डुएल) जीत",  # won a tackle, not a match
         r"जीत (?:का|की) (?:मौका|संभावना|अवसर)",
-        r"बढ़त (?:लेने|की कोशिश|के लिए)",
+        r"बढ़त (?:लेने|की कोशिश|के लिए|की तलाश)",
+        r"संख्यात्मक बढ़त",  # a numerical advantage (11 v 10), not a lead
+        r"बराबर (?:खड़े|टीम|खिलाड़ी|संख्या)",  # equal numbers, not an equaliser
+        # Time left, not a save: "14 मिनट बचे", "बचा 14 मिनट".
+        r"(?:मिनट|समय)(?: \S+){0,2} बच(?:ा|े|ी)|बच(?:ा|े|ी)(?: \S+){0,2} मिनट",
+        r"की हार के दौरान",  # while losing, not a result
+        r"बराबरी (?:करने|की चाह|पकड़)",  # to draw level: the chase
+        r"गोल (?:करने )?(?:का|के) (?:\S+ )?(?:मौका|मौके|अवसर)",  # a chance to score
+        r"बचा हुआ",  # remaining, not a save
     ],
 }
 

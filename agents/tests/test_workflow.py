@@ -156,6 +156,18 @@ async def test_a_plain_persona_gets_code_chosen_chips(tools):
     assert [(m.label, m.value) for m in n.line.metrics] == [("Passes in the move", 4)]
 
 
+async def test_a_score_chip_is_dropped_not_rejected(tools):
+    """The online eval's analysts got a "Score 1-2" chip from the model, read as a goal claim
+    and a wrong number. The score belongs in the body, so code drops the chip."""
+    chips = [{"label": "Score (NOR-EAS)", "value": 102}, {"label": "Passes", "value": 4}]
+    model = ScriptedModel({"narrate": [CORRECT.model_copy(update={"metrics": chips})]})
+    n = await Narrator(tools, model).narrate(
+        NarrationRequest(insight_id="I_0012", persona="analyst")
+    )
+    assert n.verified and [a.ok for a in n.trail] == [True], n.trail
+    assert [m.label for m in n.line.metrics] == ["Passes"]
+
+
 async def test_the_full_time_recap_becomes_a_recap_card(tools):
     """ADR-023: the recap is a full-width recap_card that stays up as long as an overlay may."""
     for persona in ("casual", "analyst"):

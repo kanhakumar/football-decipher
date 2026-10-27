@@ -49,11 +49,15 @@ function fakeServices(opts: { playback?: Partial<Playback>; insights?: Insight[]
     }
     if (url.startsWith(`${CORE}/api/stream/`)) return new Response("", { headers: { "Content-Type": "text/event-stream" } });
     if (url === `${AGENTS}/api/narrate`) {
-      const headline = body.mode === "template" ? "Quick: Carver scores" : `Model: Carver scores (${body.lang})`;
+      const recap = body.insight_id === "I_0035";
+      const headline = recap
+        ? "Full time: ten-man Northgate FC take a point"
+        : body.mode === "template" ? "Quick: Carver scores" : `Model: Carver scores (${body.lang})`;
       return json({
         overlay: {
-          overlay_id: "O_00000001", match_id: "SYN-154", insight_id: body.insight_id, op: "show", type: "insight_card",
-          t_start_ms: 600_000, duration_ms: 8000, style: "lower_third", lang: body.lang, persona: body.persona,
+          overlay_id: recap ? "O_00000035" : "O_00000001", match_id: "SYN-154", insight_id: body.insight_id, op: "show",
+          type: recap ? "recap_card" : "insight_card", t_start_ms: recap ? 5_900_000 : 600_000,
+          duration_ms: recap ? 30_000 : 8000, style: recap ? "full_width_banner" : "lower_third", lang: body.lang, persona: body.persona,
           content: { headline, body: "It is 0-1.", team_id: "T_AWY" }, verified: true, template_fallback: false, basis: "event_data",
         },
         narration: { source: body.mode, verified: true, template_fallback: false, model: "stub", latency_ms: 5 },
@@ -204,5 +208,23 @@ test("Start stays busy, counting down, until kickoff reaches the viewer", async 
   s = b.getSnapshot();
   assert.isFalse(s.busy.start);
   assert.isNull(s.startingS);
+  b.stop();
+});
+
+test("the full-time recap shows in its own centre slot at the final whistle, for a casual fan too", async () => {
+  const whistle = goal({
+    insight_id: "I_0035", kind: "full_time", period: 2, video_ts_ms: 5_900_000, importance: 0.9,
+    teams: ["T_HOM", "T_AWY"], players: ["P_HOM_09"], facts: { minute: 96, team_goals: 2, opponent_goals: 2 },
+  });
+  const services = fakeServices({ insights: [whistle] });
+  const b = await started(services);
+  await vi.waitFor(() => assert.equal(services.calls.filter((c) => c.url.endsWith("/api/narrate")).length, 2));
+  b.onEnvelope({ match_id: "SYN-154", payload_type: "match_meta", payload: { home_team_id: "T_HOM", away_team_id: "T_AWY" } });
+  b.onEnvelope({ match_id: "SYN-154", payload_type: "event", payload: { event_id: "E_9", type: "period_end", period: 2, period_clock_s: 2940, video_ts_ms: 5_900_000, team_id: "T_HOM" } });
+  b.frame();
+  const s = b.getSnapshot();
+  assert.equal(s.recap?.headline, "Full time: ten-man Northgate FC take a point");
+  assert.equal(s.recap?.kicker, "Full time · 96'");
+  assert.isNull(s.card, "the lower third stays free");
   b.stop();
 });

@@ -7,7 +7,7 @@ const python = process.env.SMI_PYTHON ?? "python";
 
 export default defineConfig({
   testDir: "e2e",
-  timeout: 240_000,
+  timeout: 420_000, // the demo match plays to full time at 40x
   expect: { timeout: 30_000 },
   fullyParallel: false,
   workers: 1,

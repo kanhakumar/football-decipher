@@ -9,7 +9,7 @@
   "properties": {
     "insight_id": { "type": "string", "pattern": "^I_[0-9]{1,6}$" },
     "match_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
-    "kind": { "enum": ["goal", "red_card", "key_chance", "momentum_swing", "pressure_shift", "control_vs_chaos", "rhythm_change", "milestone", "player_spotlight", "tactical_shift"] },
+    "kind": { "enum": ["goal", "red_card", "key_chance", "momentum_swing", "pressure_shift", "control_vs_chaos", "rhythm_change", "milestone", "player_spotlight", "tactical_shift", "full_time"] },
     "period": { "type": "integer", "minimum": 1, "maximum": 5 },
     "t_match_s": { "type": "number", "minimum": 0 },
     "video_ts_ms": { "type": "integer", "minimum": 0 },

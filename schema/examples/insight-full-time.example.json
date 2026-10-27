@@ -1,0 +1,73 @@
+{
+  "insight_id": "I_0035",
+  "match_id": "SYN-154",
+  "kind": "full_time",
+  "period": 2,
+  "t_match_s": 5904.5,
+  "video_ts_ms": 6814500,
+  "teams": [
+    "T_HOM",
+    "T_AWY"
+  ],
+  "players": [
+    "P_HOM_09"
+  ],
+  "facts": {
+    "minute": 96,
+    "team_goals": 2,
+    "opponent_goals": 2,
+    "team_shots": 9,
+    "opponent_shots": 12,
+    "team_shots_on_target": 3,
+    "opponent_shots_on_target": 5,
+    "team_xg": 0.86,
+    "opponent_xg": 1.44,
+    "last_goal_minute": 81,
+    "last_goal_by_team": true,
+    "ctx_score_for": 2,
+    "ctx_score_against": 2,
+    "ctx_game_state": "level",
+    "ctx_players_for": 10,
+    "ctx_players_against": 11,
+    "ctx_minutes_left": 0
+  },
+  "evidence_event_ids": [
+    "E_000067",
+    "E_000120",
+    "E_000146",
+    "E_000202",
+    "E_000218",
+    "E_000309",
+    "E_000365",
+    "E_000538",
+    "E_000541",
+    "E_000563",
+    "E_000581",
+    "E_000595",
+    "E_000687",
+    "E_000805",
+    "E_000878",
+    "E_001105",
+    "E_001187",
+    "E_001282",
+    "E_001345",
+    "E_001388",
+    "E_001419",
+    "E_001656",
+    "E_001664"
+  ],
+  "why_it_matters": {
+    "code": "ten_men_take_a_point",
+    "params": {
+      "team_goals": 2,
+      "opponent_goals": 2,
+      "ctx_players_for": 10,
+      "ctx_players_against": 11
+    }
+  },
+  "importance": 0.9,
+  "basis": "event_data",
+  "capability_level": 0,
+  "created_at": "2026-10-18T16:53:24.500Z",
+  "status": "active"
+}

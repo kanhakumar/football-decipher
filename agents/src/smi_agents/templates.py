@@ -12,7 +12,7 @@ from smi_agents.types import FactSheet, Lang, Line, LineMetric, NarrationRequest
 
 _FIELD = re.compile(r"\{(\w+)(?::(\w+))?\}")
 # Facts never shown as metric cards (they are in the text or are context).
-_NOT_METRICS = {"minute", "team_goals", "opponent_goals", "evidence_count"}
+_NOT_METRICS = {"minute", "team_goals", "opponent_goals", "evidence_count", "last_goal_minute"}
 METRICS_BY_PERSONA = {
     "analyst": 4,
     "metric_focus": 3,
@@ -29,6 +29,8 @@ PLAIN_METRICS = {
     "count",
     "passer_progressive_passes",
     "after_team_passes",
+    "team_shots",
+    "team_shots_on_target",
 }
 
 
@@ -144,7 +146,9 @@ def render(sheet: FactSheet, req: NarrationRequest, lang: Lang) -> Line:
     if entry is None:
         raise TemplateError(f"{sheet.code}/{lang}")
     values = _values(sheet, req, lang)
-    if is_plain(req.persona) and "ctx_game_state" in sheet.insight.facts:
+    if is_plain(req.persona) and "plain" in entry:
+        body = fill(entry["plain"], values)  # the code's own plain line (the full-time recap)
+    elif is_plain(req.persona) and "ctx_game_state" in sheet.insight.facts:
         body = situation(sheet, lang, values)  # the match situation instead of the statistics
     else:
         body = fill(entry["body"], values)

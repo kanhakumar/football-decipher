@@ -47,7 +47,7 @@ flowchart TB
 | Feed emulator and adapter | `core/.../raw` | The emulator delivers a provider-style raw feed with jitter, reordering, corrections, phantoms and a dropout. The adapter rebuilds canonical envelopes and reports every repair. |
 | Hub | `core/.../api` | One match at a time. The live cursor feeds the engine; the viewer cursor trails it by `delay_s` of match time. It plays either a replay or a bus (Event Hubs). |
 | Stats engine | `core/.../engine` | Pure. Enrichment (xG, expected pass completion, progressive passes, zones), per-minute aggregates that corrections update, and a metric registry with capability levels and basis tags. |
-| Detectors | `core/.../insight` | Find moments, derive facts from evidence alone, attach the match context (score, players on the pitch, minutes left) and score importance. Corrections retract and replace insights. |
+| Detectors | `core/.../insight` | Find moments, derive facts from evidence alone, attach the match context (score, players on the pitch, minutes left) and score importance. Corrections retract and replace insights. At the final whistle one `full_time` insight carries the recap's facts. |
 | MCP server | `agents/.../mcp_server.py` | A thin layer: one tool per core tool endpoint. The core's JSON is returned unchanged. |
 | Workflow | `agents/.../workflow.py` | An Agent Framework graph. Code chooses which tools to call, so the fact sheet is fixed before the model sees anything. |
 | Verifier | `agents/.../verifier.py` | Numbers, names, event claims, technical terms for plain personas, lengths, script (Devanagari for Hindi). |
@@ -59,7 +59,7 @@ The JSON Schemas in `/schema` are the source of truth. Scala models are hand-wri
 
 - **Canonical envelope** (`canonical.schema.json`): `match_meta`, `lineup`, `event`, `tracking_frame` or `delete`. Pitch 105 x 68 m, team-relative coordinates (each team attacks toward x = 105), clocks `period`, `period_clock_s`, `match_clock_s`, `wallclock_utc` and `video_ts_ms`.
 - **Insight** (`insight.schema.json`): `facts`, `evidence_event_ids`, `why_it_matters {code, params}`, `importance`, `basis`, `capability_level`. No prose.
-- **Overlay** (`overlay.schema.json`): a timed graphic (`t_start_ms`, `duration_ms`) with `op` show or retract: insight cards, scoreline updates and shape maps.
+- **Overlay** (`overlay.schema.json`): a timed graphic (`t_start_ms`, `duration_ms`) with `op` show or retract: insight cards, scoreline updates, shape maps and the full-time recap card.
 
 Data has three layers: raw events, then enriched values (xG, pass difficulty, progressive), then insights. Derived metrics never go into the raw layer. Each metric declares the capability level it needs (0 events only, 1 coarse tracking, 2 detailed windows) and a fallback, and each output carries its basis.
 

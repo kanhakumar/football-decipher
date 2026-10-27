@@ -154,3 +154,19 @@ async def test_a_plain_persona_gets_code_chosen_chips(tools):
     n = await Narrator(tools, model).narrate(NarrationRequest(insight_id="I_0012"))
     assert n.verified and [a.ok for a in n.trail] == [True]
     assert [(m.label, m.value) for m in n.line.metrics] == [("Passes in the move", 4)]
+
+
+async def test_the_full_time_recap_becomes_a_recap_card(tools):
+    """ADR-023: the recap is a full-width recap_card that stays up as long as an overlay may."""
+    for persona in ("casual", "analyst"):
+        n = await Narrator(tools, StubModel()).narrate(
+            NarrationRequest(insight_id="I_0035", persona=persona)
+        )
+        assert n.verified and not n.template_fallback, n.trail
+        o = valid_overlay(n)
+        assert (o["type"], o["style"], o["duration_ms"]) == (
+            "recap_card",
+            "full_width_banner",
+            30000,
+        )
+        assert o["content"]["headline"].startswith("Full time:")

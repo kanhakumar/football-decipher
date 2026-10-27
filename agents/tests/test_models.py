@@ -25,9 +25,11 @@ def test_generated_models_are_up_to_date():
 
 
 def test_schema_examples_parse():
-    Insight.model_validate(
-        json.loads((SCHEMA / "examples/insight.example.json").read_text("utf-8"))
-    )
-    Overlay.model_validate(
-        json.loads((SCHEMA / "examples/overlay.example.json").read_text("utf-8"))
-    )
+    for name in ("insight", "insight-full-time"):
+        Insight.model_validate(
+            json.loads((SCHEMA / f"examples/{name}.example.json").read_text("utf-8"))
+        )
+    for name in ("overlay", "overlay-recap"):
+        Overlay.model_validate(
+            json.loads((SCHEMA / f"examples/{name}.example.json").read_text("utf-8"))
+        )

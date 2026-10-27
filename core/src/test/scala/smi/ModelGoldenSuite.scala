@@ -17,7 +17,9 @@ class ModelGoldenSuite extends FunSuite:
     "examples.ndjson" -> model[Envelope],
     "insight.example.json" -> model[Insight],
     "overlay.example.json" -> model[Overlay],
-    "overlay-shape.example.json" -> model[Overlay]
+    "overlay-shape.example.json" -> model[Overlay],
+    "insight-full-time.example.json" -> model[Insight],
+    "overlay-recap.example.json" -> model[Overlay]
   )
 
   test("every file in /schema/examples has a model") {

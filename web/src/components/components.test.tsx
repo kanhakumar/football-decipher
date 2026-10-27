@@ -10,7 +10,7 @@ afterEach(cleanup);
 const base: Snapshot = {
   ready: true, gate: false, account: { enabled: false, name: null }, playback: null, coreOk: true,
   agentsOk: true, agentModel: "stub", clock: "00:00", score: [0, 0], home: null, away: null, ball: null,
-  trail: [], dots: [], tag: null, ticker: "", card: null, corner: null, shape: null, momentum: null,
+  trail: [], dots: [], tag: null, ticker: "", card: null, recap: null, corner: null, shape: null, momentum: null,
   prematch: null, startingS: null, moments: [],
   latency: { delay: "–", quick: "–", model: "–", lead: "–", leadLate: false, onTime: "–", onTimeOk: null },
   player: null, toasts: [], settings: { persona: "casual", lang: "en", team: "", player: "", metric: "", groups: ["chances", "flow", "tactics", "players"] },
@@ -86,4 +86,18 @@ test("before sign-in the agents chip asks to sign in instead of reporting a faul
   cleanup();
   render(<MatchControls s={{ ...base, agentsOk: false }} b={f.b} />);
   assert.isOk(screen.getByText("Agents: unreachable"), "signed in and down is a fault");
+});
+
+test("the full-time recap is the same card in the centre, with its whole line", () => {
+  const card = {
+    key: "k", overlayId: "O_00000035", kicker: "Full time · 96'", headline: "Full time: ten-man Northgate FC take a point",
+    body: "Down to ten men, Northgate FC still finish 2-2 and take a point.", metrics: [{ label: "Shots", value: 9 }],
+    badges: [{ cls: "ok", text: "✓ Verified" }], away: false, lang: "en" as const, retracted: false, pending: false,
+  };
+  render(<LowerThird card={card} recap />);
+  const recap = screen.getByTestId("recap-card");
+  assert.include(recap.className, "recap-card");
+  assert.isNull(screen.queryByTestId("lower-third"));
+  assert.include(recap.textContent ?? "", "Full time · 96'");
+  assert.include(recap.textContent ?? "", "Shots9");
 });

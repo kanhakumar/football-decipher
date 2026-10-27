@@ -8,6 +8,7 @@ from smi_agents.workflow import Narration
 
 # Agent overlays use O_00000001 upward; O_90000000 and up belong to the core (ADR-013).
 AGENT_ID_MAX = 89_999_999
+_TYPES = {"milestone": "milestone_badge", "full_time": "recap_card"}
 
 
 def overlay_id(n: int) -> str:
@@ -22,6 +23,7 @@ def _now() -> str:
 
 def show(n: Narration, oid: str) -> dict[str, Any]:
     insight, req, line = n.sheet.insight, n.request, n.line
+    recap = insight.kind.value == "full_time"
     players = [p.root for p in insight.players or []]
     focus = {"team_id": req.favourite_team or insight.teams[0].root}
     if req.favourite_player:
@@ -42,10 +44,11 @@ def show(n: Narration, oid: str) -> dict[str, Any]:
         "match_id": insight.match_id,
         "insight_id": insight.insight_id,
         "op": "show",
-        "type": "milestone_badge" if insight.kind.value == "milestone" else "insight_card",
+        "type": _TYPES.get(insight.kind.value, "insight_card"),
         "t_start_ms": insight.video_ts_ms,
-        "duration_ms": int(6000 + 4000 * insight.importance),
-        "style": "lower_third",
+        # The recap stays up as long as an overlay may (ADR-023).
+        "duration_ms": 30000 if recap else int(6000 + 4000 * insight.importance),
+        "style": "full_width_banner" if recap else "lower_third",
         "lang": req.lang,
         "persona": req.persona,
         "focus": focus,

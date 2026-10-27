@@ -26,7 +26,7 @@ export function tierOf(
 
 /** Filter groups for the Moments list. */
 export const GROUPS = {
-  chances: ["goal", "red_card", "key_chance"],
+  chances: ["goal", "red_card", "key_chance", "full_time"],
   flow: ["pressure_shift", "momentum_swing", "control_vs_chaos", "rhythm_change"],
   tactics: ["tactical_shift"],
   players: ["player_spotlight", "milestone"],

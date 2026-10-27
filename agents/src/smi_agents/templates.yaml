@@ -358,6 +358,73 @@ codes:
 
 # Whether the moment is good or bad news for the insight's subject team (its first team), for the
 # club fan's framing. Codes not listed are good news for the subject.
+  # ---- full_time (ADR-023): the recap. `plain` is the body for plain personas. ----
+  full_time_win:
+    en:
+      headline: "Full time: {team} beat {opponent} {team_goals:int}-{opponent_goals:int}"
+      body: "{team} won with {team_shots:int} shots to {opponent_shots:int}, {team_shots_on_target:int} of them on target."
+      plain: "{team} win {team_goals:int}-{opponent_goals:int} against {opponent}."
+    es:
+      headline: "Final: {team} gana {team_goals:int}-{opponent_goals:int} a {opponent}"
+      body: "{team} ganó con {team_shots:int} tiros contra {opponent_shots:int}, {team_shots_on_target:int} de ellos a puerta."
+      plain: "{team} gana {team_goals:int}-{opponent_goals:int} a {opponent}."
+    hi:
+      headline: "फुल टाइम: {team} ने {opponent} को {team_goals:int}-{opponent_goals:int} से हराया"
+      body: "{team} ने {team_shots:int} शॉट लिए और {opponent} ने {opponent_shots:int}; {team} के {team_shots_on_target:int} शॉट निशाने पर थे।"
+      plain: "{team} ने {opponent} को {team_goals:int}-{opponent_goals:int} से हराया।"
+  win_against_the_run_of_play:
+    en:
+      headline: "Full time: {team} win {team_goals:int}-{opponent_goals:int} against the run of play"
+      body: "{opponent} created more, {opponent_xg:2} xG to {team_xg:2}, but {team} took their chances."
+      plain: "{opponent} had the better chances, but {team} took theirs and win {team_goals:int}-{opponent_goals:int}."
+    es:
+      headline: "Final: {team} gana {team_goals:int}-{opponent_goals:int} contra el guion del partido"
+      body: "{opponent} generó más, {opponent_xg:2} xG contra {team_xg:2}, pero {team} aprovechó sus ocasiones."
+      plain: "{opponent} tuvo mejores ocasiones, pero {team} aprovechó las suyas y gana {team_goals:int}-{opponent_goals:int}."
+    hi:
+      headline: "फुल टाइम: कम मौकों के बावजूद {team} ने {team_goals:int}-{opponent_goals:int} से मैच जीता"
+      body: "{opponent} ने ज़्यादा मौके बनाए, {opponent_xg:2} xG बनाम {team_xg:2}, पर {team} ने अपने मौके भुनाए।"
+      plain: "{opponent} के मौके बेहतर थे, पर {team} ने अपने मौके भुनाकर {team_goals:int}-{opponent_goals:int} से मैच जीता।"
+  full_time_draw:
+    en:
+      headline: "Full time: {team} {team_goals:int}-{opponent_goals:int} {opponent}"
+      body: "The points are shared after {team_shots:int} shots to {opponent_shots:int}."
+      plain: "It finishes {team_goals:int}-{opponent_goals:int}, and the points are shared."
+    es:
+      headline: "Final: {team} {team_goals:int}-{opponent_goals:int} {opponent}"
+      body: "Reparto de puntos tras {team_shots:int} tiros contra {opponent_shots:int}."
+      plain: "Termina {team_goals:int}-{opponent_goals:int} y se reparten los puntos."
+    hi:
+      headline: "फुल टाइम: {team} {team_goals:int}-{opponent_goals:int} {opponent}"
+      body: "{team_shots:int} शॉट बनाम {opponent_shots:int} के बाद अंक बंट गए।"
+      plain: "मैच {team_goals:int}-{opponent_goals:int} पर खत्म हुआ और अंक बंट गए।"
+  late_equaliser_draw:
+    en:
+      headline: "Full time: {team} snatch a {team_goals:int}-{opponent_goals:int} draw late on"
+      body: "{team} levelled in minute {last_goal_minute:int} and held on for a point against {opponent}."
+      plain: "{team} levelled in minute {last_goal_minute:int} and take a point from {opponent}."
+    es:
+      headline: "Final: {team} rescata un {team_goals:int}-{opponent_goals:int} al final"
+      body: "{team} igualó en el minuto {last_goal_minute:int} y se llevó un punto ante {opponent}."
+      plain: "{team} igualó en el minuto {last_goal_minute:int} y suma un punto ante {opponent}."
+    hi:
+      headline: "फुल टाइम: आखिरी पलों में {team} ने {team_goals:int}-{opponent_goals:int} से अंक लिया"
+      body: "{team} ने {last_goal_minute:int}वें मिनट में बराबरी की और {opponent} से एक अंक हासिल किया।"
+      plain: "{team} ने {last_goal_minute:int}वें मिनट में बराबरी की और {opponent} से एक अंक लिया।"
+  ten_men_take_a_point:
+    en:
+      headline: "Full time: ten-man {team} take a point from {opponent}"
+      body: "With {ctx_players_for:int} players against {ctx_players_against:int}, {team} still finished {team_goals:int}-{opponent_goals:int}."
+      plain: "Down to ten men, {team} still finish {team_goals:int}-{opponent_goals:int} and take a point."
+    es:
+      headline: "Final: {team}, con diez, suma un punto ante {opponent}"
+      body: "Con {ctx_players_for:int} jugadores contra {ctx_players_against:int}, {team} terminó {team_goals:int}-{opponent_goals:int}."
+      plain: "Con diez jugadores, {team} termina {team_goals:int}-{opponent_goals:int} y suma un punto."
+    hi:
+      headline: "फुल टाइम: दस खिलाड़ियों वाली {team} ने {opponent} से अंक लिया"
+      body: "{ctx_players_against:int} के खिलाफ {ctx_players_for:int} खिलाड़ियों के साथ भी {team} ने मैच {team_goals:int}-{opponent_goals:int} पर खत्म किया।"
+      plain: "दस खिलाड़ियों के साथ भी {team} ने मैच {team_goals:int}-{opponent_goals:int} पर खत्म किया और एक अंक लिया।"
+
 polarity:
   down_to_ten: bad
   down_to_nine: bad
@@ -371,6 +438,7 @@ polarity:
   team_pushes_higher: neutral
   sits_deep_to_protect_lead: neutral
   pushes_up_to_chase: neutral
+  full_time_draw: neutral
 
 # Persona framing around the code's line.
 personas:
@@ -394,6 +462,12 @@ basis:
 
 # Metric labels for overlay cards, by fact name.
 labels:
+  team_shots: { en: "Shots", es: "Tiros", hi: "शॉट" }
+  opponent_shots: { en: "Opponent shots", es: "Tiros del rival", hi: "विरोधी के शॉट" }
+  team_shots_on_target: { en: "On target", es: "A puerta", hi: "निशाने पर" }
+  opponent_shots_on_target: { en: "Opponent on target", es: "A puerta del rival", hi: "विरोधी के निशाने पर" }
+  team_xg: { en: "xG", es: "xG", hi: "xG" }
+  opponent_xg: { en: "Opponent xG", es: "xG del rival", hi: "विरोधी का xG" }
   xg: { en: "xG", es: "xG", hi: "xG" }
   possession_duration_s: { en: "Seconds to score", es: "Segundos hasta el gol", hi: "गोल तक सेकंड" }
   possession_passes: { en: "Passes in the move", es: "Pases en la jugada", hi: "मूव में पास" }

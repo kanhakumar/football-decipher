@@ -23,7 +23,9 @@ object SchemaFiles:
     "examples.ndjson" -> "canonical.schema.json",
     "insight.example.json" -> "insight.schema.json",
     "overlay.example.json" -> "overlay.schema.json",
-    "overlay-shape.example.json" -> "overlay.schema.json"
+    "overlay-shape.example.json" -> "overlay.schema.json",
+    "insight-full-time.example.json" -> "insight.schema.json",
+    "overlay-recap.example.json" -> "overlay.schema.json"
   )
 
   def readString(rel: String): String = Files.readString(dir.resolve(rel))

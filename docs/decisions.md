@@ -184,3 +184,35 @@ The pipeline must show a path to real provider data without using any. "synthfee
 - Versions: when the online eval gate passes, the workflow tags the deployed commit and creates a GitHub Release, with the eval scores and notes generated from the commits since the last release. The first is `v1.0.0`; each deploy bumps the patch version, and a manual run can bump the minor or major version. A deploy that fails its gate gets no tag. The running version is the newest release.
 - Trust: the deploy identity's federated credentials name `refs/heads/release` only. The `master`, `main` and `pull_request` credentials are removed, so no other branch or pull request can get an Azure token. That matters once the repository is public.
 
+## ADR-023: The full-time recap is an insight (accepted, 2026-10-26)
+- Why: the brief promised a full-time recap, and nothing produced the `recap_card` overlay the schema already had.
+- Schema change: insight `kind` gains `full_time`. Scala and Python models, a new example of each (`insight-full-time.example.json`, `overlay-recap.example.json`) and the golden tests changed with it.
+- Facts come from the engine, not from a provider's match summary. The `FullTime` detector reads the events the pipeline already has:
+  - Evidence: every shot, every red card and the final whistle.
+  - Facts per side: goals, shots, shots on target and xG, plus the minute and team of the last goal. The match context is added too (score, players on the pitch).
+  - Rederive proves every fact, like any other insight's.
+  - Importance is 0.9, so the moment gets a model line.
+- Subject: the winner; in a draw the side with fewer players, else the side that scored last, else the home side.
+- Reason codes:
+  - `full_time_win`;
+  - `win_against_the_run_of_play`: won with less xG;
+  - `full_time_draw`;
+  - `late_equaliser_draw`: the last goal was from minute 80;
+  - `ten_men_take_a_point`: a draw with fewer players.
+- Trigger:
+  - Primary: the second half's `period_end`, which every live feed sends and the adapter maps.
+  - Backup: the match status turning `full_time` in the match metadata, for a feed that drops the whistle; the recap then anchors on the last event.
+  - Whichever comes first publishes the recap, once (`Detector.once`). The end is never guessed from the clock.
+  - A correction to its evidence after the whistle withdraws the recap and replaces it, through the existing correction path.
+- Out of scope: extra time and penalties. The synthetic matches never go past 90 minutes plus stoppage time; a cup match would need "after the final period" instead of "after the second half".
+- Agents:
+  - Templates for every code in en, es and hi. Plain personas get a `plain` line per code: no xG, one simple count chip.
+  - The narrator prompt asks for the result first, then what decided it, in the past tense.
+  - The overlay is a `recap_card`, `full_width_banner`, 30 s, the longest an overlay may last.
+  - Every code is tested through the Verifier in every language and persona, including 0-0 draws, where "level" or "empate" would be an unsupported claim.
+- Viewer:
+  - The recap has its own slot, a card in the centre of the pitch. The viewer clock stops at the final whistle, so the card stays until the next match.
+  - Every persona sees it. It is listed with goals and chances.
+  - The parity suite plays the demo match to full time and expects it.
+- Eval: the recap counts like any moment of 0.6 and up. The gate now narrates 12 insights in 180 lines.
+

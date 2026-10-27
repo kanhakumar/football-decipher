@@ -134,7 +134,7 @@ flowchart LR
 - **Settings.** `config/app.yaml` holds the defaults, and App Configuration overrides them. The core reads the store every 2 minutes and serves the values in effect at `/api/config`. The agents and the viewer follow within about 2.5 minutes.
 - **Pipeline.**
   - CI on every push: core, agents and offline eval, viewer unit tests, Playwright parity.
-  - Deploy on push to master: build the images on the runner, `azd provision`, `azd deploy`, build the viewer, then run the online eval gate against the deployed core and Foundry.
+  - Deploy on push to release: build the images on the runner, `azd provision`, `azd deploy`, build the viewer, smoke check the live core (read-only), then run the online eval gate with Foundry against a core of its own on the runner.
 
 ## Quality gates
 
@@ -146,4 +146,4 @@ flowchart LR
 | Rederive | Every insight's facts, reason and importance rebuilt from its evidence events alone |
 | Verifier tests | Reject a wrong number, reject an unsupported claim, accept a correct line; every template line passes |
 | Parity suite | The viewer end to end against the real core and agent service |
-| Eval gate | 165 lines: 100% number match and verified; fallback, first-attempt and latency bounds; Foundry groundedness, relevance, coherence and fluency against a baseline |
+| Eval gate | 180 lines: 100% number match and verified; fallback, first-attempt and latency bounds; Foundry groundedness, relevance, coherence and fluency against a baseline |

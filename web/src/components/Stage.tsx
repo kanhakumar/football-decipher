@@ -144,7 +144,13 @@ const STATUS_LABELS: Record<string, string> = { running: "LIVE", paused: "PAUSED
 
 function LiveChip({ s }: { s: Snapshot }) {
   const status = s.playback?.status;
-  const text = !s.coreOk ? "OFFLINE" : status ? STATUS_LABELS[status] ?? status.toUpperCase() : "WAITING";
+  const text = !s.coreOk
+    ? "OFFLINE"
+    : s.catchingUp
+      ? "CATCHING UP"
+      : status
+        ? STATUS_LABELS[status] ?? status.toUpperCase()
+        : "WAITING";
   return <div className={`live-chip ${s.coreOk ? status ?? "" : ""}`}>{text}</div>;
 }
 

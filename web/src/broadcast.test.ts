@@ -20,7 +20,7 @@ const goal = (over: Partial<Insight> = {}): Insight => ({
 });
 
 /** A fake core and agent service; `narrate` decides each narration answer. */
-function fakeServices(opts: { playback?: Partial<Playback>; insights?: Insight[]; failStart?: boolean } = {}) {
+function fakeServices(opts: { playback?: Partial<Playback>; insights?: Insight[]; failStart?: boolean; events?: object[] } = {}) {
   const calls: { url: string; body?: any }[] = [];
   const playback: Playback = {
     status: "running", seed: 154, speed: 10, delay_s: 120, tracking: false, run_id: "run-1",
@@ -46,6 +46,21 @@ function fakeServices(opts: { playback?: Partial<Playback>; insights?: Insight[]
     if (url.startsWith(`${CORE}/api/stream/insights`)) {
       const sse = (opts.insights ?? []).map((i, n) => `event: insight\nid: ${n}\ndata: ${JSON.stringify(i)}\n\n`).join("");
       return new Response(sse, { headers: { "Content-Type": "text/event-stream" } });
+    }
+    if (url.startsWith(`${CORE}/api/stream/events`) && opts.events) {
+      // Like a real connection, the history arrives in pieces over time, across many frames.
+      const chunks = opts.events.map((e, n) => `event: ${(e as { payload_type: string }).payload_type}
+id: ${n}
+data: ${JSON.stringify(e)}
+
+`);
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          chunks.forEach((c, n) => setTimeout(() => controller.enqueue(new TextEncoder().encode(c)), 30 * (n + 1)));
+          setTimeout(() => controller.close(), 30 * (chunks.length + 1));
+        },
+      });
+      return new Response(body, { headers: { "Content-Type": "text/event-stream" } });
     }
     if (url.startsWith(`${CORE}/api/stream/`)) return new Response("", { headers: { "Content-Type": "text/event-stream" } });
     if (url === `${AGENTS}/api/narrate`) {
@@ -257,5 +272,31 @@ test("replaying a tactics moment redraws its shape map, even if it passed while 
   wall += 7000;
   b.frame();
   assert.isNull(b.getSnapshot().shape, "the replay ends with the card");
+  b.stop();
+});
+
+test("joining a finished match shows where it ended, without fast-forwarding through it", async () => {
+  const meta = { match_id: "SYN-154", payload_type: "match_meta", payload: { home_team_id: "T_HOM", away_team_id: "T_AWY" } };
+  const history = [meta, ...Array.from({ length: 60 }, (_, i) => ({
+    match_id: "SYN-154", payload_type: "event",
+    payload: { event_id: `E_${i}`, type: "pass", period: i < 30 ? 1 : 2, period_clock_s: (i % 30) * 90, video_ts_ms: i * 90_000, team_id: "T_HOM", x: 50, y: 34 },
+  }))];
+  const services = fakeServices({
+    playback: { status: "finished", envelopes_viewer: history.length, live: { match_clock_s: 5400 } },
+    insights: [goal({ video_ts_ms: 600_000 })],
+    events: history,
+  });
+  const clocks: string[] = [];
+  const saved = JSON.stringify({ persona: "casual" });
+  const b = new Broadcast({ core: CORE, agents: AGENTS }, { auth: NO_AUTH, fetch: services.fetchFn, now: () => wall, storage: { getItem: () => saved, setItem: () => {} } });
+  b.subscribe(() => clocks.push(b.getSnapshot().clock));
+  await b.start();
+  await vi.advanceTimersByTimeAsync(3000); // 61 pieces, 30 ms apart, with frames every 100 ms
+  const shown = [...new Set(clocks)];
+  assert.deepEqual(shown, ["00:00", "88:30"], "only the start and where the match ended, nothing in between");
+  const s = b.getSnapshot();
+  assert.isFalse(s.catchingUp);
+  assert.isNull(s.card, "the 11th-minute goal card is long past: not played back");
+  assert.deepEqual(s.moments.map((m) => m.id), ["I_0002"], "but it is in the Moments list");
   b.stop();
 });

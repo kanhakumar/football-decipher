@@ -35,6 +35,7 @@ function fakeServices(opts: { playback?: Partial<Playback>; insights?: Insight[]
     if (url === `${CORE}/api/config`) return json({ settings: { "moments:model_slots": 1 } });
     if (url === `${AGENTS}/health`) return json({ status: "ok", model: "stub" });
     if (url === `${CORE}/api/match/state`) return json(playback);
+    if (url.startsWith(`${CORE}/api/tools/team_stats`)) return json({ metrics: [{ metric: "possession_share", value: 61, basis: "event_data" }] });
     if (url === `${CORE}/api/match/start`) return opts.failStart ? json({ error: "delay_s too big" }, 400) : json(playback);
     if (url === `${CORE}/api/tools/match_info`)
       return json({
@@ -298,5 +299,21 @@ test("joining a finished match shows where it ended, without fast-forwarding thr
   assert.isFalse(s.catchingUp);
   assert.isNull(s.card, "the 11th-minute goal card is long past: not played back");
   assert.deepEqual(s.moments.map((m) => m.id), ["I_0002"], "but it is in the Moments list");
+  b.stop();
+});
+
+test("before kickoff reaches the viewer there is no possession bar; then it covers the minutes the viewer has seen", async () => {
+  const services = fakeServices({ playback: { live: { match_clock_s: 300 } } }); // the live side is 5 minutes in
+  const b = await started(services);
+  b.onEnvelope({ match_id: "SYN-154", payload_type: "match_meta", payload: { home_team_id: "T_HOM", away_team_id: "T_AWY" } });
+  await vi.advanceTimersByTimeAsync(3100);
+  const stats = () => services.calls.filter((c) => c.url.includes("/api/tools/team_stats"));
+  assert.isNull(b.getSnapshot().momentum, "nothing played on this screen yet");
+  assert.equal(stats().length, 0, "no stats asked before kickoff");
+  b.onEnvelope({ match_id: "SYN-154", payload_type: "event", payload: { event_id: "E_1", type: "pass", period: 1, period_clock_s: 130, video_ts_ms: 140_000, team_id: "T_HOM" } });
+  await vi.advanceTimersByTimeAsync(3100);
+  assert.include(stats().at(-1)!.url, "period=1&from_minute=0&to_minute=3", "the viewer's minute, not the live one");
+  assert.notInclude(stats().at(-1)!.url, "last_minutes");
+  assert.equal(b.getSnapshot().momentum?.home, 61);
   b.stop();
 });

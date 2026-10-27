@@ -215,6 +215,7 @@ The pipeline must show a path to real provider data without using any. "synthfee
   - Every persona sees it. It is listed with goals and chances.
   - The parity suite plays the demo match to full time and expects it.
 - Eval: the recap counts like any moment of 0.6 and up. The gate now narrates 12 insights in 180 lines.
+- First online run (Deploy 40455081748): every number matched and every line verified, but p95 latency was 15.8 s, over the 15 s bound. The recap averaged 3 attempts: the Verifier rejected its talk of goals and saves, because claims were supported by the insight kind, not by what the recap's evidence holds. The recap now supports `goal` when its facts have goals and `outcome=saved` when shots on target exceed goals, so a goalless recap still may not claim a goal. Its body is asked to stay under 300 characters. Replayed on that run, 22 of the 29 rejected recap drafts pass.
 
 ## ADR-024: Cards live in a band under the pitch (accepted, 2026-10-27)
 - Why: the lower third and the corner card were drawn over the pitch and covered the play: the tracking dots, the ball and the shape maps.
@@ -223,6 +224,12 @@ The pipeline must show a path to real provider data without using any. "synthfee
 - The band's height is a fixed budget in the card's own font size. A card shows its kicker and badges (Verified, the basis) on one row, a headline of at most 2 lines, a body of at most 2 lines and one row of chips, so nothing is ever cut off at any width. Longer text ends in "…"; hovering over or focusing the card shows the whole line, and the card grows upwards. The pitch takes the rest of the stage. Phones show one card at a time.
 - The full-time recap stays centred on the pitch: play has stopped.
 - Replay from the Moments list now redraws the moment's shape map with its card. Before, a tactics moment whose map had passed (for example while watching as a casual fan) could never show its map again.
+
+## ADR-025: The viewer's stats follow the viewer's minute (accepted, 2026-10-27)
+- Why: the possession bar and the player panel asked the core for "the last 5 minutes" and "the match so far". The core answers those from the live engine, which runs a full viewer delay ahead of the screen. So the bar moved during the pre-match countdown and showed the future during the match: 2 minutes ahead with a 120 s delay, 10 minutes with 600 s.
+- The viewer now asks for explicit windows that end at its own minute, the last event that reached it, using the period and from/to minutes the stats tools already accept. Possession covers the last 5 minutes of the viewer's period. The player panel covers the match so far, with the period named in the first half so that stoppage time is not mixed with the start of the second half.
+- Before the first event reaches the viewer there is no possession bar, and the player panel says the stats start at kickoff. A new match resets both.
+- Agents and moments keep using the live side on purpose: that is how narration is ready before the viewer reaches a moment (D5).
 
 ## ADR-026: Joining a match under way shows where it is, not a fast-forward (accepted, 2026-10-27)
 - Why: a viewer that opened the page, signed in or reloaded after kickoff received the match so far as one burst on the events stream, and drew every event. The clock, ticker, dots and score raced through the match in a few seconds, then stopped where the match was. On Azure the burst arrives over the network and is plainly visible.

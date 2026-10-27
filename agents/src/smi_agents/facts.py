@@ -72,6 +72,15 @@ def _support(insight: Insight, by_type: dict[str, int]) -> set[str]:
         tokens.add("score=lead" if tg > og else "score=level" if tg == og else "score=trail")
         if insight.kind.value == "goal" and tg == og:
             tokens.add("equalising_goal")
+    if insight.kind.value == "full_time":
+        # The recap's evidence is every shot of the match (ADR-023): its goals and saves are facts.
+        if facts.get("team_goals", 0) + facts.get("opponent_goals", 0) > 0:
+            tokens.add("goal")
+        saved = facts.get("team_shots_on_target", 0) > facts.get("team_goals", 0) or facts.get(
+            "opponent_shots_on_target", 0
+        ) > facts.get("opponent_goals", 0)
+        if saved:
+            tokens.add("outcome=saved")
     return tokens
 
 

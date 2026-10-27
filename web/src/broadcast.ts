@@ -51,6 +51,15 @@ export interface UserSettings {
   groups: Group[];
 }
 
+/** The broadcast screen's fields, held still while a late joiner catches up (ADR-026). */
+const FROZEN_WHILE_CATCHING_UP = [
+  "clock", "score", "ball", "trail", "dots", "tag", "ticker", "card", "recap", "corner", "shape", "momentum", "prematch", "moments",
+] as const;
+
+function pick<T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> {
+  return Object.fromEntries(keys.map((k) => [k, o[k]])) as Pick<T, K>;
+}
+
 export interface CardView {
   key: string;
   overlayId: string;
@@ -130,6 +139,8 @@ export interface Snapshot {
   prematch: { countdownS: number; delayS: number } | null;
   /** Seconds to kickoff while a Start from this viewer waits for the match to play. */
   startingS: number | null;
+  /** Joining a match already under way: the history is being taken in, not played back (ADR-026). */
+  catchingUp: boolean;
   moments: MomentRow[];
   latency: { delay: string; quick: string; model: string; lead: string; leadLate: boolean; onTime: string; onTimeOk: boolean | null };
   player: { title: string; rows: { label: string; value: string; basis: string }[]; note: string } | null;
@@ -198,6 +209,8 @@ export class Broadcast {
   private tag: { x: number; y: number; until: number } | null = null;
   private ticker = "";
   private clockText = "00:00";
+  private backlog = 0;
+  private seen = 0;
   /** Where the viewer is in the match: the last event that reached it (null before kickoff). */
   private viewAt: { period: number; minute: number } | null = null;
   private correction: { overlay: ShownOverlay; until: number } | null = null;
@@ -250,8 +263,18 @@ export class Broadcast {
   getSnapshot = (): Snapshot => this.snapshot;
 
   private emit(): void {
-    this.snapshot = this.build();
+    const next = this.build();
+    // While a late joiner takes in the match so far, the screen keeps what it showed: no fast-forward
+    // through the history (ADR-026). The panels still update.
+    this.snapshot = this.catchingUp
+      ? { ...next, ...pick(this.snapshot, FROZEN_WHILE_CATCHING_UP), catchingUp: true }
+      : next;
     for (const l of this.listeners) l();
+  }
+
+  /** True until the events stream has delivered what the viewer side held when this viewer joined. */
+  private get catchingUp(): boolean {
+    return this.seen < this.backlog;
   }
 
   // ---------------------------------------------------------------- lifecycle
@@ -461,7 +484,7 @@ export class Broadcast {
 
   /** Follows one core stream with the user's token, resuming after the last event on a dropped
    * connection, until the match is over or the stream is aborted (a new run). */
-  private openStream(path: string, types: string[], handler: (data: any) => void): AbortController {
+  private openStream(path: string, types: string[], handler: (data: any) => void, onAny?: () => void): AbortController {
     const control = new AbortController();
     let lastId: string | null = null;
     void (async () => {
@@ -474,6 +497,7 @@ export class Broadcast {
             onEvent: (e) => {
               if (e.id !== null) lastId = e.id;
               if (types.includes(e.type)) handler(JSON.parse(e.data));
+              onAny?.();
             },
           });
         } catch {
@@ -489,8 +513,19 @@ export class Broadcast {
 
   private connect(): void {
     for (const s of this.streams) s.abort();
+    // What the viewer side already holds: joining late, it arrives as one burst to take in quietly.
+    this.backlog = this.playback?.envelopes_viewer ?? 0;
+    this.seen = 0;
     this.streams = [
-      this.openStream("/api/stream/events", ["match_meta", "lineup", "event", "tracking_frame"], (e) => this.onEnvelope(e)),
+      this.openStream(
+        "/api/stream/events",
+        ["match_meta", "lineup", "event", "tracking_frame"],
+        (e) => this.onEnvelope(e),
+        () => {
+          this.seen += 1;
+          if (this.seen === this.backlog) this.frame(); // caught up: show where the match is, at once
+        },
+      ),
       this.openStream("/api/stream/insights", ["insight"], (i) => this.onInsight(i)),
       this.openStream("/api/stream/overlays", ["overlay"], (o) => this.onCoreOverlay(o)),
     ];
@@ -811,6 +846,7 @@ export class Broadcast {
 
   /** Advances the timeline to now and publishes what is on screen. Idempotent. */
   frame(): void {
+    if (this.catchingUp) return; // cards whose time passed meanwhile are skipped on the next frame
     const ts = this.clock.now(this.now());
     if (ts !== null) {
       for (const c of this.queue.tick(ts, this.now())) {
@@ -870,6 +906,7 @@ export class Broadcast {
       momentum: this.momentum,
       prematch: this.prematchView(wall),
       startingS: this.starting ? (this.prematchView(wall)?.countdownS ?? 0) : null,
+      catchingUp: false,
       moments: this.momentRows(ts),
       latency: this.latencyView(),
       player: this.player,

@@ -231,3 +231,9 @@ The pipeline must show a path to real provider data without using any. "synthfee
 - Before the first event reaches the viewer there is no possession bar, and the player panel says the stats start at kickoff. A new match resets both.
 - Agents and moments keep using the live side on purpose: that is how narration is ready before the viewer reaches a moment (D5).
 
+## ADR-026: Joining a match under way shows where it is, not a fast-forward (accepted, 2026-10-27)
+- Why: a viewer that opened the page, signed in or reloaded after kickoff received the match so far as one burst on the events stream, and drew every event. The clock, ticker, dots and score raced through the match in a few seconds, then stopped where the match was. On Azure the burst arrives over the network and is plainly visible.
+- The viewer knows from the match state how many envelopes the viewer side holds when it joins. Until the events stream has delivered that many, it takes them in without drawing: the broadcast screen keeps what it showed and the live chip reads CATCHING UP, while the panels still update. Then it shows the current state at once: the score, the clock and, at full time, the recap. Cards whose time passed during the catch-up are not played back. They stay in the Moments list, where they can be replayed.
+- A dropped stream resumes from the last event id, so a reconnect is never a burst.
+- Tested with a history that arrives in pieces over time, as on a network. On the old code the screen showed 20 clock values racing through the match; now it shows only the start and where the match is.
+

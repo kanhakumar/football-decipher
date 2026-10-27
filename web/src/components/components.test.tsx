@@ -11,7 +11,7 @@ const base: Snapshot = {
   ready: true, gate: false, account: { enabled: false, name: null }, playback: null, coreOk: true,
   agentsOk: true, agentModel: "stub", clock: "00:00", score: [0, 0], home: null, away: null, ball: null,
   trail: [], dots: [], tag: null, ticker: "", card: null, recap: null, corner: null, shape: null, momentum: null,
-  prematch: null, startingS: null, moments: [],
+  prematch: null, startingS: null, catchingUp: false, moments: [],
   latency: { delay: "–", quick: "–", model: "–", lead: "–", leadLate: false, onTime: "–", onTimeOk: null },
   player: null, toasts: [], settings: { persona: "casual", lang: "en", team: "", player: "", metric: "", groups: ["chances", "flow", "tactics", "players"] },
   view: DEFAULTS, teams: [], squads: [], busy: { start: false, pause: false, retry: false },

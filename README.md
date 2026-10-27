@@ -153,3 +153,7 @@ The pipeline never reads the generator. It reads canonical envelopes that the ad
 | `infra` | Bicep, azd hooks, the app registration script |
 | `eval` | The eval gate, its thresholds and baseline |
 | `docs` | Architecture, decision records, calibration report, demo script |
+
+## License
+
+MIT. See [LICENSE](LICENSE).

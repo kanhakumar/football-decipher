@@ -214,6 +214,45 @@ async def test_stakes_phrasing_from_the_online_eval_is_the_situation(sheets):
         body="Northgate FC ने टैकल जीत कर दबाव बनाया; अब बराबरी का पीछा है।",
     )
     assert reasons(hi, press, "hi") == []
+    # From the recap release's eval: the chase, the time left and equal numbers in words.
+    for body in (
+        "An aggressive push to find a goal.",
+        "They press for an equaliser.",
+        "A clear tactical shove to win the match.",
+    ):
+        assert reasons(Line(headline="Northgate FC push on", body=body), red) == [], body
+    for body in (
+        "Northgate FC aprieta sin llegar a probar al portero.",
+        "Un empuje para buscar el gol de la victoria.",
+        "Presionan al final pero no encuentran el gol.",
+        "Atacan con un hombre menos para igualar el marcador.",
+        "Sube la línea para presionar por el empate, persiguiendo un marcador de 1-2.",
+    ):
+        assert reasons(Line(headline="Northgate FC aprieta", body=body), red, "es") == [], body
+    for body in (
+        "Northgate FC के पास 14 मिनट बचे हैं।",
+        "बराबर टीमों के बावजूद Northgate FC पीछे है।",
+        "Eastmere Rovers के पास संख्यात्मक बढ़त है।",
+        "1-2 की हार के दौरान Northgate FC आगे बढ़ी।",
+        "Northgate FC ने बराबरी करने के लिए आगे धक्का दिया।",
+        "यह शिफ्ट बचा हुआ स्थान छोड़ती है।",
+    ):
+        assert reasons(Line(headline="Northgate FC का दबाव", body=body), red, "hi") == [], body
+    goal = sheets["goal"]  # 1-1 to 2-1: from level to ahead is the goal itself
+    es_goal = Line(
+        headline="Liam Carver adelanta a Eastmere Rovers",
+        body="El contraataque cambió el partido de empate a ventaja: 2-1.",
+    )
+    assert reasons(es_goal, goal, "es") == []
+    equaliser = sheets["equaliser"]
+    es_eq = Line(headline="Kofi Mensah iguala", body="El gol anuló la ventaja de Eastmere Rovers.")
+    assert "unsupported_claim:lead" not in reasons(es_eq, equaliser, "es")
+    for lang, headline in (
+        ("es", "Northgate FC empata el partido"),
+        ("es", "Northgate FC iguala el marcador"),
+        ("hi", "Northgate FC ने बराबरी कर ली"),
+    ):
+        assert reasons(Line(headline=headline), red, lang), headline
     # Still claims: an equaliser, a save and a win need the evidence.
     for headline in (
         "Northgate FC equalise",

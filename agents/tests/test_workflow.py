@@ -113,6 +113,21 @@ async def test_personas_change_the_same_moment(tools):
     assert (len(press_casual.line.metrics), len(press_analyst.line.metrics)) == (1, 4)
 
 
+async def test_the_explanation_is_made_once_per_insight_for_every_persona_and_language(tools):
+    """D3: why a moment matters is persona-neutral, so one Explain call serves every line of an
+    insight. Plain personas see a filtered sheet, so they get their own."""
+    model = ScriptedModel({})
+    narrator = Narrator(tools, model)
+    for persona in ("casual", "club_fan", "analyst", "metric_focus"):
+        for lang in ("en", "hi", "es"):
+            req = NarrationRequest(insight_id="I_0012", persona=persona, lang=lang)
+            await narrator.narrate(req)
+    explains = [p for task, p in model.calls if task == "explain"]
+    assert [p["request"]["persona"] for p in explains] == ["casual", "analyst"]
+    await narrator.narrate(NarrationRequest(insight_id="I_0025"))
+    assert len([t for t, _ in model.calls if t == "explain"]) == 3
+
+
 async def test_results_are_cached_per_insight_persona_and_language(tools, core):
     narrator = Narrator(tools, StubModel())
     req = NarrationRequest(insight_id="I_0012", lang="hi")

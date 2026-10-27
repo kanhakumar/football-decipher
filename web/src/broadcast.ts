@@ -10,6 +10,8 @@ import {
   GROUP_NAMES,
   InsightBook,
   displayClock,
+  matchMinute,
+  viewerWindows,
   groupOf,
   momentMinute,
   scoreAt,
@@ -196,6 +198,8 @@ export class Broadcast {
   private tag: { x: number; y: number; until: number } | null = null;
   private ticker = "";
   private clockText = "00:00";
+  /** Where the viewer is in the match: the last event that reached it (null before kickoff). */
+  private viewAt: { period: number; minute: number } | null = null;
   private correction: { overlay: ShownOverlay; until: number } | null = null;
   private replayed: { overlay: ShownOverlay; until: number } | null = null;
   /** Shape maps by insight, so a replayed tactics moment redraws its map. */
@@ -504,6 +508,7 @@ export class Broadcast {
     this.ball = null;
     this.ticker = "";
     this.clockText = "00:00";
+    this.viewAt = this.momentum = this.player = null;
     this.tag = this.correction = this.replayed = this.replayedShape = null;
     this.shapes.clear();
   }
@@ -573,6 +578,7 @@ export class Broadcast {
         const e = p as unknown as MatchEvent;
         this.clock.observe(e.video_ts_ms, this.now());
         this.clockText = displayClock(e.period, e.period_clock_s);
+        this.viewAt = { period: e.period, minute: matchMinute(e.period, e.period_clock_s) };
         this.showEvent(e);
         break;
       }
@@ -740,9 +746,14 @@ export class Broadcast {
 
   private async refreshMomentum(): Promise<void> {
     if (!this.homeId || !this.playback || this.playback.status === "idle") return;
+    if (!this.viewAt) {
+      this.momentum = null; // nothing has been played on this screen yet
+      return;
+    }
     try {
-      // From the live engine, which runs the viewer delay ahead; the bar is a smoothed 5-minute view.
-      const s = await this.core(`/api/tools/team_stats?team=${this.homeId}&metrics=possession_share&last_minutes=5`);
+      // The 5 minutes up to the viewer's minute: the live engine is ahead by the viewer delay.
+      const { lastFive } = viewerWindows(this.viewAt.period, this.viewAt.minute);
+      const s = await this.core(`/api/tools/team_stats?team=${this.homeId}&metrics=possession_share&${lastFive}`);
       const m = s.metrics[0];
       if (m.value === undefined) return;
       const home = Math.round(m.value);
@@ -765,10 +776,16 @@ export class Broadcast {
       return;
     }
     const title = `Player focus · ${p.shirt} ${p.name}`;
+    if (!this.viewAt) {
+      this.player = { title, rows: [], note: "Stats start at kickoff." };
+      return;
+    }
+    // The match so far on this screen, not on the live engine (ADR-025).
+    const soFar = `&${viewerWindows(this.viewAt.period, this.viewAt.minute).soFar}`;
     try {
       const [stats, workload] = await Promise.all([
-        this.core(`/api/tools/player_stats?player=${id}`),
-        this.core(`/api/tools/player_workload?player=${id}`),
+        this.core(`/api/tools/player_stats?player=${id}${soFar}`),
+        this.core(`/api/tools/player_workload?player=${id}${soFar}`),
       ]);
       const rows = [...stats.metrics, ...workload.metrics]
         .filter((m: { value?: number }) => m.value !== undefined)

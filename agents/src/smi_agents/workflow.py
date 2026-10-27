@@ -178,17 +178,25 @@ class Gather(Executor):
 
 
 class Explain(Executor):
-    def __init__(self, model: Model) -> None:
+    """Why the moment matters, persona-neutral (D3): explained once per insight and kind of
+    sheet (plain personas see a filtered one), then reused by every persona and language."""
+
+    def __init__(self, model: Model, explanations: dict[tuple, dict[str, Any]]) -> None:
         super().__init__(id="explain")
         self.model = model
+        self.explanations = explanations
 
     @handler
     async def run(self, job: Job, ctx: WorkflowContext[Job]) -> None:
-        reply = await self.model.complete("explain", system_prompt("explain"), _payload(job))
-        try:
-            job.explanation = json.loads(reply)
-        except ValueError:
-            job.explanation = {"reason": job.sheet.code}
+        insight = job.sheet.insight
+        key = (insight.match_id, insight.insight_id, templates.is_plain(job.request.persona))
+        if key not in self.explanations:
+            reply = await self.model.complete("explain", system_prompt("explain"), _payload(job))
+            try:
+                self.explanations[key] = json.loads(reply)
+            except ValueError:
+                self.explanations[key] = {"reason": job.sheet.code}
+        job.explanation = self.explanations[key]
         await ctx.send_message(job)
 
 
@@ -332,8 +340,8 @@ def _give_up(c: Checked) -> bool:
     return not c.verdict.ok and c.draft.attempt >= settings.current.max_attempts
 
 
-def build(tools: Tools, model: Model) -> Workflow:
-    gather_, explain = Gather(tools), Explain(model)
+def build(tools: Tools, model: Model, explanations: dict[tuple, dict[str, Any]]) -> Workflow:
+    gather_, explain = Gather(tools), Explain(model, explanations)
     personalize, narrate, localize = Personalize(), Narrate(model), Localize(model)
     verify_, template, publish = Verify(), Template(model.name), Publish(model.name)
     return (
@@ -377,6 +385,7 @@ class Narrator:
         self.model = model
         self.cache = cache or InMemoryCache()
         self.locks: dict[tuple, asyncio.Lock] = {}
+        self.explanations: dict[tuple, dict[str, Any]] = {}
 
     async def narrate(self, req: NarrationRequest) -> Narration:
         key = tuple(req.model_dump().values())
@@ -385,7 +394,7 @@ class Narrator:
             cached = await self.cache.get(req)
             if cached is not None:
                 return cached
-            result = await build(self.tools, self.model).run(req)
+            result = await build(self.tools, self.model, self.explanations).run(req)
             outputs = result.get_outputs()
             if not outputs:
                 raise RuntimeError(f"narration of {req.insight_id} produced no output")

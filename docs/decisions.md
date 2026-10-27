@@ -237,3 +237,8 @@ The pipeline must show a path to real provider data without using any. "synthfee
 - A dropped stream resumes from the last event id, so a reconnect is never a burst.
 - Tested with a history that arrives in pieces over time, as on a network. On the old code the screen showed 20 clock values racing through the match; now it shows only the start and where the match is.
 
+
+## ADR-027: One explanation per insight (accepted, 2026-10-27)
+- Why: the online eval failed twice on latency alone (p95 15.8 s, limit 15 s) while each model call stayed at a median of 2.5 s. Every line made its own Explain call before Narrate, so an English line needed at least 2 calls and a Hindi or Spanish line 3, and the occasional 8-17 s Foundry call landed on lines that already had several.
+- The explanation (the reason, the key facts and a persona-neutral angle) does not depend on the persona or the language. The Narrator now keeps it per (match, insight, plain or technical), since plain personas see a filtered sheet. The first line of a moment pays for it; the other personas and languages, and the other viewers, reuse it.
+- The eval report now records each line's latency, so the slow lines can be read off directly.

@@ -193,7 +193,8 @@ async def run(args: argparse.Namespace, config: dict[str, Any]) -> dict[str, Any
                         tools.answers.clear()
                         started = time.perf_counter()
                         n = await narrator.narrate(requests_for(insight, persona, lang))
-                        latencies.append((time.perf_counter() - started) * 1000)
+                        latency = (time.perf_counter() - started) * 1000
+                        latencies.append(latency)
                         number += 1
                         shown = overlay.show(n, overlay.overlay_id(number))
                         answers = [part for name, a in tools.answers for part in usable(name, a)]
@@ -209,6 +210,7 @@ async def run(args: argparse.Namespace, config: dict[str, Any]) -> dict[str, Any
                                 "verified": n.verified,
                                 "template_fallback": n.template_fallback,
                                 "first_attempt": first,
+                                "latency_ms": round(latency),
                                 "facts": insight["facts"],
                                 "kind": insight["kind"],
                                 "code": n.sheet.code,

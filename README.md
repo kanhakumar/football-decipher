@@ -71,7 +71,7 @@ See [docs/architecture.md](docs/architecture.md) for the components and data flo
 - **Facts in code.** Detectors compute every number. An insight's facts are re-derived from its evidence events in tests.
 - **Tools, not dumps.** The workflow calls a fixed set of MCP tools per insight kind. No bulk events or tracking frames reach a prompt.
 - **Verifier.** It checks every number in a line against the fact sheet (in digits, words, Devanagari and percentages), every name against the insight, and every event claim (penalty, red card, equaliser, counter) against the evidence. Lines for plain personas may not use xG, PPDA or decimals.
-- **Eval gate.** Every deploy replays the demo match and narrates 11 moments in 5 personas and 3 languages (165 lines). An independent checker requires a 100% number match and 100% verified lines, and Foundry evaluators score groundedness, relevance, coherence and fluency. A regression fails the build.
+- **Eval gate.** Every deploy replays the demo match and narrates 12 moments in 5 personas and 3 languages (180 lines). An independent checker requires a 100% number match and 100% verified lines, and Foundry evaluators score groundedness, relevance, coherence and fluency. A regression fails the build.
 
 ## Run it locally
 
@@ -133,10 +133,9 @@ Without the app registrations the APIs stay open and the viewer runs without sig
   - Only the Promote workflow can update `release`.
   - The repository admin can bypass both rulesets.
   GitHub enforces rulesets on public repositories, or on private ones with a paid plan.
-- The Deploy workflow (`.github/workflows/azure-dev.yml`) runs for `release` only (`.github/workflows/azure-dev.yml`). It provisions with azd, deploys the core, the agents and the viewer, and runs the online eval gate.
+- The Deploy workflow (`.github/workflows/azure-dev.yml`) runs for `release` only. It provisions with azd, deploys the core, the agents and the viewer, checks the live core with read-only requests, and runs the online eval gate. The eval replays the demo match on a core of its own on the runner, built from the same jar as the core image, and narrates with the real Foundry model, so matches on the live site can go on during a deploy.
 - When the gate passes, the workflow tags the commit and creates a GitHub Release with the eval scores and notes generated from the commits. The first tag is `v1.0.0`. Each later deploy bumps the patch version; run the workflow by hand to bump the minor or major version instead.
 - Azure trusts only the `release` branch. The deploy signs in with OIDC (repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_ENV_NAME`, `AZURE_LOCATION`), and its federated credential names `refs/heads/release`. Pushes to `master` and pull requests cannot get Azure tokens.
-- During the eval (about 15 minutes after the deploy step), don't start a match on the live site. The deployed core plays one shared match, and a new start would replace the one being evaluated.
 
 ## Path to production: the adapter
 

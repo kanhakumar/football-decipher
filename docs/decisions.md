@@ -242,3 +242,10 @@ The pipeline must show a path to real provider data without using any. "synthfee
 - Why: the online eval failed twice on latency alone (p95 15.8 s, limit 15 s) while each model call stayed at a median of 2.5 s. Every line made its own Explain call before Narrate, so an English line needed at least 2 calls and a Hindi or Spanish line 3, and the occasional 8-17 s Foundry call landed on lines that already had several.
 - The explanation (the reason, the key facts and a persona-neutral angle) does not depend on the persona or the language. The Narrator now keeps it per (match, insight, plain or technical), since plain personas see a filtered sheet. The first line of a moment pays for it; the other personas and languages, and the other viewers, reuse it.
 - The eval report now records each line's latency, so the slow lines can be read off directly.
+||||||| Stash base
+
+## ADR-028: The eval gate plays on a core of its own (accepted, 2026-10-27)
+- Why: the online eval started the demo match on the deployed core, which plays one match at a time. For about 15 minutes per deploy nobody could start a match on the live site, and a match started anyway replaced the one being evaluated.
+- The narration in the eval already ran on the GitHub runner with the real Foundry model; only the core was shared. The Deploy workflow now starts the core on the runner from the same jar the core image is built from, and the eval replays seed 154 there. The match is deterministic, so the eval sees the same moments as before.
+- The deployed core gets a read-only smoke check instead (`/health`, `/openapi.yaml`, `/api/config`), which never starts or stops a match.
+- Considered: a second core Container App for the eval (a new Azure resource for little gain), and a core that plays several matches at once (the better product, too large for now).

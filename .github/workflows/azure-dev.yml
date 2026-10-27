@@ -1,5 +1,5 @@
-# Deploy: provision and deploy with azd, then the online eval gate against the deployed core and
-# the Foundry model, then tag the release (ADR-022). Runs only for the `release` branch: work
+# Deploy: provision and deploy with azd, smoke check the live core, then the online eval gate (the
+# Foundry model, on a core of its own on this runner), then tag the release (ADR-022, ADR-028). Runs only for the `release` branch: work
 # lands on master through feature branches, and master is promoted to release to deploy. Signs
 # in with OIDC (a federated credential for refs/heads/release only); no secrets are stored.
 # Images build with Docker on this runner.
@@ -91,16 +91,35 @@ jobs:
       - name: Deploy (core image, agents image, viewer)
         run: azd deploy --no-prompt
 
+      # Read-only: the live core is up and serving its settings. It never starts a match, so a
+      # match people are watching on the live site is left alone.
+      - name: Smoke check the deployed core
+        run: |
+          core="$(azd env get-value CORE_URL)"
+          for path in /health /openapi.yaml /api/config; do
+            curl -fsS --retry 10 --retry-delay 6 --retry-all-errors -o /dev/null "$core$path"
+            echo "ok $path"
+          done
+
+      # The eval replays the demo match on its own core on this runner, built from the same jar as
+      # the core image, so it never replaces a match on the live site (ADR-028). The narration
+      # runs here too, with the real Foundry model.
+      - name: Start a core for the eval on this runner
+        run: |
+          nohup java -jar core/target/scala-3.9.0/app.jar > core-eval.log 2>&1 &
+          curl -fsS --retry 30 --retry-delay 2 --retry-all-errors -o /dev/null http://127.0.0.1:8080/health
       - name: Eval gate (online)
         run: |
           python -m pip install -e "agents[eval]"
           eval "$(azd env get-values | sed 's/^/export /')"
-          python eval/run.py --online --core "$CORE_URL"
+          python eval/run.py --online --core http://127.0.0.1:8080
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: eval-online
-          path: eval/out/report.json
+          path: |
+            eval/out/report.json
+            core-eval.log
 
       - name: Tag the release (v1.0.0, then the next patch, or minor or major from a manual run)
         env:

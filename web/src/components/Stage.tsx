@@ -161,7 +161,18 @@ export function LowerThird({ card, recap = false }: { card: CardView; recap?: bo
     >
       <div className="stripe" style={{ background: card.away ? "var(--away)" : "var(--home)" }} />
       <div className="card-body">
-        <div className="kicker">{card.kicker}</div>
+        <div className="kicker-row">
+          <div className="kicker">{card.kicker}</div>
+          {card.badges.length > 0 && (
+            <div className="badges">
+              {card.badges.map((x) => (
+                <span key={x.text} className={`badge ${x.cls}`}>
+                  {x.text}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
         <h2>{card.headline}</h2>
         {card.body && <p>{card.body}</p>}
         {card.metrics.length > 0 && (
@@ -176,15 +187,6 @@ export function LowerThird({ card, recap = false }: { card: CardView; recap?: bo
               </li>
             ))}
           </ul>
-        )}
-        {card.badges.length > 0 && (
-          <div className="badges">
-            {card.badges.map((x) => (
-              <span key={x.text} className={`badge ${x.cls}`}>
-                {x.text}
-              </span>
-            ))}
-          </div>
         )}
       </div>
       {card.retracted && <div className="correction">Correction: this moment was withdrawn</div>}

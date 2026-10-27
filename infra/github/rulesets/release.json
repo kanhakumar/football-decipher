@@ -1,15 +1,12 @@
 {
-  "name": "release: only the Promote workflow and the owner",
+  "name": "release: fast-forward only, never deleted",
   "target": "branch",
   "enforcement": "active",
   "conditions": { "ref_name": { "include": ["refs/heads/release"], "exclude": [] } },
   "bypass_actors": [
-    { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" },
-    { "actor_id": 15368, "actor_type": "Integration", "bypass_mode": "always" }
+    { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" }
   ],
   "rules": [
-    { "type": "creation" },
-    { "type": "update" },
     { "type": "deletion" },
     { "type": "non_fast_forward" }
   ]

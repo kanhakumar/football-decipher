@@ -177,9 +177,9 @@ The pipeline must show a path to real provider data without using any. "synthfee
 - Promotion: the `Promote master to release` workflow (run by hand, owner only) fast-forwards `release` to `master` and starts the Deploy workflow. A push made with the workflow token does not trigger other workflows, so Promote starts Deploy itself. Promote fast-forwards rather than cherry-picks: `release` only ever holds commits already on `master`, with the same commit ids, so a tag on `release` names a `master` commit. Promote refuses to run when `release` has diverged.
 - Guardrails (GitHub rulesets, `infra/github/rulesets`, applied by `infra/scripts/github-rulesets.sh`):
   - `master` takes changes only through pull requests that pass the policy check and CI, and can't be deleted or force-pushed.
-  - On `release`, only the GitHub Actions app (Promote) may create, update or delete the branch.
+  - `release` can't be deleted or force-pushed, so it only ever moves forward. A personal repository can't name the GitHub Actions app as a ruleset bypass, so the ruleset can't limit updates to Promote; the owner is the only person with write access, and Promote is owner-only.
   - The admin role bypasses both rulesets.
-  - GitHub enforces rulesets only on public repositories or on paid plans, so they are applied when the repository is made public. Until then the owner is the only person with write access.
+  - GitHub enforces rulesets only on public repositories or on paid plans, so they were applied when the repository was made public (2026-10-28).
 - Deploy: the Deploy workflow runs on pushes to `release` (docs-only changes excepted), or by hand on `release`. The job refuses other refs.
 - Versions: when the online eval gate passes, the workflow tags the deployed commit and creates a GitHub Release, with the eval scores and notes generated from the commits since the last release. The first is `v1.0.0`; each deploy bumps the patch version, and a manual run can bump the minor or major version. A deploy that fails its gate gets no tag. The running version is the newest release.
 - Trust: the deploy identity's federated credentials name `refs/heads/release` only. The `master`, `main` and `pull_request` credentials are removed, so no other branch or pull request can get an Azure token. That matters once the repository is public.

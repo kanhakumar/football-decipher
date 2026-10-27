@@ -130,7 +130,7 @@ Without the app registrations the APIs stay open and the viewer runs without sig
 - To deploy, run the **Promote master to release** workflow (Actions tab, or `gh workflow run "Promote master to release" -f bump=patch`). It fast-forwards `release` to the latest `master` and starts the deploy. It refuses to run when `release` has commits that are not on `master`, and only the repository owner may run it.
 - Guardrails (rulesets in `infra/github/rulesets`, applied with `sh infra/scripts/github-rulesets.sh`):
   - `master` takes changes only through pull requests that pass the PR policy check and CI, and can't be deleted or force-pushed.
-  - Only the Promote workflow can update `release`.
+  - `release` can't be deleted or force-pushed, and only the owner can push to it or run Promote.
   - The repository admin can bypass both rulesets.
   GitHub enforces rulesets on public repositories, or on private ones with a paid plan.
 - The Deploy workflow (`.github/workflows/azure-dev.yml`) runs for `release` only. It provisions with azd, deploys the core, the agents and the viewer, checks the live core with read-only requests, and runs the online eval gate. The eval replays the demo match on a core of its own on the runner, built from the same jar as the core image, and narrates with the real Foundry model, so matches on the live site can go on during a deploy.

@@ -337,3 +337,59 @@ button.link { background: none; color: var(--accent); border: 0; padding: 0; fon
   .recap-card { width: 92%; }
   .recap-card .card-body { font-size: clamp(11px, 3.2cqi, 16px); }
 }
+
+/* The card band (ADR-024): the strip under the pitch holds the cards, side by side, so they never
+   cover the play. Its height is a fixed budget in the card's own font (--cf): kicker and badges on
+   one row, a headline of up to 2 lines, a body of 2 lines, one row of chips. The pitch takes the
+   rest. Hovering a card shows the whole line, growing upwards. The momentum bar runs beneath the
+   band; the ticker fills it when no card is showing. */
+.stage {
+  aspect-ratio: 3 / 2; max-height: calc(100vh - 32px);
+  --cf: clamp(10px, 1.35cqi, 16px); --band: calc(var(--cf) * 10.2); --under: 6.5%;
+}
+.pitch { inset: auto; left: 3%; top: 9%; width: 94%; height: calc(100% - 9% - var(--under) - var(--band) - 8px); }
+.card-band {
+  position: absolute; left: 3%; right: 3%; bottom: var(--under); height: var(--band);
+  font-size: var(--cf); display: flex; align-items: flex-end; gap: 1.2%; z-index: 2; pointer-events: none;
+}
+.card-band > * { pointer-events: auto; }
+.card-band .lower-third,
+.card-band .corner-card,
+.card-band .shape-caption,
+.card-band .ticker {
+  position: static; inset: auto; transform: none; margin: 0; min-width: 0;
+}
+.card-band .lower-third { flex: 1 1 62%; max-width: 680px; max-height: 100%; overflow: hidden; }
+.card-band .lower-third .card-body { font-size: 1em; padding: 0.5em 0.85em; }
+.card-band .lower-third h2 {
+  font-size: 1.25em; margin: 0.15em 0 0.2em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.card-band .lower-third p { -webkit-line-clamp: 2; }
+.card-band .lower-third .metrics { flex-wrap: nowrap; overflow: hidden; margin-top: 0.35em; }
+.card-band .lower-third .metrics li { white-space: nowrap; }
+.card-band .lower-third:hover, .card-band .lower-third:focus-within { max-height: none; }
+.card-band .lower-third:hover h2, .card-band .lower-third:hover p { -webkit-line-clamp: unset; }
+.card-band .corner-card { flex: 0 1 34%; max-width: 34%; max-height: 100%; overflow: hidden; font-size: 0.95em; }
+.card-band .shape-caption { flex: 0 1 auto; font-size: 0.8em; }
+.card-band .ticker { align-self: center; }
+/* Badges ride in the kicker row, so they are never the part that gets cut. */
+.kicker-row { display: flex; align-items: baseline; gap: 0.6em; flex-wrap: wrap; }
+.kicker-row .badges { margin: 0; font-size: 0.65em; }
+.momentum { bottom: 2.5%; }
+@media (max-width: 980px) {
+  .stage { aspect-ratio: auto; height: min(calc((100vw - 32px) * 0.85), 62vh); max-height: none; --cf: clamp(11px, 1.4cqi, 14px); --under: 7%; }
+  .pitch { left: 2%; width: 96%; top: 10%; height: calc(100% - 10% - var(--under) - var(--band) - 6px); }
+  .card-band { left: 2%; right: 2%; }
+  .card-band .corner-card { max-width: 40%; flex-basis: 40%; }
+}
+@media (max-width: 520px) {
+  .stage { height: min(calc(100vw - 32px + 2.2em), 66vh); --cf: 11px; --band: calc(var(--cf) * 10.6); }
+  .pitch { top: 11%; height: calc(100% - 11% - var(--under) - var(--band) - 4px); }
+  .card-band { flex-direction: column; align-items: stretch; justify-content: flex-end; gap: 4px; }
+  .card-band .lower-third { flex: 0 1 auto; max-width: none; }
+  /* One card at a time on a phone: the corner card waits while a lower third shows. */
+  .card-band .lower-third ~ .corner-card { display: none; }
+  .card-band .corner-card { flex: 0 0 auto; max-width: none; }
+  .card-band .corner-card .corner-body { display: none; }
+}

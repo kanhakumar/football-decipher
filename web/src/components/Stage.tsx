@@ -9,21 +9,25 @@ export function Stage({ s, b }: { s: Snapshot; b: Broadcast }) {
       <Pitch s={s} />
       <Scorebug s={s} />
       <LiveChip s={s} />
-      {s.corner && (
-        <aside className="corner-card" key={s.corner.key} lang={s.corner.lang} data-testid="corner-card">
-          <small>{s.corner.kicker}</small>
-          {s.corner.body ? (
-            <>
-              <b>{s.corner.headline}</b>
-              <span className="corner-body">{s.corner.body}</span>
-            </>
-          ) : (
-            s.corner.headline
-          )}
-        </aside>
-      )}
-      {s.shape && <div className="shape-caption">{s.shape.caption}</div>}
-      {s.card && <LowerThird card={s.card} />}
+      {/* The card band under the pitch (ADR-024): cards never cover the play. */}
+      <div className="card-band" data-testid="card-band">
+        {s.card && <LowerThird card={s.card} />}
+        {s.corner && (
+          <aside className="corner-card" key={s.corner.key} lang={s.corner.lang} data-testid="corner-card">
+            <small>{s.corner.kicker}</small>
+            {s.corner.body ? (
+              <>
+                <b>{s.corner.headline}</b>
+                <span className="corner-body">{s.corner.body}</span>
+              </>
+            ) : (
+              s.corner.headline
+            )}
+          </aside>
+        )}
+        {s.shape && <div className="shape-caption">{s.shape.caption}</div>}
+        {!s.card && !s.corner && !s.shape && <div className="ticker">{s.ticker}</div>}
+      </div>
       {s.recap && <LowerThird card={s.recap} recap />}
       {s.momentum && (
         <footer className="momentum" aria-label="Momentum">
@@ -35,7 +39,6 @@ export function Stage({ s, b }: { s: Snapshot; b: Broadcast }) {
           <span className="figures">{s.momentum.figures}</span>
         </footer>
       )}
-      <div className="ticker">{s.ticker}</div>
       {s.prematch && <Prematch s={s} />}
       {s.ready && !s.coreOk && (
         <div className="banner" role="alert">
@@ -158,7 +161,18 @@ export function LowerThird({ card, recap = false }: { card: CardView; recap?: bo
     >
       <div className="stripe" style={{ background: card.away ? "var(--away)" : "var(--home)" }} />
       <div className="card-body">
-        <div className="kicker">{card.kicker}</div>
+        <div className="kicker-row">
+          <div className="kicker">{card.kicker}</div>
+          {card.badges.length > 0 && (
+            <div className="badges">
+              {card.badges.map((x) => (
+                <span key={x.text} className={`badge ${x.cls}`}>
+                  {x.text}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
         <h2>{card.headline}</h2>
         {card.body && <p>{card.body}</p>}
         {card.metrics.length > 0 && (
@@ -173,15 +187,6 @@ export function LowerThird({ card, recap = false }: { card: CardView; recap?: bo
               </li>
             ))}
           </ul>
-        )}
-        {card.badges.length > 0 && (
-          <div className="badges">
-            {card.badges.map((x) => (
-              <span key={x.text} className={`badge ${x.cls}`}>
-                {x.text}
-              </span>
-            ))}
-          </div>
         )}
       </div>
       {card.retracted && <div className="correction">Correction: this moment was withdrawn</div>}

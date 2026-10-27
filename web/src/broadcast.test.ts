@@ -228,3 +228,34 @@ test("the full-time recap shows in its own centre slot at the final whistle, for
   assert.isNull(s.card, "the lower third stays free");
   b.stop();
 });
+
+test("replaying a tactics moment redraws its shape map, even if it passed while you were a casual fan", async () => {
+  const shift = goal({ insight_id: "I_0005", kind: "tactical_shift", importance: 0.58, video_ts_ms: 1_200_000, facts: { after_to_minute: 20 } });
+  const services = fakeServices({ insights: [shift] });
+  const b = await started(services); // casual: no shape maps
+  b.onEnvelope({ match_id: "SYN-154", payload_type: "match_meta", payload: { home_team_id: "T_HOM", away_team_id: "T_AWY" } });
+  b.onCoreOverlay({
+    overlay_id: "O_90000005", match_id: "SYN-154", insight_id: "I_0005", op: "show", type: "shape_map",
+    t_start_ms: 1_200_000, duration_ms: 8000, style: "pitch_overlay",
+    content: { headline: "Northgate FC drop deeper", team_id: "T_HOM", positions: [{ player_id: "P_HOM_09", x: 40, y: 30 }] },
+  } as never);
+  const at = (ms: number) => {
+    b.onEnvelope({ match_id: "SYN-154", payload_type: "event", payload: { event_id: `E_${ms}`, type: "pass", period: 1, period_clock_s: ms / 1000, video_ts_ms: ms, team_id: "T_HOM" } });
+    b.frame();
+  };
+  at(1_201_000);
+  assert.isNull(b.getSnapshot().shape, "a casual fan gets no shape map");
+  wall += 5000; // the map has had its minimum time on screen
+  at(2_400_000); // 40': the map's time is long past
+  b.setSetting("persona", "analyst");
+  await vi.waitFor(() => assert.isTrue(services.calls.some((c) => c.url.endsWith("/api/narrate") && c.body.insight_id === "I_0005")));
+  b.frame();
+  assert.isNull(b.getSnapshot().shape);
+  b.replay("I_0005");
+  b.frame();
+  assert.equal(b.getSnapshot().shape?.caption.split(" · ")[0], "Northgate FC drop deeper");
+  wall += 7000;
+  b.frame();
+  assert.isNull(b.getSnapshot().shape, "the replay ends with the card");
+  b.stop();
+});

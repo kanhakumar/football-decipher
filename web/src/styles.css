@@ -337,3 +337,39 @@ button.link { background: none; color: var(--accent); border: 0; padding: 0; fon
   .recap-card { width: 92%; }
   .recap-card .card-body { font-size: clamp(11px, 3.2cqi, 16px); }
 }
+
+/* The card band (ADR-024): the stage is taller than the pitch needs, and the strip under the
+   pitch holds the cards, side by side, so they never cover the play. The momentum bar runs
+   beneath the band; the ticker fills it when no card is showing. */
+.stage { aspect-ratio: 3 / 2; max-height: calc(100vh - 32px); }
+.pitch { inset: 9% 3% 23% 3%; width: 94%; height: 68%; }
+.card-band {
+  position: absolute; left: 3%; right: 3%; bottom: 6.5%; height: 16%;
+  display: flex; align-items: flex-end; gap: 1.2%; z-index: 2; pointer-events: none;
+}
+.card-band > * { pointer-events: auto; }
+.card-band .lower-third,
+.card-band .corner-card,
+.card-band .shape-caption,
+.card-band .ticker {
+  position: static; inset: auto; transform: none; margin: 0; min-width: 0; max-height: 100%;
+}
+.card-band .lower-third { flex: 1 1 62%; max-width: 680px; overflow: hidden; }
+.card-band .corner-card { flex: 0 1 34%; max-width: 34%; overflow: hidden; }
+.card-band .shape-caption { flex: 0 1 auto; align-self: flex-end; }
+.card-band .ticker { align-self: center; }
+.momentum { bottom: 2.5%; }
+@media (max-width: 980px) {
+  .stage { aspect-ratio: auto; height: min(calc((100vw - 32px) * 0.85), 62vh); max-height: none; }
+  .pitch { inset: 10% 2% 30% 2%; width: 96%; height: 60%; }
+  .card-band { left: 2%; right: 2%; bottom: 7%; height: 22%; }
+  .card-band .corner-card { max-width: 40%; flex-basis: 40%; }
+}
+@media (max-width: 520px) {
+  .stage { height: min(calc(100vw - 32px), 62vh); }
+  .pitch { inset: 11% 2% 43% 2%; height: 46%; }
+  .card-band { height: 34%; flex-direction: column; align-items: stretch; justify-content: flex-end; gap: 4px; }
+  .card-band .lower-third { flex: 1 1 auto; max-width: none; }
+  .card-band .corner-card { flex: 0 0 auto; max-width: none; }
+  .card-band .corner-card .corner-body { display: none; }
+}

@@ -198,6 +198,9 @@ export class Broadcast {
   private clockText = "00:00";
   private correction: { overlay: ShownOverlay; until: number } | null = null;
   private replayed: { overlay: ShownOverlay; until: number } | null = null;
+  /** Shape maps by insight, so a replayed tactics moment redraws its map. */
+  private shapes = new Map<string, ShownOverlay>();
+  private replayedShape: { overlay: ShownOverlay; until: number } | null = null;
   private lastShownLateMs: number | null = null;
   private lastNarration: Moment | null = null;
   private quickMs: number | null = null;
@@ -353,10 +356,14 @@ export class Broadcast {
     this.setSetting("groups", GROUP_NAMES.filter((k) => on.has(k)));
   }
 
-  /** Shows a moment's card again (from the Moments list). */
+  /** Shows a moment's card again (from the Moments list), with its shape map if it has one. */
   replay(insightId: string): void {
     const m = this.moments.get(insightId);
-    if (m?.overlay && !m.retracted) this.replayed = { overlay: m.overlay, until: this.now() + 6000 };
+    if (!m || m.retracted) return;
+    const until = this.now() + 6000;
+    if (m.overlay) this.replayed = { overlay: m.overlay, until };
+    const shape = this.shapes.get(insightId);
+    this.replayedShape = shape ? { overlay: shape, until } : null;
     this.emit();
   }
 
@@ -497,7 +504,8 @@ export class Broadcast {
     this.ball = null;
     this.ticker = "";
     this.clockText = "00:00";
-    this.tag = this.correction = this.replayed = null;
+    this.tag = this.correction = this.replayed = this.replayedShape = null;
+    this.shapes.clear();
   }
 
   async poll(): Promise<void> {
@@ -721,8 +729,10 @@ export class Broadcast {
     if (o.op === "retract") {
       const item = this.queue.retract(o.overlay_id);
       if (item?.wasShowing) this.correction = { overlay: item.overlay, until: this.now() + 4000 };
+      for (const [id, shape] of this.shapes) if (shape.overlay_id === o.overlay_id) this.shapes.delete(id);
       return;
     }
+    if (o.type === "shape_map" && o.insight_id && o.content) this.shapes.set(o.insight_id, o as ShownOverlay);
     if (o.type === "scoreline_update" || o.type === "shape_map") this.queue.put(o);
   }
 
@@ -979,9 +989,9 @@ export class Broadcast {
   }
 
   private shapeView(): ShapeView | null {
-    const item = this.queue.showing("pitch");
-    if (!item || !showsShapeMaps(this.settings.persona || this.view.defaultPersona)) return null;
-    const o = item.overlay;
+    const replay = this.replayedShape && this.now() < this.replayedShape.until ? this.replayedShape.overlay : null;
+    const o = this.queue.showing("pitch")?.overlay ?? replay;
+    if (!o || !showsShapeMaps(this.settings.persona || this.view.defaultPersona)) return null;
     const formation = o.content.formation ? ` · lineup ${o.content.formation}` : "";
     return {
       key: o.overlay_id,

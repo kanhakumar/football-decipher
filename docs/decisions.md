@@ -216,3 +216,11 @@ The pipeline must show a path to real provider data without using any. "synthfee
   - The parity suite plays the demo match to full time and expects it.
 - Eval: the recap counts like any moment of 0.6 and up. The gate now narrates 12 insights in 180 lines.
 
+## ADR-024: Cards live in a band under the pitch (accepted, 2026-10-27)
+- Why: the lower third and the corner card were drawn over the pitch and covered the play: the tracking dots, the ball and the shape maps.
+- The stage gets taller than the pitch needs (3:2 instead of 16:9 on wide screens), so the pitch stays about the same size. The strip under it is the card band.
+- The lower third, the corner card and the shape map's caption sit side by side in the band. The ticker fills the band when no card is showing, and the momentum bar runs beneath it.
+- Stacked layouts (980 px and narrower) give the band 22% of the stage; phones give it 34%, with the cards stacked.
+- The full-time recap stays centred on the pitch: play has stopped.
+- Replay from the Moments list now redraws the moment's shape map with its card. Before, a tactics moment whose map had passed (for example while watching as a casual fan) could never show its map again.
+

@@ -4,6 +4,31 @@ An AI pipeline that turns a live stream of football events into match intelligen
 
 All data is synthetic. All clubs and players are fictional.
 
+## Try it
+
+**Live demo: https://salmon-grass-0c0e3670f.2.azurestaticapps.net** (demo video: https://youtu.be/GZoAWP86ifc)
+
+Sign-in is off during judging. You can still sign in with any Microsoft account to keep your settings.
+
+1. **Start a match** in the Match panel:
+   - **Seed** picks the match. 154 is the demo story: an away counter-attack goal, a home red card, a ten-man equaliser, 2-2. Any other whole number plays a different match.
+   - **Speed**: 10x to 20x is comfortable.
+   - **Delay**: leave the suggested value. It gives the model time to write each line before its moment reaches the screen.
+   - Press **Start**. A countdown shows both teams while the broadcast catches up.
+2. **Watch:** the score and clock, the latest actions on the pitch, the possession bar, and cards in the band under the pitch.
+   - The big card is a big moment. A quick verified template line shows first, and the model's line replaces it in place, marked **Verified**.
+   - The corner card is a smaller moment.
+   - At the final whistle, a recap card sums up the match.
+3. **Make it yours** under Your view:
+   - **Persona:** Casual, Club fan, Player focus, Analyst or Metric focus.
+   - **Language:** English, Hindi or Spanish.
+   - **Favourite club, player or metric.**
+   - Any change re-narrates the cards in place. Analyst and Metric focus also show the team's shape on the pitch.
+4. **Moments:** filter by group, and click a moment to replay its card.
+5. **Latency:** how far ahead of its moment each line was ready.
+
+The live site plays one match that everyone shares, so pressing Start replaces it for anyone watching.
+
 ## The problem
 
 A live match produces thousands of events, and most viewers see only the score and a few replays. The numbers that explain a match (a press that is winning the ball back, a team that has dropped ten metres deeper to protect a lead, the pass that opened the defence) are there in the data but never reach most fans. Analysts want them in full; a casual fan wants the story in plain words.

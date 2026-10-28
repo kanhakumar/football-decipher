@@ -116,7 +116,7 @@ The viewer narrates only what a persona sees. The Verifier rejects xG, PPDA and 
 The numbers follow one match, from Start to a card on screen. Dotted lines are setup and operations, not the match's data.
 
 ```mermaid
-flowchart TB
+flowchart LR
   ui["Viewer's browser (React)"]
   subgraph aca["Azure Container Apps"]
     core["Core: engine + detectors"]
@@ -125,6 +125,7 @@ flowchart TB
   eh["Event Hubs"]
   foundry["Foundry: gpt-5-mini"]
   cosmos[("Cosmos DB")]
+  ops["<b>Setup and operations</b><br/>Static Web Apps: serves the viewer<br/>Entra ID: sign-in<br/>App Configuration: live settings<br/>Key Vault + managed identity: no secrets<br/>Application Insights: traces<br/>GitHub Actions + Container Registry: deploy, eval gate"]
   ui -- "1 Start" --> core
   core -- "2 publish the feed" --> eh
   eh -- "3 consume, in order" --> core
@@ -134,14 +135,6 @@ flowchart TB
   agents -- "7 explain, narrate, translate" --> foundry
   agents -- "8 verified line" --> ui
   core & agents -- "insights, narration cache" --> cosmos
-  subgraph ops["Setup and operations"]
-    swa["Static Web Apps: serves the viewer"]
-    entra["Entra ID: sign-in"]
-    appcs["App Configuration: live settings"]
-    kv["Key Vault + managed identity"]
-    appi["Application Insights: traces"]
-    gh["GitHub Actions + Container Registry: deploy, eval gate"]
-  end
   ops -.-> aca
 ```
 

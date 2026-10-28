@@ -113,24 +113,37 @@ The viewer narrates only what a persona sees. The Verifier rejects xG, PPDA and 
 
 ## On Azure
 
-Each arrow says what the connection is for.
+The numbers follow one match, from Start to a card on screen. Dotted lines are setup and operations, not the match's data.
 
 ```mermaid
 flowchart LR
-  user((Viewer)) -- "static site, global CDN, free tier" --> swa[Static Web Apps<br/>React viewer]
-  user -. "optional sign-in, any Microsoft account" .-> entra[Entra ID]
-  swa -- "SSE: events, insights, overlays" --> core[Container App: core<br/>Scala engine + detectors]
-  swa -- "narrate this moment for my persona" --> agents[Container App: agents<br/>Agent Framework workflow + MCP]
-  job[Container Apps job<br/>generator] -- "a live feed, in order (1 partition)" --> eh[Event Hubs] --> core
-  agents -- "MCP tools only, X-API-Key" --> core
-  agents -- "explain, narrate, translate" --> foundry[Foundry<br/>gpt-5-mini]
-  core -- "insights, overlays survive restarts" --> cosmos[(Cosmos DB serverless)]
+  subgraph browser["Viewer's browser"]
+    ui[React viewer]
+  end
+  swa[Static Web Apps] -. "serves the page files" .-> ui
+  entra[Entra ID] -. "optional sign-in" .-> ui
+  ui -- "1 Start" --> core
+  subgraph aca["Container Apps"]
+    core[Core: engine + detectors]
+    agents[Agents: Agent Framework workflow + MCP server]
+  end
+  core -- "2 publish the feed" --> eh[Event Hubs]
+  eh -- "3 consume, in order" --> core
+  core -- "4 SSE: events, insights, overlays" --> ui
+  ui -- "5 narrate this moment, my persona" --> agents
+  agents -- "6 MCP tools: facts only" --> core
+  agents -- "7 explain, narrate, translate" --> foundry[Foundry: gpt-5-mini]
+  agents -- "8 verified line" --> ui
+  core -- "insights, overlays" --> cosmos[(Cosmos DB)]
   agents -- "narration cache, preferences" --> cosmos
-  appcs[App Configuration] -- "demo settings, no redeploy" --> core
-  kv[Key Vault] -- "API key, no secret in repo" --> core & agents
-  core & agents -- "traces, latency, errors" --> ai[Application Insights]
-  gh[GitHub Actions] -- "OIDC, no stored secret: provision, deploy, eval gate" --> acr[Container Registry] --> core & agents
+  appcs[App Configuration] -. "settings, no redeploy" .-> core
+  kv[Key Vault] -. "API key" .-> aca
+  aca -. "traces" .-> ai[Application Insights]
+  gh[GitHub Actions] -. "build, deploy, eval gate" .-> acr[Container Registry]
+  acr -. "images" .-> aca
 ```
+
+The core can also take a match from the generator job (a Container Apps job that publishes to the same Event Hub), as a separate data provider would. The agents and the viewer read their settings from the core (`/api/config`).
 
 Why each service, need first:
 

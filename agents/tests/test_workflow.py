@@ -1,3 +1,4 @@
+import dataclasses
 import json
 
 import jsonschema
@@ -134,9 +135,23 @@ async def test_results_are_cached_per_insight_persona_and_language(tools, core):
     first = await narrator.narrate(req)
     calls = len(core.requests)
     again = await narrator.narrate(req)
-    assert again is first and len(core.requests) == calls
+    assert again is first
+    assert core.requests[calls:] == ["GET /api/tools/insight/I_0012"], "a hit checks the moment"
     await narrator.narrate(NarrationRequest(insight_id="I_0012", lang="es"))
-    assert len(core.requests) > calls
+    assert len(core.requests) > calls + 1
+
+
+async def test_a_cached_line_for_another_moment_with_the_same_id_is_narrated_again(tools):
+    """The cache outlives deploys, and ids are numbered in detection order: after a detector
+    change, I_0001 named the 11' goal in the cache but the 8' key pass in the match."""
+    narrator = Narrator(tools, StubModel())
+    goal = await narrator.narrate(NarrationRequest(insight_id="I_0002"))
+    req = NarrationRequest(insight_id="I_0001")
+    await narrator.cache.put(dataclasses.replace(goal, request=req))
+    n = await narrator.narrate(req)
+    assert n.sheet.insight.insight_id == "I_0001"
+    assert n.sheet.insight.kind.value == "player_spotlight" and n.line != goal.line
+    assert (await narrator.cache.get(req)) is n, "the fresh line replaces the stale one"
 
 
 async def test_agents_reach_the_core_only_through_small_tool_calls(tools, core):

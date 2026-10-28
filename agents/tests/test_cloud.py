@@ -100,7 +100,7 @@ async def test_the_in_memory_cache_serves_repeats_without_the_core(tools, core):
     first = await Narrator(tools, StubModel(), cache).narrate(req)
     calls = len(core.requests)
     again = await Narrator(tools, StubModel(), cache).narrate(req)  # another replica, same cache
-    assert again is first and len(core.requests) == calls
+    assert again is first and core.requests[calls:] == ["GET /api/tools/insight/I_0012"]
     assert await cache.get(NarrationRequest(insight_id="I_0012")) is None
 
 
@@ -112,7 +112,7 @@ async def test_the_cosmos_cache_shares_lines_across_restarts(tools, core):
     assert (partition, item) == ("I_0024", item_id(req)) and len(item) == 64
     calls = len(core.requests)
     again = await Narrator(tools, StubModel(), CosmosCache(container)).narrate(req)
-    assert again == first and len(core.requests) == calls
+    assert again == first and core.requests[calls:] == ["GET /api/tools/insight/I_0024"]
     assert await CosmosCache(container).get(req.model_copy(update={"lang": "es"})) is None
 
 

@@ -24,6 +24,7 @@ from smi_agents import settings, templates
 from smi_agents.cache import InMemoryCache, NarrationCache
 from smi_agents.facts import StaleRequest, Tools, gather
 from smi_agents.model import Model, Task, system_prompt
+from smi_agents.models.insight import Insight
 from smi_agents.types import FactSheet, Lang, Line, NarrationRequest, Verdict
 from smi_agents.verifier import verify
 
@@ -159,6 +160,14 @@ async def _ask(model: Model, task: Task, payload: dict[str, Any]) -> tuple[Line 
         return None, f"unparseable_reply:{type(e).__name__}"
 
 
+def moment_of(insight: Insight) -> str:
+    """What the moment is, not just its id: ids are numbered in detection order, so a match
+    replayed by another version of the detectors can give an id to a different moment."""
+    d = insight.model_dump(mode="json")
+    keys = ("kind", "why_it_matters", "facts", "evidence_event_ids")
+    return json.dumps({k: d.get(k) for k in keys}, sort_keys=True)
+
+
 async def _gather_for(tools: Tools, req: NarrationRequest) -> FactSheet:
     sheet = await gather(tools, req.insight_id)
     if req.match_id and sheet.insight.match_id != req.match_id:
@@ -189,7 +198,7 @@ class Explain(Executor):
     @handler
     async def run(self, job: Job, ctx: WorkflowContext[Job]) -> None:
         insight = job.sheet.insight
-        key = (insight.match_id, insight.insight_id, templates.is_plain(job.request.persona))
+        key = (insight.match_id, moment_of(insight), templates.is_plain(job.request.persona))
         if key not in self.explanations:
             reply = await self.model.complete("explain", system_prompt("explain"), _payload(job))
             try:
@@ -392,7 +401,7 @@ class Narrator:
         # Concurrent requests for the same line (several viewers) share one workflow run.
         async with self.locks.setdefault(key, asyncio.Lock()):
             cached = await self.cache.get(req)
-            if cached is not None:
+            if cached is not None and await self._still_the_moment(cached):
                 return cached
             result = await build(self.tools, self.model, self.explanations).run(req)
             outputs = result.get_outputs()
@@ -400,6 +409,13 @@ class Narrator:
                 raise RuntimeError(f"narration of {req.insight_id} produced no output")
             await self.cache.put(outputs[-1])
             return outputs[-1]
+
+    async def _still_the_moment(self, cached: Narration) -> bool:
+        """A cached line outlives deploys (Cosmos); use it only if its insight id still names the
+        same moment. A changed moment is narrated again and replaces the cached line."""
+        detail = await self.tools.call("get_insight", {"insight_id": cached.request.insight_id})
+        current = Insight.model_validate(detail["insight"])
+        return moment_of(current) == moment_of(cached.sheet.insight)
 
     async def quick(self, req: NarrationRequest) -> Narration:
         """The template line at once, no model (D4): the card a viewer shows while the model works.

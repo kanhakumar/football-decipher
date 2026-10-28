@@ -116,31 +116,33 @@ The viewer narrates only what a persona sees. The Verifier rejects xG, PPDA and 
 The numbers follow one match, from Start to a card on screen. Dotted lines are setup and operations, not the match's data.
 
 ```mermaid
-flowchart LR
-  subgraph browser["Viewer's browser"]
-    ui[React viewer]
+flowchart TB
+  ui["Viewer's browser (React)"]
+  subgraph aca["Azure Container Apps"]
+    core["Core: engine + detectors"]
+    agents["Agents: Agent Framework + MCP"]
   end
-  swa[Static Web Apps] -. "serves the page files" .-> ui
-  entra[Entra ID] -. "optional sign-in" .-> ui
+  eh["Event Hubs"]
+  foundry["Foundry: gpt-5-mini"]
+  cosmos[("Cosmos DB")]
   ui -- "1 Start" --> core
-  subgraph aca["Container Apps"]
-    core[Core: engine + detectors]
-    agents[Agents: Agent Framework workflow + MCP server]
-  end
-  core -- "2 publish the feed" --> eh[Event Hubs]
+  core -- "2 publish the feed" --> eh
   eh -- "3 consume, in order" --> core
-  core -- "4 SSE: events, insights, overlays" --> ui
-  ui -- "5 narrate this moment, my persona" --> agents
+  core -- "4 SSE: events, insights" --> ui
+  ui -- "5 narrate this moment" --> agents
   agents -- "6 MCP tools: facts only" --> core
-  agents -- "7 explain, narrate, translate" --> foundry[Foundry: gpt-5-mini]
+  agents -- "7 explain, narrate, translate" --> foundry
   agents -- "8 verified line" --> ui
-  core -- "insights, overlays" --> cosmos[(Cosmos DB)]
-  agents -- "narration cache, preferences" --> cosmos
-  appcs[App Configuration] -. "settings, no redeploy" .-> core
-  kv[Key Vault] -. "API key" .-> aca
-  aca -. "traces" .-> ai[Application Insights]
-  gh[GitHub Actions] -. "build, deploy, eval gate" .-> acr[Container Registry]
-  acr -. "images" .-> aca
+  core & agents -- "insights, narration cache" --> cosmos
+  subgraph ops["Setup and operations"]
+    swa["Static Web Apps: serves the viewer"]
+    entra["Entra ID: sign-in"]
+    appcs["App Configuration: live settings"]
+    kv["Key Vault + managed identity"]
+    appi["Application Insights: traces"]
+    gh["GitHub Actions + Container Registry: deploy, eval gate"]
+  end
+  ops -.-> aca
 ```
 
 The core can also take a match from the generator job (a Container Apps job that publishes to the same Event Hub), as a separate data provider would. The agents and the viewer read their settings from the core (`/api/config`).

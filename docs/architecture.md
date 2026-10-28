@@ -113,21 +113,41 @@ The viewer narrates only what a persona sees. The Verifier rejects xG, PPDA and 
 
 ## On Azure
 
+Each arrow says what the connection is for.
+
 ```mermaid
 flowchart LR
-  user((Viewer)) --> swa[Static Web Apps]
-  user -- sign-in --> entra[Entra ID]
-  swa --> core[Container App: core]
-  swa --> agents[Container App: agents]
-  job[Container Apps job: generator] --> eh[Event Hubs] --> core
-  agents -- X-API-Key --> core
-  agents --> foundry[Foundry: gpt-5-mini]
-  core --> cosmos[(Cosmos DB serverless)]
-  agents --> cosmos
-  core --> appcs[App Configuration]
-  core & agents --> kv[Key Vault]
-  core & agents --> ai[Application Insights]
+  user((Viewer)) -- "static site, global CDN, free tier" --> swa[Static Web Apps<br/>React viewer]
+  user -. "optional sign-in, any Microsoft account" .-> entra[Entra ID]
+  swa -- "SSE: events, insights, overlays" --> core[Container App: core<br/>Scala engine + detectors]
+  swa -- "narrate this moment for my persona" --> agents[Container App: agents<br/>Agent Framework workflow + MCP]
+  job[Container Apps job<br/>generator] -- "a live feed, in order (1 partition)" --> eh[Event Hubs] --> core
+  agents -- "MCP tools only, X-API-Key" --> core
+  agents -- "explain, narrate, translate" --> foundry[Foundry<br/>gpt-5-mini]
+  core -- "insights, overlays survive restarts" --> cosmos[(Cosmos DB serverless)]
+  agents -- "narration cache, preferences" --> cosmos
+  appcs[App Configuration] -- "demo settings, no redeploy" --> core
+  kv[Key Vault] -- "API key, no secret in repo" --> core & agents
+  core & agents -- "traces, latency, errors" --> ai[Application Insights]
+  gh[GitHub Actions] -- "OIDC, no stored secret: provision, deploy, eval gate" --> acr[Container Registry] --> core & agents
 ```
+
+Why each service, need first:
+
+| Service | Need | Why this one |
+|---|---|---|
+| Container Apps | A long-running streaming service (the core, with SSE) and a Python agent service | Containers that scale with the load and no servers to manage. The generator is a Container Apps job: it runs once per match and stops. |
+| Event Hubs | A match feed that arrives from somewhere else, as a real provider's would | It separates the generator from the core, so the core consumes a live stream, not a file. One partition keeps a run in order. |
+| Microsoft Foundry | A model for explaining, narrating and translating, and judged evaluations | One project holds the gpt-5-mini deployment and the evaluators that gate every deploy. |
+| Microsoft Agent Framework and MCP | A workflow with a verify-and-retry loop, and data access the model can't widen | A workflow graph rather than one prompt; MCP tools are the only way the agents reach match data. |
+| Cosmos DB (serverless) | Small JSON documents: insights, overlays, the shared narration cache, preferences | Serverless costs nothing while no match is playing. |
+| Static Web Apps | A static React viewer | Served from a global CDN on the free tier. |
+| App Configuration | Change the demo during judging (speed, sign-in, moment tiers, reasoning effort) | Changes apply within about 2.5 minutes without a 30-minute redeploy. |
+| Entra ID | People sign in without the app holding a password | Any work, school or personal Microsoft account. Services use a key instead. |
+| Key Vault and managed identity | No secrets in the repo or app settings | The one API key lives in Key Vault; the apps reach every Azure service by identity with only the roles they need. |
+| Application Insights | See latency and errors across both services | Traces for the core (Java agent) and the agents (OpenTelemetry); this is how slow narrations were found and fixed. |
+| Container Registry | Somewhere to keep the images the apps run | The apps pull with their managed identity, no registry password. |
+| GitHub Actions, azd and Bicep | The whole environment as code, and deploys that prove themselves | Azure trusts only the release branch (OIDC); the online eval gate decides whether a version gets a tag. |
 
 - **Identity.** One user-assigned managed identity holds only the roles it needs. Local auth is off where the service allows it. The API key lives in Key Vault and reaches the apps as a Container Apps secret.
 - **Access.** People sign in with Entra ID and send a token. Services send the API key. `/health`, `/openapi.yaml` and `/api/config` stay public. Sign-in can be switched off in App Configuration for an open demo.
